@@ -93,7 +93,7 @@ def nhl_ai(game_data):
   client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
   db = client['hockey']
   Players = db['dev_players']
-  Teams = db['dev_teams']
+  # Teams = db['dev_teams']
 
   game = game_data
 

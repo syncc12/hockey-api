@@ -2,9 +2,33 @@ from flask import Flask, request, jsonify, Response
 import joblib
 import requests
 from process import nhl_ai
+import boto3
+import io
+
+def loadModelFromS3(bucket_name, model_key):
+  s3 = boto3.resource('s3')
+  with io.BytesIO() as data:
+    s3.Bucket(bucket_name).download_fileobj(model_key, data)
+    data.seek(0)    # move back to the beginning after writing
+    df = joblib.load(data)
+  return df
+    
+
+def load_model_from_s3(bucket_name, model_key):
+    s3 = boto3.client('s3')
+    response = s3.get_object(Bucket=bucket_name, Key=model_key)
+    model_str = response['Body'].read()
+
+    model = joblib.load(io.BytesIO(model_str))
+    return model
+
+# Example usage
+bucket_name = 'hockey-prl'
+model_key = 'models/nhl_ai.joblib'
+model = loadModelFromS3(bucket_name, model_key)
 
 # Load your trained model
-model = joblib.load('nhl_ai.joblib')
+# model = joblib.load('nhl_ai.joblib')
 
 def ai(game_data):
   data = nhl_ai(game_data)
@@ -85,6 +109,16 @@ def predict_week():
 
   return jsonify(games)
 
+@app.route('/nhl/<date>', methods=['GET'])
+def date_predict(date):
+  res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+
+  day = request.args.get('day', default=1, type=int)
+  game = request.args.get('game', default=1, type=int)
+  game_data = res['gameWeek'][int(day)-1]['games'][int(game)-1]
+
+  return ai(game_data)
+
 @app.route('/now', methods=['GET'])
 def now():
   res = requests.get("https://api-web.nhle.com/v1/schedule/now").json()
@@ -95,8 +129,25 @@ def now():
         'gameId': game['id'],
         'date': day['date'],
         'day': day['dayAbbrev'],
-        'index': f'{i+1}-{j+1}',
-        'query': f'?day={i+1}&game={j+1}',
+        'index': f'{j+1}-{i+1}',
+        'query': f'?day={j+1}&game={i+1}',
+        'homeTeam': game['homeTeam']['placeName']['default'],
+        'awayTeam': game['awayTeam']['placeName']['default'],
+      })
+  return games
+
+@app.route('/<date>', methods=['GET'])
+def game_date(date):
+  res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+  games = []
+  for j, day in enumerate(res['gameWeek']):
+    for i, game in enumerate(day['games']):
+      games.append({
+        'gameId': game['id'],
+        'date': day['date'],
+        'day': day['dayAbbrev'],
+        'index': f'{j+1}-{i+1}',
+        'query': f'?day={j+1}&game={i+1}',
         'homeTeam': game['homeTeam']['placeName']['default'],
         'awayTeam': game['awayTeam']['placeName']['default'],
       })
