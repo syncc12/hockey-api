@@ -33,6 +33,20 @@ model = loadModelFromS3(bucket_name, model_key)
 def ai(game_data):
   data = nhl_ai(game_data)
 
+  if len(data[0]) == 0:
+    return {
+    'gameId': data['game_id'],
+    'homeId': homeId,
+    'awayId': awayId,
+    'homeTeam': homeTeam,
+    'awayTeam': awayTeam,
+    'winnerId': -1,
+    'winningTeam': -1,
+    'homeScore': -1,
+    'awayScore': -1,
+    'offset': -1,
+  }
+
   prediction = model.predict(data['data'])
 
   winnerId = int(prediction[0][2])
@@ -45,10 +59,13 @@ def ai(game_data):
 
   if abs(winnerId - homeId) < abs(winnerId - awayId):
     winningTeam = homeTeam
+    offset = abs(winnerId - homeId)
   elif abs(winnerId - homeId) > abs(winnerId - awayId):
     winningTeam = awayTeam
+    offset = abs(winnerId - awayId)
   else:
     winningTeam = 'Inconclusive'
+    offset = -1
 
   return {
     'gameId': data['game_id'],
@@ -60,6 +77,7 @@ def ai(game_data):
     'winningTeam': winningTeam,
     'homeScore': homeScore,
     'awayScore': awayScore,
+    'offset': offset,
   }
 
 

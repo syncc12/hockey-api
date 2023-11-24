@@ -101,7 +101,19 @@ def nhl_ai(game_data):
   # boxscore2 = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game2['id']}/boxscore").json()
 
   boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
-  pbgs = boxscore['boxscore']['playerByGameStats']
+  pbgs = safe_chain(boxscore,'boxscore','playerByGameStats')
+  if not pbgs:
+    return {
+      'data': {
+        'data': [[]],
+        'game_id': game['id'],
+        'home_team_id': game['homeTeam']['id'],
+        'away_team_id': game['awayTeam']['id'],
+        'home_team': game['homeTeam']['placeName']['default'],
+        'away_team': game['awayTeam']['placeName']['default'],
+      },
+      'message': 'no boxscore for team',
+    }
   af = [p['playerId'] for p in pbgs['awayTeam']['forwards'] if 'playerId' in p]
   ad = [p['playerId'] for p in pbgs['awayTeam']['defense'] if 'playerId' in p]
   ag = [p['playerId'] for p in pbgs['awayTeam']['goalies'] if 'playerId' in p]
@@ -398,10 +410,13 @@ def nhl_ai(game_data):
                  homeThirdGoalieCatches,homeThirdGoalieAge,homeThirdGoalieHeight,
                  homeThirdGoalieWeight]]
   return {
-    'data': check_data,
-    'game_id': id,
-    'home_team_id': homeTeam,
-    'away_team_id': awayTeam,
-    'home_team': game['homeTeam']['placeName']['default'],
-    'away_team': game['awayTeam']['placeName']['default'],
+    'data': {
+      'data': check_data,
+      'game_id': id,
+      'home_team_id': homeTeam,
+      'away_team_id': awayTeam,
+      'home_team': game['homeTeam']['placeName']['default'],
+      'away_team': game['awayTeam']['placeName']['default'],
+    },
+    'message': '',
   }
