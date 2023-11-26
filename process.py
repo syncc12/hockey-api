@@ -1,8 +1,8 @@
 import requests
 from pymongo import MongoClient
 import math
-from joblib import load
 from datetime import datetime
+import os
 
 REPLACE_VALUE = -1
 
@@ -37,12 +37,17 @@ def getAge(player, game_date):
     if isNaN(player) or isNaN(game_date):
       return REPLACE_VALUE
     birthday = player['birthDate']
-    b_year, b_month, b_day = map(int, birthday.split('-'))
-    g_year, g_month, g_day = map(int, game_date.split('-'))
+    bd_split = str(birthday).split('-')
+    b_year = int(bd_split[0])
+    b_month = int(bd_split[1])
+    b_day = int(bd_split[2])
+    g_year = int(str(game_date)[0:4])
+    g_month = int(str(game_date)[4:6])
+    g_day = int(str(game_date)[6:8])
+    # g_year, g_month, g_day = map(int, str(game_date).split('-'))
     age = g_year - b_year
     if (b_month > g_month) or (b_month == g_month and b_day > g_day):
       age -= 1
-
     return age
 
   except Exception as error:
@@ -56,10 +61,19 @@ def getPlayerData (players, player_id):
 
 def safe_chain(obj, *keys, default=REPLACE_VALUE):
   for key in keys:
-    try:
-      obj = getattr(obj, key, default) if hasattr(obj, key) else obj[key]
-    except (KeyError, TypeError, AttributeError):
+    if key == default:
       return default
+    else:
+      if type(key) == int:
+        if len(obj) > key:
+          obj = obj[key]
+        else:
+          return default
+      else:
+        try:
+          obj = getattr(obj, key, default) if hasattr(obj, key) else obj[key]
+        except (KeyError, TypeError, AttributeError):
+          return default
   return obj
 
 def false_chain(obj, *keys, default=False):
@@ -72,15 +86,22 @@ def false_chain(obj, *keys, default=False):
 
 def getPlayer(allPlayers,playerId):
   if not isNaN(allPlayers) and not isNaN(playerId):
-    return [p for p in allPlayers if p['playerId'] == playerId]
+    playerData = [p for p in allPlayers if p['playerId'] == playerId]
+    if len(playerData) > 0:  
+      return playerData[0]
+    else:
+      return playerData
   else:
     return REPLACE_VALUE
 
 def format_start_time(game):
+  # print('startTimeUTC',game['startTimeUTC'])
   startTime = REPLACE_VALUE
   if 'startTimeUTC' in game and game['startTimeUTC']:
     st = datetime.strptime(game['startTimeUTC'], "%Y-%m-%dT%H:%M:%SZ")  # Adjust the format if necessary
+    # print('st',st)
     startTime = int(f"{st.hour}{st.minute:02d}")
+    # print('startTime',startTime)
   return startTime
 
 def format_game_date(game):
@@ -90,51 +111,82 @@ def format_game_date(game):
   return date
 
 def nhl_ai(game_data):
-  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+  db_username = os.getenv('DB_USERNAME')
+  db_name = os.getenv('DB_NAME')
+  db_password = os.getenv('DB_PASSWORD')
+  db_url = f"mongodb+srv://{db_username}:{db_password}@{db_name}"
+  client = MongoClient(db_url)
   db = client['hockey']
   Players = db['dev_players']
-  # Teams = db['dev_teams']
 
   game = game_data
 
-  # boxscore1 = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game1['id']}/boxscore").json()
-  # boxscore2 = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game2['id']}/boxscore").json()
 
   boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
-  pbgs = safe_chain(boxscore,'boxscore','playerByGameStats')
-  if not pbgs:
+  check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
+  if not check_pbgs:
     return {
       'data': {
         'data': [[]],
+        'date': -1,
         'game_id': game['id'],
-        'home_team_id': game['homeTeam']['id'],
-        'away_team_id': game['awayTeam']['id'],
-        'home_team': game['homeTeam']['placeName']['default'],
-        'away_team': game['awayTeam']['placeName']['default'],
+        'home_team': {
+          'id': game['homeTeam']['id'],
+          'city': game['homeTeam']['placeName']['default'],
+          'name': -1,
+          'abbreviation': -1,
+        },
+        'away_team': {
+          'id': game['awayTeam']['id'],
+          'city': game['awayTeam']['placeName']['default'],
+          'name': -1,
+          'abbreviation': -1,
+        },
+        'live': {
+          'home_score': -1,
+          'away_score': -1,
+          'period': 0,
+          'clock': 0,
+          'stopped': True,
+          'intermission': False,
+        },
       },
-      'message': 'no boxscore for team',
+      'message': 'no boxscore for game',
     }
-  af = [p['playerId'] for p in pbgs['awayTeam']['forwards'] if 'playerId' in p]
-  ad = [p['playerId'] for p in pbgs['awayTeam']['defense'] if 'playerId' in p]
-  ag = [p['playerId'] for p in pbgs['awayTeam']['goalies'] if 'playerId' in p]
-  hf = [p['playerId'] for p in pbgs['homeTeam']['forwards'] if 'playerId' in p]
-  hd = [p['playerId'] for p in pbgs['homeTeam']['defense'] if 'playerId' in p]
-  hg = [p['playerId'] for p in pbgs['homeTeam']['goalies'] if 'playerId' in p]
+  pbgs = boxscore['boxscore']['playerByGameStats']
+  af = [{'id':p['playerId'],'position':p['position']} for p in pbgs['awayTeam']['forwards'] if 'playerId' in p]
+  ad = [{'id':p['playerId'],'position':p['position']} for p in pbgs['awayTeam']['defense'] if 'playerId' in p]
+  ag = [{'id':p['playerId'],'position':p['position']} for p in pbgs['awayTeam']['goalies'] if 'playerId' in p]
+  hf = [{'id':p['playerId'],'position':p['position']} for p in pbgs['homeTeam']['forwards'] if 'playerId' in p]
+  hd = [{'id':p['playerId'],'position':p['position']} for p in pbgs['homeTeam']['defense'] if 'playerId' in p]
+  hg = [{'id':p['playerId'],'position':p['position']} for p in pbgs['homeTeam']['goalies'] if 'playerId' in p]
   a = []
-  for p in af: a.append({'playerId':p})
-  for p in ad: a.append({'playerId':p})
-  for p in ag: a.append({'playerId':p})
-  for p in hf: a.append({'playerId':p})
-  for p in hd: a.append({'playerId':p})
-  for p in hg: a.append({'playerId':p})
+  for p in af: a.append({'playerId':p['id']})
+  for p in ad: a.append({'playerId':p['id']})
+  for p in ag: a.append({'playerId':p['id']})
+  for p in hf: a.append({'playerId':p['id']})
+  for p in hd: a.append({'playerId':p['id']})
+  for p in hg: a.append({'playerId':p['id']})
 
-  players = Players.find(
+  positions = {}
+  for p in af: positions[p['id']] = p['position']
+  for p in ad: positions[p['id']] = p['position']
+  for p in ag: positions[p['id']] = p['position']
+  for p in hf: positions[p['id']] = p['position']
+  for p in hd: positions[p['id']] = p['position']
+  for p in hg: positions[p['id']] = p['position']
+
+
+  players = list(Players.find(
     {'$or': a},
     {'_id':0, 'playerId':1, 'shootsCatches':1, 'birthDate': 1, 'position': 1}
-  )
+  ))
 
-  gameDate = format_game_date(game)
-  gameStartTime = format_start_time(game)
+  # print('awayForward1',af[0])
+  # print('get awayForward1',safe_chain(af,0,'id'))
+
+  gameDate = format_game_date(boxscore)
+  gameStartTime = format_start_time(boxscore)
 
   id = game['id']
   season = game['season']
@@ -153,196 +205,196 @@ def nhl_ai(game_data):
   ref2 = n2n(boxscore['boxscore']['gameInfo']['referees'][1]['default'])
   linesman1 = n2n(boxscore['boxscore']['gameInfo']['linesmen'][0]['default'])
   linesman1 = n2n(boxscore['boxscore']['gameInfo']['linesmen'][1]['default'])
-  awayForward1 = safe_chain(af,0)
-  awayForward1Position = safe_chain(getPlayer(players, safe_chain(af,0)),'position')
-  awayForward1Age = getAge(getPlayer(players, safe_chain(af,0)),gameDate)
-  awayForward1Shoots = safe_chain(getPlayer(players, safe_chain(af,0)),'shootsCatches')
-  awayForward2 = safe_chain(af,1)
-  awayForward2Position = safe_chain(getPlayer(players, safe_chain(af,1)),'position')
-  awayForward2Age = getAge(getPlayer(players, safe_chain(af,1)),gameDate)
-  awayForward2Shoots = safe_chain(getPlayer(players, safe_chain(af,1)),'shootsCatches')
-  awayForward3 = safe_chain(af,2)
-  awayForward3Position = safe_chain(getPlayer(players, safe_chain(af,2)),'position')
-  awayForward3Age = getAge(getPlayer(players, safe_chain(af,2)),gameDate)
-  awayForward3Shoots = safe_chain(getPlayer(players, safe_chain(af,2)),'shootsCatches')
-  awayForward4 = safe_chain(af,3)
-  awayForward4Position = safe_chain(getPlayer(players, safe_chain(af,3)),'position')
-  awayForward4Age = getAge(getPlayer(players, safe_chain(af,3)),gameDate)
-  awayForward4Shoots = safe_chain(getPlayer(players, safe_chain(af,3)),'shootsCatches')
-  awayForward5 = safe_chain(af,4)
-  awayForward5Position = safe_chain(getPlayer(players, safe_chain(af,4)),'position')
-  awayForward5Age = getAge(getPlayer(players, safe_chain(af,4)),gameDate)
-  awayForward5Shoots = safe_chain(getPlayer(players, safe_chain(af,4)),'shootsCatches')
-  awayForward6 = safe_chain(af,5)
-  awayForward6Position = safe_chain(getPlayer(players, safe_chain(af,5)),'position')
-  awayForward6Age = getAge(getPlayer(players, safe_chain(af,5)),gameDate)
-  awayForward6Shoots = safe_chain(getPlayer(players, safe_chain(af,5)),'shootsCatches')
-  awayForward7 = safe_chain(af,6)
-  awayForward7Position = safe_chain(getPlayer(players, safe_chain(af,6)),'position')
-  awayForward7Age = getAge(getPlayer(players, safe_chain(af,6)),gameDate)
-  awayForward7Shoots = safe_chain(getPlayer(players, safe_chain(af,6)),'shootsCatches')
-  awayForward8 = safe_chain(af,7)
-  awayForward8Position = safe_chain(getPlayer(players, safe_chain(af,7)),'position')
-  awayForward8Age = getAge(getPlayer(players, safe_chain(af,7)),gameDate)
-  awayForward8Shoots = safe_chain(getPlayer(players, safe_chain(af,7)),'shootsCatches')
-  awayForward9 = safe_chain(af,8)
-  awayForward9Position = safe_chain(getPlayer(players, safe_chain(af,8)),'position')
-  awayForward9Age = getAge(getPlayer(players, safe_chain(af,8)),gameDate)
-  awayForward9Shoots = safe_chain(getPlayer(players, safe_chain(af,8)),'shootsCatches')
-  awayForward10 = safe_chain(af,9)
-  awayForward10Position = safe_chain(getPlayer(players, safe_chain(af,9)),'position')
-  awayForward10Age = getAge(getPlayer(players, safe_chain(af,9)),gameDate)
-  awayForward10Shoots = safe_chain(getPlayer(players, safe_chain(af,9)),'shootsCatches')
-  awayForward11 = safe_chain(af,10)
-  awayForward11Position = safe_chain(getPlayer(players, safe_chain(af,10)),'position')
-  awayForward11Age = getAge(getPlayer(players, safe_chain(af,10)),gameDate)
-  awayForward11Shoots = safe_chain(getPlayer(players, safe_chain(af,10)),'shootsCatches')
-  awayForward12 = safe_chain(af,11)
-  awayForward12Position = safe_chain(getPlayer(players, safe_chain(af,11)),'position')
-  awayForward12Age = getAge(getPlayer(players, safe_chain(af,11)),gameDate)
-  awayForward12Shoots = safe_chain(getPlayer(players, safe_chain(af,11)),'shootsCatches')
-  awayForward13 = safe_chain(af,12)
-  awayForward13Position = safe_chain(getPlayer(players, safe_chain(af,12)),'position')
-  awayForward13Age = getAge(getPlayer(players, safe_chain(af,12)),gameDate)
-  awayForward13Shoots = safe_chain(getPlayer(players, safe_chain(af,12)),'shootsCatches')
-  awayDefenseman1 = safe_chain(ad,0)
-  awayDefenseman1Position = safe_chain(getPlayer(players, safe_chain(ad,0)),'position')
-  awayDefenseman1Age = getAge(getPlayer(players, safe_chain(ad,0)),gameDate)
-  awayDefenseman1Shoots = safe_chain(getPlayer(players, safe_chain(ad,0)),'shootsCatches')
-  awayDefenseman2 = safe_chain(ad,1)
-  awayDefenseman2Position = safe_chain(getPlayer(players, safe_chain(ad,1)),'position')
-  awayDefenseman2Age = getAge(getPlayer(players, safe_chain(ad,1)),gameDate)
-  awayDefenseman2Shoots = safe_chain(getPlayer(players, safe_chain(ad,1)),'shootsCatches')
-  awayDefenseman3 = safe_chain(ad,2)
-  awayDefenseman3Position = safe_chain(getPlayer(players, safe_chain(ad,2)),'position')
-  awayDefenseman3Age = getAge(getPlayer(players, safe_chain(ad,2)),gameDate)
-  awayDefenseman3Shoots = safe_chain(getPlayer(players, safe_chain(ad,2)),'shootsCatches')
-  awayDefenseman4 = safe_chain(ad,3)
-  awayDefenseman4Position = safe_chain(getPlayer(players, safe_chain(ad,3)),'position')
-  awayDefenseman4Age = getAge(getPlayer(players, safe_chain(ad,3)),gameDate)
-  awayDefenseman4Shoots = safe_chain(getPlayer(players, safe_chain(ad,3)),'shootsCatches')
-  awayDefenseman5 = safe_chain(ad,4)
-  awayDefenseman5Position = safe_chain(getPlayer(players, safe_chain(ad,4)),'position')
-  awayDefenseman5Age = getAge(getPlayer(players, safe_chain(ad,4)),gameDate)
-  awayDefenseman5Shoots = safe_chain(getPlayer(players, safe_chain(ad,4)),'shootsCatches')
-  awayDefenseman6 = safe_chain(ad,5)
-  awayDefenseman6Position = safe_chain(getPlayer(players, safe_chain(ad,5)),'position')
-  awayDefenseman6Age = getAge(getPlayer(players, safe_chain(ad,5)),gameDate)
-  awayDefenseman6Shoots = safe_chain(getPlayer(players, safe_chain(ad,5)),'shootsCatches')
-  awayDefenseman7 = safe_chain(ad,6)
-  awayDefenseman7Position = safe_chain(getPlayer(players, safe_chain(ad,6)),'position')
-  awayDefenseman7Age = getAge(getPlayer(players, safe_chain(ad,6)),gameDate)
-  awayDefenseman7Shoots = safe_chain(getPlayer(players, safe_chain(ad,6)),'shootsCatches')
-  awayStartingGoalie = safe_chain(ag,0)
-  awayStartingGoalieCatches = safe_chain(getPlayer(players, safe_chain(ag,0)),'shootsCatches')
-  awayStartingGoalieAge = getAge(getPlayer(players, safe_chain(ag,0)),gameDate)
-  awayStartingGoalieHeight = safe_chain(getPlayer(players, safe_chain(ag,0)),'heightInInches')
-  awayStartingGoalieWeight = safe_chain(getPlayer(players, safe_chain(ag,0)),'weightInPounds')
-  awayBackupGoalie = safe_chain(ag,1)
-  awayBackupGoalieCatches = safe_chain(getPlayer(players, safe_chain(ag,1)),'shootsCatches')
-  awayBackupGoalieAge = getAge(getPlayer(players, safe_chain(ag,1)),gameDate)
-  awayBackupGoalieHeight = safe_chain(getPlayer(players, safe_chain(ag,1)),'heightInInches')
-  awayBackupGoalieWeight = safe_chain(getPlayer(players, safe_chain(ag,1)),'weightInPounds')
-  awayThirdGoalie = safe_chain(ag,2)
-  awayThirdGoalieCatches = safe_chain(getPlayer(players, safe_chain(ag,2)),'shootsCatches')
-  awayThirdGoalieAge = getAge(getPlayer(players, safe_chain(ag,2)),gameDate)
-  awayThirdGoalieHeight = safe_chain(getPlayer(players, safe_chain(ag,2)),'heightInInches')
-  awayThirdGoalieWeight = safe_chain(getPlayer(players, safe_chain(ag,2)),'weightInPounds')
-  homeForward1 = safe_chain(hf,0)
-  homeForward1Position = safe_chain(getPlayer(players, safe_chain(hf,0)),'position')
-  homeForward1Age = getAge(getPlayer(players, safe_chain(hf,0)),gameDate)
-  homeForward1Shoots = safe_chain(getPlayer(players, safe_chain(hf,0)),'shootsCatches')
-  homeForward2 = safe_chain(hf,1)
-  homeForward2Position = safe_chain(getPlayer(players, safe_chain(hf,1)),'position')
-  homeForward2Age = getAge(getPlayer(players, safe_chain(hf,1)),gameDate)
-  homeForward2Shoots = safe_chain(getPlayer(players, safe_chain(hf,1)),'shootsCatches')
-  homeForward3 = safe_chain(hf,2)
-  homeForward3Position = safe_chain(getPlayer(players, safe_chain(hf,2)),'position')
-  homeForward3Age = getAge(getPlayer(players, safe_chain(hf,2)),gameDate)
-  homeForward3Shoots = safe_chain(getPlayer(players, safe_chain(hf,2)),'shootsCatches')
-  homeForward4 = safe_chain(hf,3)
-  homeForward4Position = safe_chain(getPlayer(players, safe_chain(hf,3)),'position')
-  homeForward4Age = getAge(getPlayer(players, safe_chain(hf,3)),gameDate)
-  homeForward4Shoots = safe_chain(getPlayer(players, safe_chain(hf,3)),'shootsCatches')
-  homeForward5 = safe_chain(hf,4)
-  homeForward5Position = safe_chain(getPlayer(players, safe_chain(hf,4)),'position')
-  homeForward5Age = getAge(getPlayer(players, safe_chain(hf,4)),gameDate)
-  homeForward5Shoots = safe_chain(getPlayer(players, safe_chain(hf,4)),'shootsCatches')
-  homeForward6 = safe_chain(hf,5)
-  homeForward6Position = safe_chain(getPlayer(players, safe_chain(hf,5)),'position')
-  homeForward6Age = getAge(getPlayer(players, safe_chain(hf,5)),gameDate)
-  homeForward6Shoots = safe_chain(getPlayer(players, safe_chain(hf,5)),'shootsCatches')
-  homeForward7 = safe_chain(hf,6)
-  homeForward7Position = safe_chain(getPlayer(players, safe_chain(hf,6)),'position')
-  homeForward7Age = getAge(getPlayer(players, safe_chain(hf,6)),gameDate)
-  homeForward7Shoots = safe_chain(getPlayer(players, safe_chain(hf,6)),'shootsCatches')
-  homeForward8 = safe_chain(hf,7)
-  homeForward8Position = safe_chain(getPlayer(players, safe_chain(hf,7)),'position')
-  homeForward8Age = getAge(getPlayer(players, safe_chain(hf,7)),gameDate)
-  homeForward8Shoots = safe_chain(getPlayer(players, safe_chain(hf,7)),'shootsCatches')
-  homeForward9 = safe_chain(hf,8)
-  homeForward9Position = safe_chain(getPlayer(players, safe_chain(hf,8)),'position')
-  homeForward9Age = getAge(getPlayer(players, safe_chain(hf,8)),gameDate)
-  homeForward9Shoots = safe_chain(getPlayer(players, safe_chain(hf,8)),'shootsCatches')
-  homeForward10 = safe_chain(hf,9)
-  homeForward10Position = safe_chain(getPlayer(players, safe_chain(hf,9)),'position')
-  homeForward10Age = getAge(getPlayer(players, safe_chain(hf,9)),gameDate)
-  homeForward10Shoots = safe_chain(getPlayer(players, safe_chain(hf,9)),'shootsCatches')
-  homeForward11 = safe_chain(hf,10)
-  homeForward11Position = safe_chain(getPlayer(players, safe_chain(hf,10)),'position')
-  homeForward11Age = getAge(getPlayer(players, safe_chain(hf,10)),gameDate)
-  homeForward11Shoots = safe_chain(getPlayer(players, safe_chain(hf,10)),'shootsCatches')
-  homeForward12 = safe_chain(hf,11)
-  homeForward12Position = safe_chain(getPlayer(players, safe_chain(hf,11)),'position')
-  homeForward12Age = getAge(getPlayer(players, safe_chain(hf,11)),gameDate)
-  homeForward12Shoots = safe_chain(getPlayer(players, safe_chain(hf,11)),'shootsCatches')
-  homeForward13 = safe_chain(hf,12)
-  homeForward13Position = safe_chain(getPlayer(players, safe_chain(hf,12)),'position')
-  homeForward13Age = getAge(getPlayer(players, safe_chain(hf,12)),gameDate)
-  homeForward13Shoots = safe_chain(getPlayer(players, safe_chain(hf,12)),'shootsCatches')
-  homeDefenseman1 = safe_chain(hd,0)
-  homeDefenseman1Position = safe_chain(getPlayer(players, safe_chain(hd,0)),'position')
-  homeDefenseman1Age = getAge(getPlayer(players, safe_chain(hd,0)),gameDate)
-  homeDefenseman1Shoots = safe_chain(getPlayer(players, safe_chain(hd,0)),'shootsCatches')
-  homeDefenseman2 = safe_chain(hd,1)
-  homeDefenseman2Position = safe_chain(getPlayer(players, safe_chain(hd,1)),'position')
-  homeDefenseman2Age = getAge(getPlayer(players, safe_chain(hd,1)),gameDate)
-  homeDefenseman2Shoots = safe_chain(getPlayer(players, safe_chain(hd,1)),'shootsCatches')
-  homeDefenseman3 = safe_chain(hd,2)
-  homeDefenseman3Position = safe_chain(getPlayer(players, safe_chain(hd,2)),'position')
-  homeDefenseman3Age = getAge(getPlayer(players, safe_chain(hd,2)),gameDate)
-  homeDefenseman3Shoots = safe_chain(getPlayer(players, safe_chain(hd,2)),'shootsCatches')
-  homeDefenseman4 = safe_chain(hd,3)
-  homeDefenseman4Position = safe_chain(getPlayer(players, safe_chain(hd,3)),'position')
-  homeDefenseman4Age = getAge(getPlayer(players, safe_chain(hd,3)),gameDate)
-  homeDefenseman4Shoots = safe_chain(getPlayer(players, safe_chain(hd,3)),'shootsCatches')
-  homeDefenseman5 = safe_chain(hd,4)
-  homeDefenseman5Position = safe_chain(getPlayer(players, safe_chain(hd,4)),'position')
-  homeDefenseman5Age = getAge(getPlayer(players, safe_chain(hd,4)),gameDate)
-  homeDefenseman5Shoots = safe_chain(getPlayer(players, safe_chain(hd,4)),'shootsCatches')
-  homeDefenseman6 = safe_chain(hd,5)
-  homeDefenseman6Position = safe_chain(getPlayer(players, safe_chain(hd,5)),'position')
-  homeDefenseman6Age = getAge(getPlayer(players, safe_chain(hd,5)),gameDate)
-  homeDefenseman6Shoots = safe_chain(getPlayer(players, safe_chain(hd,5)),'shootsCatches')
-  homeDefenseman7 = safe_chain(hd,6)
-  homeDefenseman7Position = safe_chain(getPlayer(players, safe_chain(hd,6)),'position')
-  homeDefenseman7Age = getAge(getPlayer(players, safe_chain(hd,6)),gameDate)
-  homeDefenseman7Shoots = safe_chain(getPlayer(players, safe_chain(hd,6)),'shootsCatches')
-  homeStartingGoalie = safe_chain(hg,0)
-  homeStartingGoalieCatches = safe_chain(getPlayer(players, safe_chain(hg,0)),'shootsCatches')
-  homeStartingGoalieAge = getAge(getPlayer(players, safe_chain(hg,0)),gameDate)
-  homeStartingGoalieHeight = safe_chain(getPlayer(players, safe_chain(hg,0)),'heightInInches')
-  homeStartingGoalieWeight = safe_chain(getPlayer(players, safe_chain(hg,0)),'weightInPounds')
-  homeBackupGoalie = safe_chain(hg,1)
-  homeBackupGoalieCatches = safe_chain(getPlayer(players, safe_chain(hg,1)),'shootsCatches')
-  homeBackupGoalieAge = getAge(getPlayer(players, safe_chain(hg,1)),gameDate)
-  homeBackupGoalieHeight = safe_chain(getPlayer(players, safe_chain(hg,1)),'heightInInches')
-  homeBackupGoalieWeight = safe_chain(getPlayer(players, safe_chain(hg,1)),'weightInPounds')
-  homeThirdGoalie = safe_chain(hg,2)
-  homeThirdGoalieCatches = safe_chain(getPlayer(players, safe_chain(hg,2)),'shootsCatches')
-  homeThirdGoalieAge = getAge(getPlayer(players, safe_chain(hg,2)),gameDate)
-  homeThirdGoalieHeight = safe_chain(getPlayer(players, safe_chain(hg,2)),'heightInInches')
-  homeThirdGoalieWeight = safe_chain(getPlayer(players, safe_chain(hg,2)),'weightInPounds')
+  awayForward1 = safe_chain(af,0,'id')
+  awayForward1Position = n2n(safe_chain(positions,safe_chain(af,0,'id')))
+  awayForward1Age = getAge(getPlayer(players, safe_chain(af,0,'id')),gameDate)
+  awayForward1Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,0,'id')),'shootsCatches'))
+  awayForward2 = safe_chain(af,1,'id')
+  awayForward2Position = n2n(safe_chain(positions,safe_chain(af,1,'id')))
+  awayForward2Age = getAge(getPlayer(players, safe_chain(af,1,'id')),gameDate)
+  awayForward2Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,1,'id')),'shootsCatches'))
+  awayForward3 = safe_chain(af,2,'id')
+  awayForward3Position = n2n(safe_chain(positions,safe_chain(af,2,'id')))
+  awayForward3Age = getAge(getPlayer(players, safe_chain(af,2,'id')),gameDate)
+  awayForward3Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,2,'id')),'shootsCatches'))
+  awayForward4 = safe_chain(af,3,'id')
+  awayForward4Position = n2n(safe_chain(positions,safe_chain(af,3,'id')))
+  awayForward4Age = getAge(getPlayer(players, safe_chain(af,3,'id')),gameDate)
+  awayForward4Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,3,'id')),'shootsCatches'))
+  awayForward5 = safe_chain(af,4,'id')
+  awayForward5Position = n2n(safe_chain(positions,safe_chain(af,4,'id')))
+  awayForward5Age = getAge(getPlayer(players, safe_chain(af,4,'id')),gameDate)
+  awayForward5Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,4,'id')),'shootsCatches'))
+  awayForward6 = safe_chain(af,5,'id')
+  awayForward6Position = n2n(safe_chain(positions,safe_chain(af,5,'id')))
+  awayForward6Age = getAge(getPlayer(players, safe_chain(af,5,'id')),gameDate)
+  awayForward6Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,5,'id')),'shootsCatches'))
+  awayForward7 = safe_chain(af,6,'id')
+  awayForward7Position = n2n(safe_chain(positions,safe_chain(af,6,'id')))
+  awayForward7Age = getAge(getPlayer(players, safe_chain(af,6,'id')),gameDate)
+  awayForward7Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,6,'id')),'shootsCatches'))
+  awayForward8 = safe_chain(af,7,'id')
+  awayForward8Position = n2n(safe_chain(positions,safe_chain(af,7,'id')))
+  awayForward8Age = getAge(getPlayer(players, safe_chain(af,7,'id')),gameDate)
+  awayForward8Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,7,'id')),'shootsCatches'))
+  awayForward9 = safe_chain(af,8,'id')
+  awayForward9Position = n2n(safe_chain(positions,safe_chain(af,8,'id')))
+  awayForward9Age = getAge(getPlayer(players, safe_chain(af,8,'id')),gameDate)
+  awayForward9Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,8,'id')),'shootsCatches'))
+  awayForward10 = safe_chain(af,9,'id')
+  awayForward10Position = n2n(safe_chain(positions,safe_chain(af,9,'id')))
+  awayForward10Age = getAge(getPlayer(players, safe_chain(af,9,'id')),gameDate)
+  awayForward10Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,9,'id')),'shootsCatches'))
+  awayForward11 = safe_chain(af,10,'id')
+  awayForward11Position = n2n(safe_chain(positions,safe_chain(af,10,'id')))
+  awayForward11Age = getAge(getPlayer(players, safe_chain(af,10,'id')),gameDate)
+  awayForward11Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,10,'id')),'shootsCatches'))
+  awayForward12 = safe_chain(af,11,'id')
+  awayForward12Position = n2n(safe_chain(positions,safe_chain(af,11,'id')))
+  awayForward12Age = getAge(getPlayer(players, safe_chain(af,11,'id')),gameDate)
+  awayForward12Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,11,'id')),'shootsCatches'))
+  awayForward13 = safe_chain(af,12,'id')
+  awayForward13Position = n2n(safe_chain(positions,safe_chain(af,12,'id')))
+  awayForward13Age = getAge(getPlayer(players, safe_chain(af,12,'id')),gameDate)
+  awayForward13Shoots = n2n(safe_chain(getPlayer(players, safe_chain(af,12,'id')),'shootsCatches'))
+  awayDefenseman1 = safe_chain(ad,0,'id')
+  awayDefenseman1Position = n2n(safe_chain(positions,safe_chain(ad,0,'id')))
+  awayDefenseman1Age = getAge(getPlayer(players, safe_chain(ad,0,'id')),gameDate)
+  awayDefenseman1Shoots = n2n(safe_chain(getPlayer(players, safe_chain(ad,0,'id')),'shootsCatches'))
+  awayDefenseman2 = safe_chain(ad,1,'id')
+  awayDefenseman2Position = n2n(safe_chain(positions,safe_chain(ad,1,'id')))
+  awayDefenseman2Age = getAge(getPlayer(players, safe_chain(ad,1,'id')),gameDate)
+  awayDefenseman2Shoots = n2n(safe_chain(getPlayer(players, safe_chain(ad,1,'id')),'shootsCatches'))
+  awayDefenseman3 = safe_chain(ad,2,'id')
+  awayDefenseman3Position = n2n(safe_chain(positions,safe_chain(ad,2,'id')))
+  awayDefenseman3Age = getAge(getPlayer(players, safe_chain(ad,2,'id')),gameDate)
+  awayDefenseman3Shoots = n2n(safe_chain(getPlayer(players, safe_chain(ad,2,'id')),'shootsCatches'))
+  awayDefenseman4 = safe_chain(ad,3,'id')
+  awayDefenseman4Position = n2n(safe_chain(positions,safe_chain(ad,3,'id')))
+  awayDefenseman4Age = getAge(getPlayer(players, safe_chain(ad,3,'id')),gameDate)
+  awayDefenseman4Shoots = n2n(safe_chain(getPlayer(players, safe_chain(ad,3,'id')),'shootsCatches'))
+  awayDefenseman5 = safe_chain(ad,4,'id')
+  awayDefenseman5Position = n2n(safe_chain(positions,safe_chain(ad,4,'id')))
+  awayDefenseman5Age = getAge(getPlayer(players, safe_chain(ad,4,'id')),gameDate)
+  awayDefenseman5Shoots = n2n(safe_chain(getPlayer(players, safe_chain(ad,4,'id')),'shootsCatches'))
+  awayDefenseman6 = safe_chain(ad,5,'id')
+  awayDefenseman6Position = n2n(safe_chain(positions,safe_chain(ad,5,'id')))
+  awayDefenseman6Age = getAge(getPlayer(players, safe_chain(ad,5,'id')),gameDate)
+  awayDefenseman6Shoots = n2n(safe_chain(getPlayer(players, safe_chain(ad,5,'id')),'shootsCatches'))
+  awayDefenseman7 = safe_chain(ad,6,'id')
+  awayDefenseman7Position = n2n(safe_chain(positions,safe_chain(ad,6,'id')))
+  awayDefenseman7Age = getAge(getPlayer(players, safe_chain(ad,6,'id')),gameDate)
+  awayDefenseman7Shoots = n2n(safe_chain(getPlayer(players, safe_chain(ad,6,'id')),'shootsCatches'))
+  awayStartingGoalie = safe_chain(ag,0,'id')
+  awayStartingGoalieCatches = n2n(safe_chain(getPlayer(players, safe_chain(ag,0,'id')),'shootsCatches'))
+  awayStartingGoalieAge = getAge(getPlayer(players, safe_chain(ag,0,'id')),gameDate)
+  awayStartingGoalieHeight = safe_chain(getPlayer(players, safe_chain(ag,0,'id')),'heightInInches')
+  awayStartingGoalieWeight = safe_chain(getPlayer(players, safe_chain(ag,0,'id')),'weightInPounds')
+  awayBackupGoalie = safe_chain(ag,1,'id')
+  awayBackupGoalieCatches = n2n(safe_chain(getPlayer(players, safe_chain(ag,1,'id')),'shootsCatches'))
+  awayBackupGoalieAge = getAge(getPlayer(players, safe_chain(ag,1,'id')),gameDate)
+  awayBackupGoalieHeight = safe_chain(getPlayer(players, safe_chain(ag,1,'id')),'heightInInches')
+  awayBackupGoalieWeight = safe_chain(getPlayer(players, safe_chain(ag,1,'id')),'weightInPounds')
+  awayThirdGoalie = safe_chain(ag,2,'id')
+  awayThirdGoalieCatches = n2n(safe_chain(getPlayer(players, safe_chain(ag,2,'id')),'shootsCatches'))
+  awayThirdGoalieAge = getAge(getPlayer(players, safe_chain(ag,2,'id')),gameDate)
+  awayThirdGoalieHeight = safe_chain(getPlayer(players, safe_chain(ag,2,'id')),'heightInInches')
+  awayThirdGoalieWeight = safe_chain(getPlayer(players, safe_chain(ag,2,'id')),'weightInPounds')
+  homeForward1 = safe_chain(hf,0,'id')
+  homeForward1Position = n2n(safe_chain(positions,safe_chain(hf,0,'id')))
+  homeForward1Age = getAge(getPlayer(players, safe_chain(hf,0,'id')),gameDate)
+  homeForward1Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,0,'id')),'shootsCatches'))
+  homeForward2 = safe_chain(hf,1,'id')
+  homeForward2Position = n2n(safe_chain(positions,safe_chain(hf,1,'id')))
+  homeForward2Age = getAge(getPlayer(players, safe_chain(hf,1,'id')),gameDate)
+  homeForward2Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,1,'id')),'shootsCatches'))
+  homeForward3 = safe_chain(hf,2,'id')
+  homeForward3Position = n2n(safe_chain(positions,safe_chain(hf,2,'id')))
+  homeForward3Age = getAge(getPlayer(players, safe_chain(hf,2,'id')),gameDate)
+  homeForward3Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,2,'id')),'shootsCatches'))
+  homeForward4 = safe_chain(hf,3,'id')
+  homeForward4Position = n2n(safe_chain(positions,safe_chain(hf,3,'id')))
+  homeForward4Age = getAge(getPlayer(players, safe_chain(hf,3,'id')),gameDate)
+  homeForward4Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,3,'id')),'shootsCatches'))
+  homeForward5 = safe_chain(hf,4,'id')
+  homeForward5Position = n2n(safe_chain(positions,safe_chain(hf,4,'id')))
+  homeForward5Age = getAge(getPlayer(players, safe_chain(hf,4,'id')),gameDate)
+  homeForward5Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,4,'id')),'shootsCatches'))
+  homeForward6 = safe_chain(hf,5,'id')
+  homeForward6Position = n2n(safe_chain(positions,safe_chain(hf,5,'id')))
+  homeForward6Age = getAge(getPlayer(players, safe_chain(hf,5,'id')),gameDate)
+  homeForward6Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,5,'id')),'shootsCatches'))
+  homeForward7 = safe_chain(hf,6,'id')
+  homeForward7Position = n2n(safe_chain(positions,safe_chain(hf,6,'id')))
+  homeForward7Age = getAge(getPlayer(players, safe_chain(hf,6,'id')),gameDate)
+  homeForward7Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,6,'id')),'shootsCatches'))
+  homeForward8 = safe_chain(hf,7,'id')
+  homeForward8Position = n2n(safe_chain(positions,safe_chain(hf,7,'id')))
+  homeForward8Age = getAge(getPlayer(players, safe_chain(hf,7,'id')),gameDate)
+  homeForward8Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,7,'id')),'shootsCatches'))
+  homeForward9 = safe_chain(hf,8,'id')
+  homeForward9Position = n2n(safe_chain(positions,safe_chain(hf,8,'id')))
+  homeForward9Age = getAge(getPlayer(players, safe_chain(hf,8,'id')),gameDate)
+  homeForward9Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,8,'id')),'shootsCatches'))
+  homeForward10 = safe_chain(hf,9,'id')
+  homeForward10Position = n2n(safe_chain(positions,safe_chain(hf,9,'id')))
+  homeForward10Age = getAge(getPlayer(players, safe_chain(hf,9,'id')),gameDate)
+  homeForward10Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,9,'id')),'shootsCatches'))
+  homeForward11 = safe_chain(hf,10,'id')
+  homeForward11Position = n2n(safe_chain(positions,safe_chain(hf,10,'id')))
+  homeForward11Age = getAge(getPlayer(players, safe_chain(hf,10,'id')),gameDate)
+  homeForward11Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,10,'id')),'shootsCatches'))
+  homeForward12 = safe_chain(hf,11,'id')
+  homeForward12Position = n2n(safe_chain(positions,safe_chain(hf,11,'id')))
+  homeForward12Age = getAge(getPlayer(players, safe_chain(hf,11,'id')),gameDate)
+  homeForward12Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,11,'id')),'shootsCatches'))
+  homeForward13 = safe_chain(hf,12,'id')
+  homeForward13Position = n2n(safe_chain(positions,safe_chain(hf,12,'id')))
+  homeForward13Age = getAge(getPlayer(players, safe_chain(hf,12,'id')),gameDate)
+  homeForward13Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hf,12,'id')),'shootsCatches'))
+  homeDefenseman1 = safe_chain(hd,0,'id')
+  homeDefenseman1Position = n2n(safe_chain(positions,safe_chain(hd,0,'id')))
+  homeDefenseman1Age = getAge(getPlayer(players, safe_chain(hd,0,'id')),gameDate)
+  homeDefenseman1Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hd,0,'id')),'shootsCatches'))
+  homeDefenseman2 = safe_chain(hd,1,'id')
+  homeDefenseman2Position = n2n(safe_chain(positions,safe_chain(hd,1,'id')))
+  homeDefenseman2Age = getAge(getPlayer(players, safe_chain(hd,1,'id')),gameDate)
+  homeDefenseman2Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hd,1,'id')),'shootsCatches'))
+  homeDefenseman3 = safe_chain(hd,2,'id')
+  homeDefenseman3Position = n2n(safe_chain(positions,safe_chain(hd,2,'id')))
+  homeDefenseman3Age = getAge(getPlayer(players, safe_chain(hd,2,'id')),gameDate)
+  homeDefenseman3Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hd,2,'id')),'shootsCatches'))
+  homeDefenseman4 = safe_chain(hd,3,'id')
+  homeDefenseman4Position = n2n(safe_chain(positions,safe_chain(hd,3,'id')))
+  homeDefenseman4Age = getAge(getPlayer(players, safe_chain(hd,3,'id')),gameDate)
+  homeDefenseman4Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hd,3,'id')),'shootsCatches'))
+  homeDefenseman5 = safe_chain(hd,4,'id')
+  homeDefenseman5Position = n2n(safe_chain(positions,safe_chain(hd,4,'id')))
+  homeDefenseman5Age = getAge(getPlayer(players, safe_chain(hd,4,'id')),gameDate)
+  homeDefenseman5Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hd,4,'id')),'shootsCatches'))
+  homeDefenseman6 = safe_chain(hd,5,'id')
+  homeDefenseman6Position = n2n(safe_chain(positions,safe_chain(hd,5,'id')))
+  homeDefenseman6Age = getAge(getPlayer(players, safe_chain(hd,5,'id')),gameDate)
+  homeDefenseman6Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hd,5,'id')),'shootsCatches'))
+  homeDefenseman7 = safe_chain(hd,6,'id')
+  homeDefenseman7Position = n2n(safe_chain(positions,safe_chain(hd,6,'id')))
+  homeDefenseman7Age = getAge(getPlayer(players, safe_chain(hd,6,'id')),gameDate)
+  homeDefenseman7Shoots = n2n(safe_chain(getPlayer(players, safe_chain(hd,6,'id')),'shootsCatches'))
+  homeStartingGoalie = safe_chain(hg,0,'id')
+  homeStartingGoalieCatches = n2n(safe_chain(getPlayer(players, safe_chain(hg,0,'id')),'shootsCatches'))
+  homeStartingGoalieAge = getAge(getPlayer(players, safe_chain(hg,0,'id')),gameDate)
+  homeStartingGoalieHeight = safe_chain(getPlayer(players, safe_chain(hg,0,'id')),'heightInInches')
+  homeStartingGoalieWeight = safe_chain(getPlayer(players, safe_chain(hg,0,'id')),'weightInPounds')
+  homeBackupGoalie = safe_chain(hg,1,'id')
+  homeBackupGoalieCatches = n2n(safe_chain(getPlayer(players, safe_chain(hg,1,'id')),'shootsCatches'))
+  homeBackupGoalieAge = getAge(getPlayer(players, safe_chain(hg,1,'id')),gameDate)
+  homeBackupGoalieHeight = safe_chain(getPlayer(players, safe_chain(hg,1,'id')),'heightInInches')
+  homeBackupGoalieWeight = safe_chain(getPlayer(players, safe_chain(hg,1,'id')),'weightInPounds')
+  homeThirdGoalie = safe_chain(hg,2,'id')
+  homeThirdGoalieCatches = n2n(safe_chain(getPlayer(players, safe_chain(hg,2,'id')),'shootsCatches'))
+  homeThirdGoalieAge = getAge(getPlayer(players, safe_chain(hg,2,'id')),gameDate)
+  homeThirdGoalieHeight = safe_chain(getPlayer(players, safe_chain(hg,2,'id')),'heightInInches')
+  homeThirdGoalieWeight = safe_chain(getPlayer(players, safe_chain(hg,2,'id')),'weightInPounds')
 
   check_data = [[id,season,gameType,venue,neutralSite,homeTeam,awayTeam,
                  awaySplitSquad,homeSplitSquad,startTime,date,
@@ -409,14 +461,38 @@ def nhl_ai(game_data):
                  homeBackupGoalieHeight,homeBackupGoalieWeight,homeThirdGoalie,
                  homeThirdGoalieCatches,homeThirdGoalieAge,homeThirdGoalieHeight,
                  homeThirdGoalieWeight]]
+  
+  period = boxscore['period']
+
+  if boxscore['periodDescriptor']['periodType'] != 'REG':
+    period = boxscore['periodDescriptor']['periodType']
+
   return {
     'data': {
       'data': check_data,
       'game_id': id,
-      'home_team_id': homeTeam,
-      'away_team_id': awayTeam,
-      'home_team': game['homeTeam']['placeName']['default'],
-      'away_team': game['awayTeam']['placeName']['default'],
+      'date': boxscore['gameDate'],
+      'state': boxscore['gameState'],
+      'home_team': {
+        'id': homeTeam,
+        'city': game['homeTeam']['placeName']['default'],
+        'name': boxscore['homeTeam']['name']['default'],
+        'abbreviation': boxscore['homeTeam']['abbrev'],
+      },
+      'away_team': {
+        'id': awayTeam,
+        'city': game['awayTeam']['placeName']['default'],
+        'name': boxscore['awayTeam']['name']['default'],
+        'abbreviation': boxscore['awayTeam']['abbrev'],
+      },
+      'live': {
+        'home_score': boxscore['homeTeam']['score'],
+        'away_score': boxscore['awayTeam']['score'],
+        'period': period,
+        'clock': boxscore['clock']['timeRemaining'],
+        'stopped': not boxscore['clock']['running'],
+        'intermission': boxscore['clock']['inIntermission'],
+      },
     },
     'message': '',
   }
