@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify, Response
 from joblib import load
 import requests
-from process import nhl_ai
+from process import nhl_ai, nhl_test
+from pymongo import MongoClient
+import os
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import boto3
 import io
-import os
 
 LATEST_DATE_TRAINED = '2023-11-11'
 LATEST_DATE_COLLECTED = '2023-11-17'
@@ -217,6 +219,47 @@ def debug():
   game_data = res['gameWeek'][int(day)-1]['games'][int(game)-1]
   data = nhl_ai(game_data)
   return jsonify(data)
+
+@app.route('/test', methods=['POST'])
+def test_model():
+  db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
+  client = MongoClient(db_url)
+  db = client['hockey']
+  Boxscores = db['dev_boxscores']
+  startID = int(request.json['startId'])
+  endID = int(request.json['endId'])
+  boxscore_list = list(Boxscores.find(
+    {'id': {'$gte':startID,'$lt':endID+1}}
+  ))
+
+  for boxscore in boxscore_list:
+    test_data = nhl_test(boxscore=boxscore)
+    test_prediction = model.predict(test_data['data'])
+    predicted_winner = test_prediction[0][2]
+    predicted_homeScore = test_prediction[0][0]
+    predicted_awayScore = test_prediction[0][1]
+    test_winner = test_data['result'][0][2]
+    test_homeScore = test_data['result'][0][0]
+    test_awayScore = test_data['result'][0][1]
+    print(predicted_winner==test_winner,predicted_homeScore==test_homeScore,predicted_awayScore==test_awayScore)
+
+  return {'status':'done'}
+
+@app.route('/collect/boxscores', methods=['POST'])
+def collect_boxscores():
+  db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
+  client = MongoClient(db_url)
+  db = client['hockey']
+  Boxscores = db['dev_boxscores']
+
+  startID = int(request.json['startId'])
+  endID = int(request.json['endId'])
+  boxscores = []
+  for id in range(startID, endID+1):
+    boxscore_data = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore").json()
+    boxscores.append(boxscore_data)
+  Boxscores.insert_many(boxscores)
+  return {'status':'done'}
 
 @app.route('/nhl', methods=['GET'])
 def predict():
