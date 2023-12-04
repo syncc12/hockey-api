@@ -12,50 +12,6 @@ LATEST_DATE_TRAINED = '2023-11-11'
 LATEST_DATE_COLLECTED = '2023-11-17'
 LATEST_ID_COLLECTED = '2023020253'
 
-# def loadModelFromS3(bucket_name, model_key):
-#   aws = boto3.Session(aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'))
-#   s3 = aws.resource('s3')
-#   with io.BytesIO() as data:
-#     s3.Bucket(bucket_name).download_fileobj(model_key, data)
-#     data.seek(0)    # move back to the beginning after writing
-#     df = joblib.load(data)
-#   return df
-    
-
-# def load_model_from_s3(bucket_name, model_key):
-#   try:
-#     aws = boto3.Session(aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'))
-#     s3 = aws.client('s3')
-#     response = s3.get_object(Bucket=bucket_name, Key=model_key)
-#     model_res = response['Body']
-#     model_str = model_res.read()
-
-#     model = joblib.load(io.BytesIO(model_str))
-#     return model
-#   except Exception as error:
-#     print('load_model_from_s3 - error', error)
-
-# def stream_s3_file(bucket_name, object_name):
-#   s3 = boto3.client('s3')
-#   s3_response_object = s3.get_object(Bucket=bucket_name, Key=object_name)
-#   return s3_response_object['Body']
-
-# def load_joblib_object(bucket_name, object_name):
-#   stream = stream_s3_file(bucket_name, object_name)
-#   # Using a BytesIO object as a buffer
-#   buffer = io.BytesIO(stream.read())
-#   return joblib.load(buffer)
-
-
-# try:
-#   bucket_name = os.getenv('AWS_BUCKET_NAME')
-#   model_key = os.getenv('AWS_MODEL_KEY')
-#   model = load_joblib_object(bucket_name, model_key)
-# except:
-#   print('error')
-
-
-# Load your trained model
 model = load('nhl_ai.joblib')
 
 def ai_return_dict(data, prediction):
@@ -74,6 +30,8 @@ def ai_return_dict(data, prediction):
     live_clock = -1
     live_stopped = -1
     live_intermission = -1
+    live_leaderId = -1
+    live_leader = -1
     winningTeam = -1
     offset = -1
   else:
@@ -89,6 +47,15 @@ def ai_return_dict(data, prediction):
     live_clock = data['data']['live']['clock']
     live_stopped = data['data']['live']['stopped']
     live_intermission = data['data']['live']['intermission']
+    if live_away > live_home:
+      live_leaderId = awayId
+      live_leader = awayTeam
+    elif live_home > live_away:
+      live_leaderId = homeId
+      live_leader = homeTeam
+    else:
+      live_leaderId = -1
+      live_leader = 'tied'
     if abs(winnerId - homeId) < abs(winnerId - awayId):
       winningTeam = homeTeam
       offset = abs(winnerId - homeId)
@@ -120,6 +87,8 @@ def ai_return_dict(data, prediction):
       'clock': live_clock,
       'stopped': live_stopped,
       'intermission': live_intermission,
+      'leader': live_leader,
+      'leaderId': live_leaderId,
     },
     # 'data': data['data']['data'],
     'message': data['message'],
@@ -130,81 +99,11 @@ def ai(game_data):
 
   if len(data['data']['data'][0]) == 0:
     return ai_return_dict(data,[[]])
-    # return {
-    #   'gameId': data['data']['game_id'],
-    #   'date': -1,
-    #   'state': 'OFF',
-    #   'homeId': data['data']['home_team']['id'],
-    #   'awayId': data['data']['away_team']['id'],
-    #   'homeTeam': data['data']['home_team']['city'],
-    #   'awayTeam': data['data']['away_team']['city'],
-    #   'winnerId': -1,
-    #   'winningTeam': -1,
-    #   'homeScore': -1,
-    #   'awayScore': -1,
-    #   'offset': -1,
-    #   'live': {
-    #     'away': -1,
-    #     'home': -1,
-    #     'period': 0,
-    #     'clock': 0,
-    #     'stopped': True,
-    #     'intermission': False,
-    #   },
-    #   # 'data': data['data']['data'],
-    #   'message': data['message'],
-    # }
 
   prediction = model.predict(data['data']['data'])
 
   return ai_return_dict(data,prediction)
 
-  # winnerId = int(prediction[0][2])
-  # homeScore = int(prediction[0][0])
-  # awayScore = int(prediction[0][1])
-  # homeId = data['data']['home_team']['id']
-  # awayId = data['data']['away_team']['id']
-  # homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
-  # awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
-
-  # if abs(winnerId - homeId) < abs(winnerId - awayId):
-  #   winningTeam = homeTeam
-  #   offset = abs(winnerId - homeId)
-  # elif abs(winnerId - homeId) > abs(winnerId - awayId):
-  #   winningTeam = awayTeam
-  #   offset = abs(winnerId - awayId)
-  # else:
-  #   winningTeam = 'Inconclusive'
-  #   offset = -1
-
-  # return {
-  #   'gameId': data['data']['game_id'],
-  #   'date': data['data']['date'],
-  #   'state': data['data']['state'],
-  #   'homeId': homeId,
-  #   'awayId': awayId,
-  #   'homeTeam': homeTeam,
-  #   'awayTeam': awayTeam,
-  #   'winnerId': winnerId,
-  #   'winningTeam': winningTeam,
-  #   'homeScore': homeScore,
-  #   'awayScore': awayScore,
-  #   'offset': offset,
-  #   'live': {
-  #     'away': data['data']['live']['away_score'],
-  #     'home': data['data']['live']['home_score'],
-  #     'period': data['data']['live']['period'],
-  #     'clock': data['data']['live']['clock'],
-  #     'stopped': data['data']['live']['stopped'],
-  #     'intermission': data['data']['live']['intermission'],
-  #   },
-  #   # 'data': data['data']['data'],
-  #   'message': data['message'],
-  # }
-
-
-
-# Initialize Flask
 app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
@@ -220,17 +119,33 @@ def debug():
   data = nhl_ai(game_data)
   return jsonify(data)
 
-@app.route('/test', methods=['POST'])
+@app.route('/test', methods=['GET'])
 def test_model():
   db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
   client = MongoClient(db_url)
   db = client['hockey']
   Boxscores = db['dev_boxscores']
-  startID = int(request.json['startId'])
-  endID = int(request.json['endId'])
+  startID = request.args.get('start', default=1, type=int)
+  endID = request.args.get('end', default=1, type=int)
+  # startID = int(request.json['startId'])
+  # endID = int(request.json['endId'])
   boxscore_list = list(Boxscores.find(
     {'id': {'$gte':startID,'$lt':endID+1}}
   ))
+
+  test_results = {}
+
+  all_winner_total = 0
+  all_home_score_total = 0
+  all_away_score_total = 0
+  all_list_total = 0
+  for boxscore in boxscore_list:
+    test_results[boxscore['gameDate']] = {
+    'results': [],
+    'winnerPercent': 0,
+    'homeScorePercent': 0,
+    'awayScorePercent': 0,
+  }
 
   for boxscore in boxscore_list:
     test_data = nhl_test(boxscore=boxscore)
@@ -241,9 +156,34 @@ def test_model():
     test_winner = test_data['result'][0][2]
     test_homeScore = test_data['result'][0][0]
     test_awayScore = test_data['result'][0][1]
-    print(predicted_winner==test_winner,predicted_homeScore==test_homeScore,predicted_awayScore==test_awayScore)
-
-  return {'status':'done'}
+    test_results[boxscore['gameDate']]['results'].append({
+      'winner': 1 if predicted_winner==test_winner else 0,
+      'homeScore': 1 if predicted_homeScore==test_homeScore else 0,
+      'awayScore': 1 if predicted_awayScore==test_awayScore else 0,
+    })
+    # print(predicted_winner==test_winner,predicted_homeScore==test_homeScore,predicted_awayScore==test_awayScore)
+  for boxscore in boxscore_list:
+    winner_total = 0
+    home_score_total = 0
+    away_score_total = 0
+    list_total = len(test_results[boxscore['gameDate']]['results'])
+    all_list_total += list_total
+    for r in test_results[boxscore['gameDate']]['results']:
+      winner_total += r['winner']
+      home_score_total += r['homeScore']
+      away_score_total += r['awayScore']
+    all_winner_total += winner_total
+    all_home_score_total += home_score_total
+    all_away_score_total += away_score_total
+    test_results[boxscore['gameDate']]['winnerPercent'] = (winner_total / list_total) * 100
+    test_results[boxscore['gameDate']]['homeScorePercent'] = (home_score_total / list_total) * 100
+    test_results[boxscore['gameDate']]['awayScorePercent'] = (away_score_total / list_total) * 100
+  
+  test_results['allWinnerPercent'] = (all_winner_total / all_list_total) * 100
+  test_results['allHomeScorePercent'] = (all_home_score_total / all_list_total) * 100
+  test_results['allAwayScorePercent'] = (all_away_score_total / all_list_total) * 100
+  
+  return test_results
 
 @app.route('/collect/boxscores', methods=['POST'])
 def collect_boxscores():
