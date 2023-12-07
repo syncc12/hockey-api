@@ -372,3 +372,10 @@ def compile_training_data(db, game):
     print('homeTeam',homeTeam)
     print('awayTeam',awayTeam)
     print('error',error)
+
+def projectedLineup(team,gameId):
+  TEAM_SEASON_SCHEDULE = f'https://api-web.nhle.com/v1/club-schedule-season/{team}/now'
+  data = requests.get(TEAM_SEASON_SCHEDULE).json()
+  gameIDs = [game['id'] for game in data['games'] if game['id'] < gameId]
+  last_game = min(gameIDs, key=lambda x:abs(x-gameId))
+  return last_game

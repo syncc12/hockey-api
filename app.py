@@ -66,6 +66,19 @@ def ai_return_dict(data, prediction):
       winningTeam = 'Inconclusive'
       offset = -1
 
+  if data['message'] == 'using projected lineup':
+    live_data = {}
+  else:
+    live_data = {
+      'away': live_away,
+      'home': live_home,
+      'period': live_period,
+      'clock': live_clock,
+      'stopped': live_stopped,
+      'intermission': live_intermission,
+      'leader': live_leader,
+      'leaderId': live_leaderId,
+    }
 
   return {
     'gameId': data['data']['game_id'],
@@ -80,16 +93,7 @@ def ai_return_dict(data, prediction):
     'homeScore': homeScore,
     'awayScore': awayScore,
     'offset': offset,
-    'live': {
-      'away': live_away,
-      'home': live_home,
-      'period': live_period,
-      'clock': live_clock,
-      'stopped': live_stopped,
-      'intermission': live_intermission,
-      'leader': live_leader,
-      'leaderId': live_leaderId,
-    },
+    'live': live_data,
     # 'data': data['data']['data'],
     'message': data['message'],
   }
@@ -222,6 +226,38 @@ def predict_day():
   for game in game_data['games']:
     ai_data = ai(game)
     games.append(ai_data)
+  
+  return jsonify(games)
+
+@app.route('/nhl/day/simple', methods=['GET'])
+def predict_day_simple():
+  date = request.args.get('date', default='now', type=str)
+  res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+
+  day = request.args.get('day', default=1, type=int)
+
+  game_data = res['gameWeek'][day-1]
+  games = []
+  for game in game_data['games']:
+    ai_data = ai(game)
+    if ai_data['message'] == 'using projected lineup':
+      live_data = {}
+    else:
+      live_data = {
+        'away': ai_data['live']['away'],
+        'home': ai_data['live']['home'],
+        'leader': ai_data['live']['leader'],
+        'period': ai_data['live']['period'],
+      }
+    simple_data = {
+      'awayTeam': f"{ai_data['awayTeam']} - {ai_data['awayScore']}",
+      'homeTeam': F"{ai_data['homeTeam']} - {ai_data['homeScore']}",
+      'live': live_data,
+      'winningTeam': ai_data['winningTeam'],
+      'message': ai_data['message'],
+      'offset': ai_data['offset'],
+    }
+    games.append(simple_data)
   
   return jsonify(games)
 
