@@ -5,6 +5,8 @@ from process import nhl_ai, nhl_test
 from pymongo import MongoClient
 import os
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from util.training_data import save_training_data
+from util.helpers import latestIDs
 import boto3
 import io
 
@@ -205,6 +207,43 @@ def collect_boxscores():
   Boxscores.insert_many(boxscores)
   return {'status':'done'}
 
+@app.route('/collect/training-data', methods=['GET'])
+def collect_training_data():
+  startID = request.args.get('start', default=-1, type=int)
+  endID = request.args.get('end', default=-1, type=int)
+  id = request.args.get('id', default=-1, type=int)
+
+  training_data = []
+  is_neutral_site = {}
+  if startID != -1 and endID != -1 and id == -1:
+    for id in range(startID, endID+1):
+      loop_data = data_loop(id=id,is_neutral_site=is_neutral_site)
+      is_neutral_site = loop_data['is_neutral_site']
+      training_data.append(save_training_data(boxscores=loop_data['boxscore_data'],neutralSite=is_neutral_site[loop_data['boxscore_data']['id']]))
+  else:
+    if startID == -1 and endID == -1 and id != -1:
+      loop_data = data_loop(id=id,is_neutral_site=is_neutral_site)
+    elif startID != -1 and endID == -1 and id == -1:
+      loop_data = data_loop(id=startID,is_neutral_site=is_neutral_site)
+    elif startID == -1 and endID != -1 and id == -1:
+      loop_data = data_loop(id=endID,is_neutral_site=is_neutral_site)
+    training_data.append(save_training_data(boxscores=loop_data['boxscore_data'],neutralSite=is_neutral_site[loop_data['boxscore_data']['id']]))
+  
+  return training_data
+  
+def data_loop(id,is_neutral_site={}):
+  boxscore_data = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore").json()
+
+  if not boxscore_data['id'] in is_neutral_site:
+    game_week = requests.get(f"https://api-web.nhle.com/v1/schedule/{boxscore_data['gameDate']}").json()
+    for games in game_week['gameWeek']:
+      for game in games['games']:
+        is_neutral_site[game['id']] = game['neutralSite']
+  return {
+    'boxscore_data':boxscore_data,
+    'is_neutral_site':is_neutral_site,
+  }
+
 @app.route('/nhl', methods=['GET'])
 def predict():
   res = requests.get("https://api-web.nhle.com/v1/schedule/now").json()
@@ -317,6 +356,11 @@ def game_date(date):
         'awayTeam': game['awayTeam']['placeName']['default'],
       })
   return games
+
+@app.route('/metadata', methods=['GET'])
+def metadata():
+  latest_ids = latestIDs()
+  return latest_ids
 
 if __name__ == '__main__':
   app.run()

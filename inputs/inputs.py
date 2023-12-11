@@ -1,154 +1,21 @@
+from util.helpers import safe_chain, n2n, false_chain, getPlayer, getAge, b2n, isNaN, formatDate, formatDatetime, formatTime
 import math
 import requests
 from pymongo import MongoClient
 from datetime import datetime
+from util.query import get_last_game_player_stats, get_last_game_team_stats, last_player_game_stats, list_players_in_game
 
 REPLACE_VALUE = -1
 
-
-def nhl_api():
-  data = requests.get('localhost:8001/nhl/boxscores').json()
-  print(data)
-
-def nhl_db():
-  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
-  db = client["hockey"]
-  Trainings = db["dev_trainings"]
-  training_data = Trainings.find({})
-  for data in training_data:
-    print(data)
-
-def n2n(in_name):
-  try:
-    if in_name and not isNaN(in_name):
-      char_to_num = {'r':1,'t':2,'n':3,'s':4,'l':5,'c':6,'d':7,'p':8,'m':9,
-                     'h':10,'g':11,'b':12,'f':13,'y':14,'w':15,'k':16,'j':17}
-      # char_to_num = {'R':1,'T':1,'N':2,'S':2,'L':3,'C':3,'D':4,'P':4,'M':5,
-      #                'H':5,'G':6,'B':6,'F':7,'Y':7,'W':8,'K':8,'J':9}
-      nums = []
-      for char in str(in_name).lower().replace(' ', ''):
-        if char in char_to_num.keys():
-          nums.append(char_to_num[char])
-      # return int(''.join(str(char_to_num[char]) for char in in_name.lower().replace(' ', '')))
-      return int(''.join(str(char) for char in nums))
-    else:
-      return REPLACE_VALUE
-  except Exception as error:
-    return REPLACE_VALUE
-
-def b2n(in_bool):
-  if type(in_bool) == bool:
-    if in_bool:
-      return 1
-    else:
-      return 0
-  else:
-    return in_bool
-
-def isNaN(inCheck):
-  try:
-    float_value = float(inCheck)
-    return math.isnan(float_value)
-  except (ValueError, TypeError):
-    return False
+def master_inputs(db, game):
   
-def formatTime(inTime):
-  if (type(inTime) == str):
-    st = inTime.split(':')
-    return float(int(st[0]) * (int(st[1])/60))
-  else:
-    return inTime
-
-def formatDatetime(inDatetime):
-  is_negative = False
-  if inDatetime[0] == '-':
-    is_negative = True
-    inDatetime = inDatetime[1:]
-  dt = datetime.strptime(inDatetime, '%Y-%m-%dT%H:%M:%SZ')
-  outTime = float(int(dt.hour) * ((int(dt.minute) * (int(dt.second)/60))/60))
-  if is_negative:
-    outTime = -1 * outTime
-  return outTime
-
-def formatDate(inDate):
-  if (type(inDate) == str):
-    splitDate = inDate.split('-')
-    return int(f'{splitDate[0]}{splitDate[1]}{splitDate[2]}')
-  else:
-    return inDate
-
-def getAge(player, game_date):
-  try:
-    if isNaN(player) or isNaN(game_date):
-      return REPLACE_VALUE
-    birthday = player[0]['birthDate']
-    b_year, b_month, b_day = map(int, birthday.split('-'))
-    g_year, g_month, g_day = map(int, game_date.split('-'))
-    age = g_year - b_year
-    if (b_month > g_month) or (b_month == g_month and b_day > g_day):
-      age -= 1
-
-    return age
-
-  except Exception as error:
-    return REPLACE_VALUE
-
-def getPlayerData (players, player_id):
-  if not isNaN(players) and not isNaN(player_id):
-    return next((player for player in players if player['playerId'] == player_id), REPLACE_VALUE)
-  else:
-    return REPLACE_VALUE
-
-def safe_chain(obj, *keys, default=REPLACE_VALUE):
-  for key in keys:
-    if key == default:
-      return default
-    else:
-      if type(key) == int:
-        if len(obj) > key:
-          obj = obj[key]
-        else:
-          return default
-      else:
-        try:
-          obj = getattr(obj, key, default) if hasattr(obj, key) else obj[key]
-        except (KeyError, TypeError, AttributeError):
-          return default
-  return obj
-
-def false_chain(obj, *keys, default=REPLACE_VALUE):
-  for key in keys:
-    if key == default:
-      return False
-    else:
-      if type(key) == int:
-        if len(obj) > key:
-          obj = obj[key]
-        else:
-          return False
-      else:
-        try:
-          obj = getattr(obj, key, default) if hasattr(obj, key) else obj[key]
-        except (KeyError, TypeError, AttributeError):
-          return False
-  return True
-
-def getPlayer(allPlayers,playerId):
-  if not isNaN(allPlayers) and not isNaN(playerId):
-    return [p for p in allPlayers if p['playerId'] == playerId]
-  else:
-    return REPLACE_VALUE
-
-
-def compile_training_data(db, game):
   Players = db['dev_players']
   startTime = REPLACE_VALUE
-  if 'startTimeUTC' in game and game['startTimeUTC']:
-    st = datetime.strptime(game['startTimeUTC'], "%Y-%m-%dT%H:%M:%SZ")  # Adjust the format if necessary
-    startTime = int(f"{st.hour}{st.minute:02d}")
+  if 'startTimeUTC' in game and false_chain(game,'startTimeUTC'):
+    startTime = formatDatetime(safe_chain(game,'startTimeUTC'))
   date = REPLACE_VALUE
   if 'gameDate' in game and game['gameDate']:
-    date = int(str(game['gameDate']).replace('-', ''))
+    date = formatDate(game['gameDate'])
   homeTeam = safe_chain(game,'homeTeam')
   awayTeam = safe_chain(game,'awayTeam')
   gi = safe_chain(game,'boxscore','gameInfo')
@@ -179,6 +46,9 @@ def compile_training_data(db, game):
     ))
   else:
     allPlayers = []
+  
+  lastPlayerStats = last_player_game_stats(db=db,gameId=game['id'],playerIDs=allPlayerIds)
+
   try:
     return {
       'id': safe_chain(game,'id'),
@@ -201,6 +71,54 @@ def compile_training_data(db, game):
       'ref2': n2n(safe_chain(gi,'referees',1,'default')),
       'linesman1': n2n(safe_chain(gi,'linesmen',0,'default')),
       'linesman2': n2n(safe_chain(gi,'linesmen',1,'default')),
+      **get_last_game_team_stats(db=db,teamId=homeTeam['id'],teamTitle='homeTeam'),
+      **get_last_game_team_stats(db=db,teamId=awayTeam['id'],teamTitle='awayTeam'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',0,'playerId'),playerTitle='awayForward1'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',1,'playerId'),playerTitle='awayForward2'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',2,'playerId'),playerTitle='awayForward3'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',3,'playerId'),playerTitle='awayForward4'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',4,'playerId'),playerTitle='awayForward5'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',5,'playerId'),playerTitle='awayForward6'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',6,'playerId'),playerTitle='awayForward7'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',7,'playerId'),playerTitle='awayForward8'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',8,'playerId'),playerTitle='awayForward9'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',9,'playerId'),playerTitle='awayForward10'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',10,'playerId'),playerTitle='awayForward11'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',11,'playerId'),playerTitle='awayForward12'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',12,'playerId'),playerTitle='awayForward13'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',0,'playerId'),playerTitle='awayDefenseman1'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',1,'playerId'),playerTitle='awayDefenseman2'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',2,'playerId'),playerTitle='awayDefenseman3'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',3,'playerId'),playerTitle='awayDefenseman4'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',4,'playerId'),playerTitle='awayDefenseman5'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',5,'playerId'),playerTitle='awayDefenseman6'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',6,'playerId'),playerTitle='awayDefenseman7'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',0,'playerId'),playerTitle='awayStartingGoalie'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',1,'playerId'),playerTitle='awayBackupGoalie'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',2,'playerId'),playerTitle='awayThirdGoalie'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',0,'playerId'),playerTitle='homeForward1'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',1,'playerId'),playerTitle='homeForward2'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',2,'playerId'),playerTitle='homeForward3'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',3,'playerId'),playerTitle='homeForward4'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',4,'playerId'),playerTitle='homeForward5'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',5,'playerId'),playerTitle='homeForward6'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',6,'playerId'),playerTitle='homeForward7'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',7,'playerId'),playerTitle='homeForward8'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',8,'playerId'),playerTitle='homeForward9'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',9,'playerId'),playerTitle='homeForward10'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',10,'playerId'),playerTitle='homeForward11'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',11,'playerId'),playerTitle='homeForward12'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',12,'playerId'),playerTitle='homeForward13'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',0,'playerId'),playerTitle='homeDefenseman1'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',1,'playerId'),playerTitle='homeDefenseman2'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',2,'playerId'),playerTitle='homeDefenseman3'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',3,'playerId'),playerTitle='homeDefenseman4'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',4,'playerId'),playerTitle='homeDefenseman5'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',5,'playerId'),playerTitle='homeDefenseman6'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',6,'playerId'),playerTitle='homeDefenseman7'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','goalies',0,'playerId'),playerTitle='homeStartingGoalie'),
+      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','goalies',1,'playerId'),playerTitle='homeBackupGoalie'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','goalies',2,'playerId'),playerTitle='homeThirdGoalie'),
       'awayForward1': safe_chain(pbgs,'awayTeam','forwards',0,'playerId'),
       'awayForward1Position': n2n(safe_chain(pbgs,'awayTeam','forwards',0,'position')),
       'awayForward1Age': getAge(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','forwards',0,'playerId')),game['gameDate']) if false_chain(pbgs,'awayTeam','forwards',0,'playerId') else REPLACE_VALUE,
@@ -291,11 +209,11 @@ def compile_training_data(db, game):
       'awayBackupGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',1,'playerId')),game['gameDate']) if false_chain(pbgs,'awayTeam','goalies',1,'playerId') else REPLACE_VALUE,
       'awayBackupGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',1,'playerId')),0,'heightInInches'),
       'awayBackupGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',1,'playerId')),0,'weightInPounds'),
-      'awayThirdGoalie': safe_chain(pbgs,'awayTeam','goalies',2,'playerId'),
-      'awayThirdGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),0,'shootsCatches')),
-      'awayThirdGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),game['gameDate']) if false_chain(pbgs,'awayTeam','goalies',2,'playerId') else REPLACE_VALUE,
-      'awayThirdGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),0,'heightInInches'),
-      'awayThirdGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),0,'weightInPounds'),
+      # 'awayThirdGoalie': safe_chain(pbgs,'awayTeam','goalies',2,'playerId'),
+      # 'awayThirdGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),0,'shootsCatches')),
+      # 'awayThirdGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),game['gameDate']) if false_chain(pbgs,'awayTeam','goalies',2,'playerId') else REPLACE_VALUE,
+      # 'awayThirdGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),0,'heightInInches'),
+      # 'awayThirdGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),0,'weightInPounds'),
       'homeForward1': safe_chain(pbgs,'homeTeam','forwards',0,'playerId'),
       'homeForward1Position': n2n(safe_chain(pbgs,'homeTeam','forwards',0,'position')),
       'homeForward1Age': getAge(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','forwards',0,'playerId')),game['gameDate']) if false_chain(pbgs,'homeTeam','forwards',0,'playerId') else REPLACE_VALUE,
@@ -386,54 +304,15 @@ def compile_training_data(db, game):
       'homeBackupGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',1,'playerId')),game['gameDate']) if false_chain(pbgs,'homeTeam','goalies',1,'playerId') else REPLACE_VALUE,
       'homeBackupGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',1,'playerId')),0,'heightInInches'),
       'homeBackupGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',1,'playerId')),0,'weightInPounds'),
-      'homeThirdGoalie': safe_chain(pbgs,'homeTeam','goalies',2,'playerId'),
-      'homeThirdGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),0,'shootsCatches')),
-      'homeThirdGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),game['gameDate']) if false_chain(pbgs,'homeTeam','goalies',2,'playerId') else REPLACE_VALUE,
-      'homeThirdGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),0,'heightInInches'),
-      'homeThirdGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),0,'weightInPounds')
+      # 'homeThirdGoalie': safe_chain(pbgs,'homeTeam','goalies',2,'playerId'),
+      # 'homeThirdGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),0,'shootsCatches')),
+      # 'homeThirdGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),game['gameDate']) if false_chain(pbgs,'homeTeam','goalies',2,'playerId') else REPLACE_VALUE,
+      # 'homeThirdGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),0,'heightInInches'),
+      # 'homeThirdGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),0,'weightInPounds')
     }
   except Exception as error:
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-    print('ERROR','HELPERS')
+    print('ERROR','INPUTS')
     print('id', safe_chain(game,'id'))
-    print('homeTeam',homeTeam)
-    print('awayTeam',awayTeam)
     print('error',error)
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-
-def projectedLineup(team,gameId):
-  TEAM_SEASON_SCHEDULE = f'https://api-web.nhle.com/v1/club-schedule-season/{team}/now'
-  data = requests.get(TEAM_SEASON_SCHEDULE).json()
-  gameIDs = [game['id'] for game in data['games'] if game['id'] < gameId]
-  last_game = min(gameIDs, key=lambda x:abs(x-gameId))
-  return last_game
-
-def latestIDs():
-  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
-  db = client["hockey"]
-  Trainings = db["dev_trainings"]
-  Boxscores = db["dev_boxscores"]
-  Seasons = db["dev_seasons"]
-
-  season_list = list(Seasons.find(
-    {},
-    {'_id': 0, 'seasonId': 1}
-  ))
-
-  current_season = max([int(e['seasonId']) for e in season_list])
-  trainings_list = list(Trainings.find(
-    {'season':current_season},
-    {'_id': 0, 'id': 1}
-  ))
-  boxscores_list = list(Boxscores.find(
-    {'season':current_season},
-    {'_id': 0, 'id': 1}
-  ))
-
-  last_training_id = max([int(e['id']) for e in trainings_list])
-  last_boxscore_id = max([int(e['id']) for e in boxscores_list])
-
-  return {
-    'training': last_training_id,
-    'boxscore': last_boxscore_id,
-  }

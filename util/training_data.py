@@ -1,7 +1,9 @@
 from pymongo import MongoClient
 from datetime import datetime
 from util.helpers import compile_training_data, safe_chain, false_chain
+from inputs.inputs import master_inputs
 import os
+from joblib import dump
 
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
 # client = MongoClient(db_url)
@@ -50,10 +52,13 @@ def season_training_data(season):
       'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
     }
 
-    boxscore_data = compile_training_data(db=db, game=game_data)
+    # boxscore_data = compile_training_data(db=db, game=game_data)
+    boxscore_data = master_inputs(db=db, game=game_data)
     if boxscore_data:
       training_data.append(boxscore_data)
+    print(season['seasonId'],f'{i+1}/{len(games)}')
   print('DONE ',season['seasonId'])
+  dump(training_data,f"training_data/training_data_v3_{season['seasonId']}.joblib")
   return training_data
 
 def game_training_data(gameId):
@@ -82,7 +87,9 @@ def game_training_data(gameId):
     'homeSplitSquad': safe_chain(games,0,'homeTeam','homeSplitSquad'),
     'awaySplitSquad': safe_chain(games,0,'awayTeam','awaySplitSquad'),
   }
-  boxscore_data = compile_training_data(db=db, game=game_data)
+  # boxscore_data = compile_training_data(db=db, game=game_data)
+  boxscore_data = master_inputs(db=db, game=game_data)
+
   if boxscore_data:
     training_data.append(boxscore_data)
   print('DONE ', gameId['id'])
@@ -98,3 +105,22 @@ def game_training_data(gameId):
 #   print(id, len(boxscores), f'{now.hour-last_time.hour}:{now.minute-last_time.minute}:{float(f"{now.second}.{now.microsecond}")-float(f"{last_time.second}.{last_time.microsecond}")}')
 #   last_time = now
 #   return game_data
+
+
+def save_training_data(boxscores,neutralSite):
+
+  game_data = {
+    'id': safe_chain(boxscores,0,'id'),
+    'season': safe_chain(boxscores,0,'season'),
+    'gameType': safe_chain(boxscores,0,'gameType'),
+    'gameDate': safe_chain(boxscores,0,'gameDate'),
+    'venue': safe_chain(boxscores,0,'venue'),
+    'homeTeam': safe_chain(boxscores,0,'homeTeam'),
+    'awayTeam': safe_chain(boxscores,0,'awayTeam'),
+    'boxscore': safe_chain(boxscores,0,'boxscore'),
+    'neutralSite': neutralSite,
+    'homeSplitSquad': False,
+    'awaySplitSquad': False,
+  }
+  boxscore_data = compile_training_data(db=db, game=game_data)
+  return boxscore_data
