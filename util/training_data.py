@@ -14,15 +14,15 @@ Games = db["dev_games"]
 
 
 def season_training_data(season):
-  print('fired',season['seasonId'])
+  print('fired',season)
 
   training_data = []
   boxscores = list(Boxscores.find(
-    {'season': int(season['seasonId'])},
+    {'season': int(season)},
     {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1}
   ))
   games = list(Games.find(
-    {'season': int(season['seasonId'])},
+    {'season': int(season)},
     {'id': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1}
   ))
   for i in range(0,len(games)):
@@ -56,9 +56,9 @@ def season_training_data(season):
     boxscore_data = master_inputs(db=db, game=game_data)
     if boxscore_data:
       training_data.append(boxscore_data)
-    print(season['seasonId'],f'{i+1}/{len(games)}')
-  print('DONE ',season['seasonId'])
-  dump(training_data,f"training_data/training_data_v3_{season['seasonId']}.joblib")
+    print(season,f'{i+1}/{len(games)}')
+  print('DONE ',season)
+  dump(training_data,f"training_data/training_data_v3_{season}.joblib")
   return training_data
 
 def game_training_data(gameId):
