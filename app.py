@@ -1,3 +1,7 @@
+import sys
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\inputs')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
+
 from flask import Flask, request, jsonify, Response
 from joblib import load
 import requests
@@ -13,6 +17,11 @@ import io
 LATEST_DATE_TRAINED = '2023-11-11'
 LATEST_DATE_COLLECTED = '2023-11-17'
 LATEST_ID_COLLECTED = '2023020253'
+
+db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
+# db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
+client = MongoClient(db_url)
+db = client['hockey']
 
 model = load('nhl_ai.joblib')
 
@@ -127,9 +136,6 @@ def debug():
 
 @app.route('/test', methods=['GET'])
 def test_model():
-  db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
-  client = MongoClient(db_url)
-  db = client['hockey']
   Boxscores = db['dev_boxscores']
   startID = request.args.get('start', default=1, type=int)
   endID = request.args.get('end', default=1, type=int)
@@ -193,9 +199,6 @@ def test_model():
 
 @app.route('/collect/boxscores', methods=['POST'])
 def collect_boxscores():
-  db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
-  client = MongoClient(db_url)
-  db = client['hockey']
   Boxscores = db['dev_boxscores']
 
   startID = int(request.json['startId'])
@@ -206,6 +209,24 @@ def collect_boxscores():
     boxscores.append(boxscore_data)
   Boxscores.insert_many(boxscores)
   return {'status':'done'}
+
+# @app.route('/collect/training-data-v3', methods=['GET'])
+# def collect_training_data_v3():
+#   seasons = list(db["dev_seasons"].find(
+#     {},
+#     {'_id':0,'seasonId': 1}
+#   ))
+#   seasons = [season['seasonId'] for season in seasons]
+#   Trainings_v3 = db['dev_trainings_v3']
+#   for season in seasons:
+#     print(f'Fired {season}')
+#     try:
+#       training_data = load(f'training_data/training_data_v3_{season}.joblib')
+#       Trainings_v3.insert_many(training_data)
+#     except Exception as error:
+#       print(f'{season} - {error}')
+#     print(f'DONE {season}')
+#   return {'status':'done'}
 
 @app.route('/collect/training-data', methods=['GET'])
 def collect_training_data():
@@ -361,6 +382,26 @@ def game_date(date):
 def metadata():
   latest_ids = latestIDs()
   return latest_ids
+
+@app.route('/db/update', methods=['GET'])
+def save_boxscores():
+  Boxscores = db['dev_boxscores']
+  Games = db['dev_games']
+  latest_ids = latestIDs()
+  boxscores = []
+  for id in range(latest_ids['saved']['boxscore']+1,latest_ids['live']['boxscore']+1):
+    boxscore_data = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore").json()
+    Boxscores.insert_one(boxscore_data)
+  
+  schedule_now = requests.get(f"https://api-web.nhle.com/v1/schedule/now").json()
+  for week in schedule_now['gameWeek']:
+    for game in week['games']:
+      if game['id'] <= latest_ids['live']['game']:
+        Games.insert_one(game)
+  
+  print(latest_ids)
+
+  return {'res':latest_ids}
 
 if __name__ == '__main__':
   app.run()

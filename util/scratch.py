@@ -19,8 +19,13 @@ SEASONS = [
 training_data = []
 
 for season in SEASONS:
+  print(f'fired {season}')
   data = check_training_data(season=season)
-  for line in data:
+  data_len = len(data)
+  for i in range(0,data_len):
+    line = data[i]
     training_data.append(line)
+    print(f'{season} {i+1}/{data_len}')
+  print(f'DONE {season}')
 
 dump(training_data,'training_data/training_data_v3.joblib')  

@@ -411,8 +411,9 @@ def projectedLineup(team,gameId):
 def latestIDs():
   client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
   db = client["hockey"]
-  Trainings = db["dev_trainings"]
+  # Trainings = db["dev_trainings"]
   Boxscores = db["dev_boxscores"]
+  Games = db["dev_games"]
   Seasons = db["dev_seasons"]
 
   season_list = list(Seasons.find(
@@ -421,19 +422,45 @@ def latestIDs():
   ))
 
   current_season = max([int(e['seasonId']) for e in season_list])
-  trainings_list = list(Trainings.find(
-    {'season':current_season},
-    {'_id': 0, 'id': 1}
-  ))
+  # trainings_list = list(Trainings.find(
+  #   {'season':current_season},
+  #   {'_id': 0, 'id': 1}
+  # ))
   boxscores_list = list(Boxscores.find(
     {'season':current_season},
     {'_id': 0, 'id': 1}
   ))
+  games_list = list(Games.find(
+    {'season':current_season},
+    {'_id': 0, 'id': 1}
+  ))
+  
+  schedule_now = requests.get(f"https://api-web.nhle.com/v1/schedule/now").json()
+  latest_final_game = ''
+  for week in schedule_now['gameWeek']:
+    for game in week['games']:
+      if latest_final_game == '':
+        if 'gameOutcome' in game:
+          latest_final_game = game['id']
+        else:
+          latest_final_game = game['id'] - 1
+      else:
+        if 'gameOutcome' in game:
+          if game['id'] > latest_final_game:
+            latest_final_game = game['id']
 
-  last_training_id = max([int(e['id']) for e in trainings_list])
+  # last_training_id = max([int(e['id']) for e in trainings_list])
   last_boxscore_id = max([int(e['id']) for e in boxscores_list])
+  last_game_id = max([int(e['id']) for e in games_list])
 
   return {
-    'training': last_training_id,
-    'boxscore': last_boxscore_id,
+    'saved': {
+      'boxscore': last_boxscore_id,
+      'game': last_game_id,
+      # 'training': last_training_id,
+    },
+    'live': {
+      'game': latest_final_game,
+      'boxscore': latest_final_game,
+    },
   }
