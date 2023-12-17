@@ -12,7 +12,7 @@ db = client["hockey"]
 Boxscores = db["dev_boxscores"]
 Games = db["dev_games"]
 
-
+VERSION = 4
 def season_training_data(season):
   print('fired',season)
 
@@ -58,7 +58,7 @@ def season_training_data(season):
       training_data.append(boxscore_data)
     print(season,f'{i+1}/{len(games)}')
   print('DONE ',season)
-  dump(training_data,f"training_data/training_data_v3_{season}.joblib")
+  dump(training_data,f"training_data/v{VERSION}/training_data_v{VERSION}_{season}.joblib")
   return training_data
 
 def game_training_data(gameId):

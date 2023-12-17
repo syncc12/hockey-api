@@ -6,13 +6,16 @@ from flask import Flask, request, jsonify, Response
 from joblib import load
 import requests
 from process import nhl_ai, nhl_test
+from process2 import nhl_data
 from pymongo import MongoClient
 import os
+import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from util.training_data import save_training_data
 from util.helpers import latestIDs
 import boto3
 import io
+from inputs.inputs import master_inputs
 
 LATEST_DATE_TRAINED = '2023-11-11'
 LATEST_DATE_COLLECTED = '2023-11-17'
@@ -23,7 +26,7 @@ db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 client = MongoClient(db_url)
 db = client['hockey']
 
-model = load('nhl_ai.joblib')
+model = load('models/nhl_ai_v4.joblib')
 
 def ai_return_dict(data, prediction):
   homeId = data['data']['home_team']['id']
@@ -110,7 +113,8 @@ def ai_return_dict(data, prediction):
   }
 
 def ai(game_data):
-  data = nhl_ai(game_data)
+  # data = nhl_ai(game_data)
+  data = nhl_data(game_data)
 
   if len(data['data']['data'][0]) == 0:
     return ai_return_dict(data,[[]])
@@ -150,6 +154,8 @@ def test_model():
   all_winner_total = 0
   all_home_score_total = 0
   all_away_score_total = 0
+  all_home_away_score_total = 0
+  all_score_total = 0
   all_list_total = 0
   for boxscore in boxscore_list:
     test_results[boxscore['gameDate']] = {
@@ -162,6 +168,7 @@ def test_model():
   for boxscore in boxscore_list:
     test_data = nhl_test(boxscore=boxscore)
     test_prediction = model.predict(test_data['data'])
+    test_confidence = model.predict_proba(test_data['data'])
     predicted_winner = test_prediction[0][2]
     predicted_homeScore = test_prediction[0][0]
     predicted_awayScore = test_prediction[0][1]
@@ -172,28 +179,44 @@ def test_model():
       'winner': 1 if predicted_winner==test_winner else 0,
       'homeScore': 1 if predicted_homeScore==test_homeScore else 0,
       'awayScore': 1 if predicted_awayScore==test_awayScore else 0,
+      'totalScore': 1 if (predicted_homeScore+predicted_awayScore)==(test_homeScore+test_awayScore)  else 0,
+      'winnerConfidence': int((np.max(test_confidence[2], axis=1) * 100)[0]),
+      'homeScoreConfidence': int((np.max(test_confidence[0], axis=1) * 100)[0]),
+      'awayScoreConfidence': int((np.max(test_confidence[1], axis=1) * 100)[0]),
     })
+    # print(int((np.max(test_confidence[2], axis=1) * 100)[0]))
     # print(predicted_winner==test_winner,predicted_homeScore==test_homeScore,predicted_awayScore==test_awayScore)
   for boxscore in boxscore_list:
     winner_total = 0
     home_score_total = 0
     away_score_total = 0
+    home_away_score_total = 0
+    score_total = 0
     list_total = len(test_results[boxscore['gameDate']]['results'])
     all_list_total += list_total
     for r in test_results[boxscore['gameDate']]['results']:
       winner_total += r['winner']
       home_score_total += r['homeScore']
       away_score_total += r['awayScore']
+      score_total += r['totalScore']
+      if home_score_total == 1 and away_score_total == 1:
+        home_away_score_total += 1
     all_winner_total += winner_total
     all_home_score_total += home_score_total
     all_away_score_total += away_score_total
+    all_home_away_score_total += home_away_score_total
+    all_score_total += score_total
     test_results[boxscore['gameDate']]['winnerPercent'] = (winner_total / list_total) * 100
     test_results[boxscore['gameDate']]['homeScorePercent'] = (home_score_total / list_total) * 100
     test_results[boxscore['gameDate']]['awayScorePercent'] = (away_score_total / list_total) * 100
+    test_results[boxscore['gameDate']]['h2hScorePercent'] = (home_away_score_total / list_total) * 100
+    test_results[boxscore['gameDate']]['totalScorePercent'] = (score_total / list_total) * 100
   
   test_results['allWinnerPercent'] = (all_winner_total / all_list_total) * 100
   test_results['allHomeScorePercent'] = (all_home_score_total / all_list_total) * 100
   test_results['allAwayScorePercent'] = (all_away_score_total / all_list_total) * 100
+  test_results['allH2HScorePercent'] = (all_home_away_score_total / all_list_total) * 100
+  test_results['allTotalScorePercent'] = (all_score_total / all_list_total) * 100
   
   return test_results
 
@@ -286,7 +309,7 @@ def predict_day():
   for game in game_data['games']:
     ai_data = ai(game)
     games.append(ai_data)
-  
+  print(games)
   return jsonify(games)
 
 @app.route('/nhl/day/simple', methods=['GET'])
@@ -380,7 +403,8 @@ def game_date(date):
 
 @app.route('/metadata', methods=['GET'])
 def metadata():
-  latest_ids = latestIDs()
+  used_training_data = load('training_data/training_data.joblib')
+  latest_ids = latestIDs(used_training_data)
   return latest_ids
 
 @app.route('/db/update', methods=['GET'])

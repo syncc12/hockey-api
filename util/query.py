@@ -351,51 +351,80 @@ def get_last_game_team_stats(db,teamId,teamTitle='',previousGames=GAMES_BACK):
         statList.append(statLine)
 
       lastGames = {}
-      for i in range(0,len(statList)):
-        if type(safe_chain(statList,i,'team','powerPlayConversion')) == str:
-          teamPowerPlaySplit = safe_chain(statList,i,'team','powerPlayConversion').split('/')
-          teamPowerPlays = int(teamPowerPlaySplit[1])
-          teamPowerPlayPercentage = float(int(teamPowerPlaySplit[0])/teamPowerPlays) if teamPowerPlays != 0 else 0
+      for i in range(0,previousGames):
+        if i > len(statList) - 1:
+          lastGames[f'{teamTitle}Back{i+1}GameId'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameDate'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameType'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameVenue'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameStartTime'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameEasternOffset'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameVenueOffset'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOutcome'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameHomeAway'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameFinalPeriod'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameScore'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameShots'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameFaceoffWinPercentage'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GamePowerPlays'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GamePowerPlayPercentage'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GamePIM'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameHits'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameBlocks'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponent'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentScore'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentShots'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentFaceoffWinPercentage'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentPowerPlays'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentPowerPlayPercentage'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentPIM'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentHits'] = -1
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentBlocks'] = -1
         else:
-          teamPowerPlaySplit = safe_chain(statList,i,'team','powerPlayConversion')
-          teamPowerPlays = -1
-          teamPowerPlayPercentage = -1
-        if type(safe_chain(statList,i,'opponent','powerPlayConversion')) == str:
-          opponentPowerPlaySplit = safe_chain(statList,i,'opponent','powerPlayConversion').split('/')
-          opponentPowerPlays = int(opponentPowerPlaySplit[1])
-          opponentPowerPlayPercentage = float(int(opponentPowerPlaySplit[0])/opponentPowerPlays) if opponentPowerPlays != 0 else 0
-        else:
-          opponentPowerPlaySplit = safe_chain(statList,i,'opponent','powerPlayConversion')
-          opponentPowerPlays = -1
-          opponentPowerPlayPercentage = -1
+          if type(safe_chain(statList,i,'team','powerPlayConversion')) == str:
+            teamPowerPlaySplit = safe_chain(statList,i,'team','powerPlayConversion').split('/')
+            teamPowerPlays = int(teamPowerPlaySplit[1])
+            teamPowerPlayPercentage = float(int(teamPowerPlaySplit[0])/teamPowerPlays) if teamPowerPlays != 0 else 0
+          else:
+            teamPowerPlaySplit = safe_chain(statList,i,'team','powerPlayConversion')
+            teamPowerPlays = -1
+            teamPowerPlayPercentage = -1
+          if type(safe_chain(statList,i,'opponent','powerPlayConversion')) == str:
+            opponentPowerPlaySplit = safe_chain(statList,i,'opponent','powerPlayConversion').split('/')
+            opponentPowerPlays = int(opponentPowerPlaySplit[1])
+            opponentPowerPlayPercentage = float(int(opponentPowerPlaySplit[0])/opponentPowerPlays) if opponentPowerPlays != 0 else 0
+          else:
+            opponentPowerPlaySplit = safe_chain(statList,i,'opponent','powerPlayConversion')
+            opponentPowerPlays = -1
+            opponentPowerPlayPercentage = -1
 
-        lastGames[f'{teamTitle}Back{i+1}GameId'] = safe_chain(statList,i,'id')
-        lastGames[f'{teamTitle}Back{i+1}GameDate'] = formatDate(safe_chain(statList,i,'gameDate'))
-        lastGames[f'{teamTitle}Back{i+1}GameType'] = safe_chain(statList,i,'gameType')
-        lastGames[f'{teamTitle}Back{i+1}GameVenue'] = n2n(safe_chain(statList,i,'venue'))
-        lastGames[f'{teamTitle}Back{i+1}GameStartTime'] = formatDatetime(safe_chain(statList,i,'startTimeUTC'))
-        lastGames[f'{teamTitle}Back{i+1}GameEasternOffset'] = formatTime(safe_chain(statList,i,'easternUTCOffset'))
-        lastGames[f'{teamTitle}Back{i+1}GameVenueOffset'] = formatTime(safe_chain(statList,i,'venueUTCOffset'))
-        lastGames[f'{teamTitle}Back{i+1}GameOutcome'] = n2n(safe_chain(statList,i,'outcome'))
-        lastGames[f'{teamTitle}Back{i+1}GameHomeAway'] = safe_chain(statList,i,'homeAway')
-        lastGames[f'{teamTitle}Back{i+1}GameFinalPeriod'] = safe_chain(statList,i,'period')
-        lastGames[f'{teamTitle}Back{i+1}GameScore'] = safe_chain(statList,i,'team','score')
-        lastGames[f'{teamTitle}Back{i+1}GameShots'] = safe_chain(statList,i,'team','sog')
-        lastGames[f'{teamTitle}Back{i+1}GameFaceoffWinPercentage'] = safe_chain(statList,i,'team','faceoffWinningPctg')
-        lastGames[f'{teamTitle}Back{i+1}GamePowerPlays'] = teamPowerPlays
-        lastGames[f'{teamTitle}Back{i+1}GamePowerPlayPercentage'] = teamPowerPlayPercentage
-        lastGames[f'{teamTitle}Back{i+1}GamePIM'] = safe_chain(statList,i,'team','pim')
-        lastGames[f'{teamTitle}Back{i+1}GameHits'] = safe_chain(statList,i,'team','hits')
-        lastGames[f'{teamTitle}Back{i+1}GameBlocks'] = safe_chain(statList,i,'team','blocks')
-        lastGames[f'{teamTitle}Back{i+1}GameOpponent'] = safe_chain(statList,i,'opponent','id')
-        lastGames[f'{teamTitle}Back{i+1}GameOpponentScore'] = safe_chain(statList,i,'opponent','score')
-        lastGames[f'{teamTitle}Back{i+1}GameOpponentShots'] = safe_chain(statList,i,'opponent','sog')
-        lastGames[f'{teamTitle}Back{i+1}GameOpponentFaceoffWinPercentage'] = safe_chain(statList,i,'opponent','faceoffWinningPctg')
-        lastGames[f'{teamTitle}Back{i+1}GameOpponentPowerPlays'] = opponentPowerPlays
-        lastGames[f'{teamTitle}Back{i+1}GameOpponentPowerPlayPercentage'] = opponentPowerPlayPercentage
-        lastGames[f'{teamTitle}Back{i+1}GameOpponentPIM'] = safe_chain(statList,i,'opponent','pim')
-        lastGames[f'{teamTitle}Back{i+1}GameOpponentHits'] = safe_chain(statList,i,'opponent','hits')
-        lastGames[f'{teamTitle}Back{i+1}GameOpponentBlocks'] = safe_chain(statList,i,'opponent','blocks')
+          lastGames[f'{teamTitle}Back{i+1}GameId'] = safe_chain(statList,i,'id')
+          lastGames[f'{teamTitle}Back{i+1}GameDate'] = formatDate(safe_chain(statList,i,'gameDate'))
+          lastGames[f'{teamTitle}Back{i+1}GameType'] = safe_chain(statList,i,'gameType')
+          lastGames[f'{teamTitle}Back{i+1}GameVenue'] = n2n(safe_chain(statList,i,'venue'))
+          lastGames[f'{teamTitle}Back{i+1}GameStartTime'] = formatDatetime(safe_chain(statList,i,'startTimeUTC'))
+          lastGames[f'{teamTitle}Back{i+1}GameEasternOffset'] = formatTime(safe_chain(statList,i,'easternUTCOffset'))
+          lastGames[f'{teamTitle}Back{i+1}GameVenueOffset'] = formatTime(safe_chain(statList,i,'venueUTCOffset'))
+          lastGames[f'{teamTitle}Back{i+1}GameOutcome'] = n2n(safe_chain(statList,i,'outcome'))
+          lastGames[f'{teamTitle}Back{i+1}GameHomeAway'] = n2n(safe_chain(statList,i,'homeAway'))
+          lastGames[f'{teamTitle}Back{i+1}GameFinalPeriod'] = safe_chain(statList,i,'period')
+          lastGames[f'{teamTitle}Back{i+1}GameScore'] = safe_chain(statList,i,'team','score')
+          lastGames[f'{teamTitle}Back{i+1}GameShots'] = safe_chain(statList,i,'team','sog')
+          lastGames[f'{teamTitle}Back{i+1}GameFaceoffWinPercentage'] = safe_chain(statList,i,'team','faceoffWinningPctg')
+          lastGames[f'{teamTitle}Back{i+1}GamePowerPlays'] = teamPowerPlays
+          lastGames[f'{teamTitle}Back{i+1}GamePowerPlayPercentage'] = teamPowerPlayPercentage
+          lastGames[f'{teamTitle}Back{i+1}GamePIM'] = safe_chain(statList,i,'team','pim')
+          lastGames[f'{teamTitle}Back{i+1}GameHits'] = safe_chain(statList,i,'team','hits')
+          lastGames[f'{teamTitle}Back{i+1}GameBlocks'] = safe_chain(statList,i,'team','blocks')
+          lastGames[f'{teamTitle}Back{i+1}GameOpponent'] = safe_chain(statList,i,'opponent','id')
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentScore'] = safe_chain(statList,i,'opponent','score')
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentShots'] = safe_chain(statList,i,'opponent','sog')
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentFaceoffWinPercentage'] = safe_chain(statList,i,'opponent','faceoffWinningPctg')
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentPowerPlays'] = opponentPowerPlays
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentPowerPlayPercentage'] = opponentPowerPlayPercentage
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentPIM'] = safe_chain(statList,i,'opponent','pim')
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentHits'] = safe_chain(statList,i,'opponent','hits')
+          lastGames[f'{teamTitle}Back{i+1}GameOpponentBlocks'] = safe_chain(statList,i,'opponent','blocks')
       return lastGames
     else:
       lastGames = {}

@@ -116,6 +116,12 @@ def safe_chain(obj, *keys, default=REPLACE_VALUE):
           return default
   return obj
 
+def safe_none(inValue,replaceValue=-1):
+  if inValue is None:
+    return replaceValue
+  else:
+    return inValue
+
 def false_chain(obj, *keys, default=REPLACE_VALUE):
   for key in keys:
     if key == default:
@@ -396,8 +402,8 @@ def compile_training_data(db, game):
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
     print('ERROR','HELPERS')
     print('id', safe_chain(game,'id'))
-    print('homeTeam',homeTeam)
-    print('awayTeam',awayTeam)
+    # print('homeTeam',homeTeam)
+    # print('awayTeam',awayTeam)
     print('error',error)
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
@@ -408,7 +414,7 @@ def projectedLineup(team,gameId):
   last_game = min(gameIDs, key=lambda x:abs(x-gameId))
   return last_game
 
-def latestIDs():
+def latestIDs(training_data):
   client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
   db = client["hockey"]
   # Trainings = db["dev_trainings"]
@@ -450,6 +456,7 @@ def latestIDs():
             latest_final_game = game['id']
 
   # last_training_id = max([int(e['id']) for e in trainings_list])
+  last_training_id = max(training_data, key=lambda x:x['id'])['id']
   last_boxscore_id = max([int(e['id']) for e in boxscores_list])
   last_game_id = max([int(e['id']) for e in games_list])
 
@@ -457,7 +464,7 @@ def latestIDs():
     'saved': {
       'boxscore': last_boxscore_id,
       'game': last_game_id,
-      # 'training': last_training_id,
+      'training': last_training_id,
     },
     'live': {
       'game': latest_final_game,

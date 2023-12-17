@@ -1,4 +1,4 @@
-from util.helpers import safe_chain, n2n, false_chain, getPlayer, getAge, b2n, isNaN, formatDate, formatDatetime, formatTime
+from util.helpers import safe_chain, n2n, false_chain, getPlayer, getAge, b2n, isNaN, formatDate, formatDatetime, formatTime, safe_none
 import math
 import requests
 from pymongo import MongoClient
@@ -46,8 +46,45 @@ def master_inputs(db, game):
     ))
   else:
     allPlayers = []
+
+  homeStartingGoalieID = -1
+  homeBackupGoalieID = -1
+  awayStartingGoalieID = -1
+  awayBackupGoalieID = -1
+
+  if false_chain(pbgs,'awayTeam','goalies'):
+    if len(pbgs['awayTeam']['goalies']) == 1:
+      awayStartingGoalieID = pbgs['awayTeam']['goalies'][0]['playerId']
+    
+    if len(pbgs['awayTeam']['goalies']) > 1:
+      startingTOI = -1
+      startingID = -1
+      backupID = -1
+      for goalie in pbgs['awayTeam']['goalies']:
+        if safe_none(formatTime(goalie['toi'])) > safe_none(startingTOI):
+          startingTOI = safe_none(formatTime(goalie['toi']))
+          backupID = startingID
+          startingID = goalie['playerId']
+      awayStartingGoalieID = startingID
+      awayBackupGoalieID = backupID
+
+  if false_chain(pbgs,'awayTeam','goalies'):
+    if len(pbgs['homeTeam']['goalies']) == 1:
+      homeStartingGoalieID = pbgs['homeTeam']['goalies'][0]['playerId']
+    
+    if len(pbgs['homeTeam']['goalies']) > 1:
+      startingTOI = -1
+      startingID = -1
+      backupID = -1
+      for goalie in pbgs['homeTeam']['goalies']:
+        if safe_none(formatTime(goalie['toi'])) > safe_none(startingTOI):
+          startingTOI = safe_none(formatTime(goalie['toi']))
+          backupID = startingID
+          startingID = goalie['playerId']
+      homeStartingGoalieID = startingID
+      homeBackupGoalieID = backupID
   
-  lastPlayerStats = last_player_game_stats(db=db,gameId=game['id'],playerIDs=allPlayerIds)
+  # lastPlayerStats = last_player_game_stats(db=db,gameId=game['id'],playerIDs=allPlayerIds)
 
   try:
     return {
@@ -73,51 +110,51 @@ def master_inputs(db, game):
       'linesman2': n2n(safe_chain(gi,'linesmen',1,'default')),
       **get_last_game_team_stats(db=db,teamId=homeTeam['id'],teamTitle='homeTeam'),
       **get_last_game_team_stats(db=db,teamId=awayTeam['id'],teamTitle='awayTeam'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',0,'playerId'),playerTitle='awayForward1'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',1,'playerId'),playerTitle='awayForward2'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',2,'playerId'),playerTitle='awayForward3'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',3,'playerId'),playerTitle='awayForward4'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',4,'playerId'),playerTitle='awayForward5'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',5,'playerId'),playerTitle='awayForward6'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',6,'playerId'),playerTitle='awayForward7'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',7,'playerId'),playerTitle='awayForward8'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',8,'playerId'),playerTitle='awayForward9'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',9,'playerId'),playerTitle='awayForward10'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',10,'playerId'),playerTitle='awayForward11'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',11,'playerId'),playerTitle='awayForward12'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',12,'playerId'),playerTitle='awayForward13'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',0,'playerId'),playerTitle='awayDefenseman1'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',1,'playerId'),playerTitle='awayDefenseman2'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',2,'playerId'),playerTitle='awayDefenseman3'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',3,'playerId'),playerTitle='awayDefenseman4'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',4,'playerId'),playerTitle='awayDefenseman5'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',5,'playerId'),playerTitle='awayDefenseman6'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',6,'playerId'),playerTitle='awayDefenseman7'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',0,'playerId'),playerTitle='awayStartingGoalie'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',1,'playerId'),playerTitle='awayBackupGoalie'),
-      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',2,'playerId'),playerTitle='awayThirdGoalie'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',0,'playerId'),playerTitle='homeForward1'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',1,'playerId'),playerTitle='homeForward2'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',2,'playerId'),playerTitle='homeForward3'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',3,'playerId'),playerTitle='homeForward4'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',4,'playerId'),playerTitle='homeForward5'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',5,'playerId'),playerTitle='homeForward6'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',6,'playerId'),playerTitle='homeForward7'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',7,'playerId'),playerTitle='homeForward8'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',8,'playerId'),playerTitle='homeForward9'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',9,'playerId'),playerTitle='homeForward10'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',10,'playerId'),playerTitle='homeForward11'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',11,'playerId'),playerTitle='homeForward12'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',12,'playerId'),playerTitle='homeForward13'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',0,'playerId'),playerTitle='homeDefenseman1'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',1,'playerId'),playerTitle='homeDefenseman2'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',2,'playerId'),playerTitle='homeDefenseman3'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',3,'playerId'),playerTitle='homeDefenseman4'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',4,'playerId'),playerTitle='homeDefenseman5'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',5,'playerId'),playerTitle='homeDefenseman6'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',6,'playerId'),playerTitle='homeDefenseman7'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','goalies',0,'playerId'),playerTitle='homeStartingGoalie'),
-      **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','goalies',1,'playerId'),playerTitle='homeBackupGoalie'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',0,'playerId'),playerTitle='awayForward1'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',1,'playerId'),playerTitle='awayForward2'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',2,'playerId'),playerTitle='awayForward3'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',3,'playerId'),playerTitle='awayForward4'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',4,'playerId'),playerTitle='awayForward5'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',5,'playerId'),playerTitle='awayForward6'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',6,'playerId'),playerTitle='awayForward7'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',7,'playerId'),playerTitle='awayForward8'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',8,'playerId'),playerTitle='awayForward9'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',9,'playerId'),playerTitle='awayForward10'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',10,'playerId'),playerTitle='awayForward11'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',11,'playerId'),playerTitle='awayForward12'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','forwards',12,'playerId'),playerTitle='awayForward13'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',0,'playerId'),playerTitle='awayDefenseman1'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',1,'playerId'),playerTitle='awayDefenseman2'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',2,'playerId'),playerTitle='awayDefenseman3'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',3,'playerId'),playerTitle='awayDefenseman4'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',4,'playerId'),playerTitle='awayDefenseman5'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',5,'playerId'),playerTitle='awayDefenseman6'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','defense',6,'playerId'),playerTitle='awayDefenseman7'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',0,'playerId'),playerTitle='awayStartingGoalie'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',1,'playerId'),playerTitle='awayBackupGoalie'),
+      # # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'awayTeam','goalies',2,'playerId'),playerTitle='awayThirdGoalie'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',0,'playerId'),playerTitle='homeForward1'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',1,'playerId'),playerTitle='homeForward2'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',2,'playerId'),playerTitle='homeForward3'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',3,'playerId'),playerTitle='homeForward4'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',4,'playerId'),playerTitle='homeForward5'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',5,'playerId'),playerTitle='homeForward6'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',6,'playerId'),playerTitle='homeForward7'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',7,'playerId'),playerTitle='homeForward8'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',8,'playerId'),playerTitle='homeForward9'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',9,'playerId'),playerTitle='homeForward10'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',10,'playerId'),playerTitle='homeForward11'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',11,'playerId'),playerTitle='homeForward12'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','forwards',12,'playerId'),playerTitle='homeForward13'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',0,'playerId'),playerTitle='homeDefenseman1'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',1,'playerId'),playerTitle='homeDefenseman2'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',2,'playerId'),playerTitle='homeDefenseman3'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',3,'playerId'),playerTitle='homeDefenseman4'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',4,'playerId'),playerTitle='homeDefenseman5'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',5,'playerId'),playerTitle='homeDefenseman6'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','defense',6,'playerId'),playerTitle='homeDefenseman7'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','goalies',0,'playerId'),playerTitle='homeStartingGoalie'),
+      # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','goalies',1,'playerId'),playerTitle='homeBackupGoalie'),
       # **get_last_game_player_stats(playerData=lastPlayerStats,playerId=safe_chain(pbgs,'homeTeam','goalies',2,'playerId'),playerTitle='homeThirdGoalie'),
       'awayForward1': safe_chain(pbgs,'awayTeam','forwards',0,'playerId'),
       'awayForward1Position': n2n(safe_chain(pbgs,'awayTeam','forwards',0,'position')),
@@ -199,16 +236,16 @@ def master_inputs(db, game):
       'awayDefenseman7Position': n2n(safe_chain(pbgs,'awayTeam','defense',6,'position')),
       'awayDefenseman7Age': getAge(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','defense',6,'playerId')),game['gameDate']) if false_chain(pbgs,'awayTeam','defense',6,'playerId') else REPLACE_VALUE,
       'awayDefenseman7Shoots': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','defense',6,'playerId')),0,'shootsCatches')),
-      'awayStartingGoalie': safe_chain(pbgs,'awayTeam','goalies',0,'playerId'),
-      'awayStartingGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',0,'playerId')),0,'shootsCatches')),
-      'awayStartingGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',0,'playerId')),game['gameDate']) if false_chain(pbgs,'awayTeam','goalies',0,'playerId') else REPLACE_VALUE,
-      'awayStartingGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',0,'playerId')),0,'heightInInches'),
-      'awayStartingGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',0,'playerId')),0,'weightInPounds'),
-      'awayBackupGoalie': safe_chain(pbgs,'awayTeam','goalies',1,'playerId'),
-      'awayBackupGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',1,'playerId')),0,'shootsCatches')),
-      'awayBackupGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',1,'playerId')),game['gameDate']) if false_chain(pbgs,'awayTeam','goalies',1,'playerId') else REPLACE_VALUE,
-      'awayBackupGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',1,'playerId')),0,'heightInInches'),
-      'awayBackupGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',1,'playerId')),0,'weightInPounds'),
+      'awayStartingGoalie': awayStartingGoalieID,
+      'awayStartingGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,awayStartingGoalieID),0,'shootsCatches')),
+      'awayStartingGoalieAge': getAge(getPlayer(allPlayers,awayStartingGoalieID),game['gameDate']) if false_chain(pbgs,'awayTeam','goalies',0,'playerId') else REPLACE_VALUE,
+      'awayStartingGoalieHeight': safe_chain(getPlayer(allPlayers,awayStartingGoalieID),0,'heightInInches'),
+      'awayStartingGoalieWeight': safe_chain(getPlayer(allPlayers,awayStartingGoalieID),0,'weightInPounds'),
+      'awayBackupGoalie': awayBackupGoalieID,
+      'awayBackupGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,awayBackupGoalieID),0,'shootsCatches')),
+      'awayBackupGoalieAge': getAge(getPlayer(allPlayers,awayBackupGoalieID),game['gameDate']) if false_chain(pbgs,'awayTeam','goalies',1,'playerId') else REPLACE_VALUE,
+      'awayBackupGoalieHeight': safe_chain(getPlayer(allPlayers,awayBackupGoalieID),0,'heightInInches'),
+      'awayBackupGoalieWeight': safe_chain(getPlayer(allPlayers,awayBackupGoalieID),0,'weightInPounds'),
       # 'awayThirdGoalie': safe_chain(pbgs,'awayTeam','goalies',2,'playerId'),
       # 'awayThirdGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),0,'shootsCatches')),
       # 'awayThirdGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'awayTeam','goalies',2,'playerId')),game['gameDate']) if false_chain(pbgs,'awayTeam','goalies',2,'playerId') else REPLACE_VALUE,
@@ -294,16 +331,16 @@ def master_inputs(db, game):
       'homeDefenseman7Position': n2n(safe_chain(pbgs,'homeTeam','defense',6,'position')),
       'homeDefenseman7Age': getAge(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','defense',6,'playerId')),game['gameDate']) if false_chain(pbgs,'homeTeam','defense',6,'playerId') else REPLACE_VALUE,
       'homeDefenseman7Shoots': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','defense',6,'playerId')),0,'shootsCatches')),
-      'homeStartingGoalie': safe_chain(pbgs,'homeTeam','goalies',0,'playerId'),
-      'homeStartingGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',0,'playerId')),0,'shootsCatches')),
-      'homeStartingGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',0,'playerId')),game['gameDate']) if false_chain(pbgs,'homeTeam','goalies',0,'playerId') else REPLACE_VALUE,
-      'homeStartingGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',0,'playerId')),0,'heightInInches'),
-      'homeStartingGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',0,'playerId')),0,'weightInPounds'),
-      'homeBackupGoalie': safe_chain(pbgs,'homeTeam','goalies',1,'playerId'),
-      'homeBackupGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',1,'playerId')),0,'shootsCatches')),
-      'homeBackupGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',1,'playerId')),game['gameDate']) if false_chain(pbgs,'homeTeam','goalies',1,'playerId') else REPLACE_VALUE,
-      'homeBackupGoalieHeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',1,'playerId')),0,'heightInInches'),
-      'homeBackupGoalieWeight': safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',1,'playerId')),0,'weightInPounds'),
+      'homeStartingGoalie': homeStartingGoalieID,
+      'homeStartingGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,homeStartingGoalieID),0,'shootsCatches')),
+      'homeStartingGoalieAge': getAge(getPlayer(allPlayers,homeStartingGoalieID),game['gameDate']) if false_chain(pbgs,'homeTeam','goalies',0,'playerId') else REPLACE_VALUE,
+      'homeStartingGoalieHeight': safe_chain(getPlayer(allPlayers,homeStartingGoalieID),0,'heightInInches'),
+      'homeStartingGoalieWeight': safe_chain(getPlayer(allPlayers,homeStartingGoalieID),0,'weightInPounds'),
+      'homeBackupGoalie': homeBackupGoalieID,
+      'homeBackupGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,homeBackupGoalieID),0,'shootsCatches')),
+      'homeBackupGoalieAge': getAge(getPlayer(allPlayers,homeBackupGoalieID),game['gameDate']) if false_chain(pbgs,'homeTeam','goalies',1,'playerId') else REPLACE_VALUE,
+      'homeBackupGoalieHeight': safe_chain(getPlayer(allPlayers,homeBackupGoalieID),0,'heightInInches'),
+      'homeBackupGoalieWeight': safe_chain(getPlayer(allPlayers,homeBackupGoalieID),0,'weightInPounds'),
       # 'homeThirdGoalie': safe_chain(pbgs,'homeTeam','goalies',2,'playerId'),
       # 'homeThirdGoalieCatches': n2n(safe_chain(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),0,'shootsCatches')),
       # 'homeThirdGoalieAge': getAge(getPlayer(allPlayers,safe_chain(pbgs,'homeTeam','goalies',2,'playerId')),game['gameDate']) if false_chain(pbgs,'homeTeam','goalies',2,'playerId') else REPLACE_VALUE,
@@ -314,5 +351,7 @@ def master_inputs(db, game):
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
     print('ERROR','INPUTS')
     print('id', safe_chain(game,'id'))
+    print(safe_chain(game,'homeTeam'))
+    print(safe_chain(game,'awayTeam'))
     print('error',error)
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')

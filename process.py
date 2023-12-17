@@ -1,9 +1,15 @@
+import sys
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\inputs')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
+
 import requests
 from pymongo import MongoClient
 import math
 from datetime import datetime
 import os
 from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup
+from inputs.inputs import master_inputs
+from util.query import get_last_game_team_stats
 
 REPLACE_VALUE = -1
 
