@@ -414,7 +414,7 @@ def projectedLineup(team,gameId):
   last_game = min(gameIDs, key=lambda x:abs(x-gameId))
   return last_game
 
-def latestIDs(training_data):
+def latestIDs(training_data=-1):
   client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
   db = client["hockey"]
   # Trainings = db["dev_trainings"]
@@ -456,7 +456,10 @@ def latestIDs(training_data):
             latest_final_game = game['id']
 
   # last_training_id = max([int(e['id']) for e in trainings_list])
-  last_training_id = max(training_data, key=lambda x:x['id'])['id']
+  if training_data != -1:
+    last_training_id = max(training_data, key=lambda x:x['id'])['id']
+  else:
+    last_training_id = -1
   last_boxscore_id = max([int(e['id']) for e in boxscores_list])
   last_game_id = max([int(e['id']) for e in games_list])
 

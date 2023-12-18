@@ -17,70 +17,74 @@ from constants.inputConstants import X_V4_INPUTS, Y_V4_OUTPUTS
 REPLACE_VALUE = -1
 
 def nhl_data(game,message='',test=False):
-  boxscore = boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
-  # db_username = os.getenv('DB_USERNAME')
-  # db_name = os.getenv('DB_NAME')
-  # db_password = os.getenv('DB_PASSWORD')
-  # db_url = f"mongodb+srv://{db_username}:{db_password}@{db_name}"
   db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
   client = MongoClient(db_url)
   db = client['hockey']
-  check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
-  if not check_pbgs:
-    away_last_game = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'])
-    home_last_game = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'])
-    away_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{away_last_game}/boxscore").json()
-    home_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{home_last_game}/boxscore").json()
-    boxscore['boxscore'] = {
-      'playerByGameStats': {
-        'awayTeam': away_last_boxscore['boxscore']['playerByGameStats']['awayTeam'],
-        'homeTeam': home_last_boxscore['boxscore']['playerByGameStats']['homeTeam'],
-      },
-      'gameInfo': {
-        'awayTeam': away_last_boxscore['boxscore']['gameInfo']['awayTeam'],
-        'homeTeam': home_last_boxscore['boxscore']['gameInfo']['homeTeam'],
-      }
-    }
-    message = 'using projected lineup'
-    # return {
-    #   'data': {
-    #     'data': [[]],
-    #     'date': -1,
-    #     'game_id': game['id'],
-    #     'home_team': {
-    #       'id': game['homeTeam']['id'],
-    #       'city': game['homeTeam']['placeName']['default'],
-    #       'name': -1,
-    #       'abbreviation': -1,
-    #     },
-    #     'away_team': {
-    #       'id': game['awayTeam']['id'],
-    #       'city': game['awayTeam']['placeName']['default'],
-    #       'name': -1,
-    #       'abbreviation': -1,
-    #     },
-    #     'live': {
-    #       'home_score': -1,
-    #       'away_score': -1,
-    #       'period': 0,
-    #       'clock': 0,
-    #       'stopped': True,
-    #       'intermission': False,
-    #     },
-    #   },
-    #   'message': 'no boxscore for game',
-    # }
-  # print(boxscore['homeTeam'])
-  inputs = master_inputs(db=db,game=boxscore)
-  # print(inputs)
   if not test:
+    boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
+    check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
+    if not check_pbgs:
+      away_last_game = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'])
+      home_last_game = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'])
+      away_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{away_last_game}/boxscore").json()
+      home_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{home_last_game}/boxscore").json()
+      boxscore['boxscore'] = {
+        'playerByGameStats': {
+          'awayTeam': away_last_boxscore['boxscore']['playerByGameStats']['awayTeam'],
+          'homeTeam': home_last_boxscore['boxscore']['playerByGameStats']['homeTeam'],
+        },
+        'gameInfo': {
+          'awayTeam': away_last_boxscore['boxscore']['gameInfo']['awayTeam'],
+          'homeTeam': home_last_boxscore['boxscore']['gameInfo']['homeTeam'],
+        }
+      }
+      message = 'using projected lineup'
+      # return {
+      #   'data': {
+      #     'data': [[]],
+      #     'date': -1,
+      #     'game_id': game['id'],
+      #     'home_team': {
+      #       'id': game['homeTeam']['id'],
+      #       'city': game['homeTeam']['placeName']['default'],
+      #       'name': -1,
+      #       'abbreviation': -1,
+      #     },
+      #     'away_team': {
+      #       'id': game['awayTeam']['id'],
+      #       'city': game['awayTeam']['placeName']['default'],
+      #       'name': -1,
+      #       'abbreviation': -1,
+      #     },
+      #     'live': {
+      #       'home_score': -1,
+      #       'away_score': -1,
+      #       'period': 0,
+      #       'clock': 0,
+      #       'stopped': True,
+      #       'intermission': False,
+      #     },
+      #   },
+      #   'message': 'no boxscore for game',
+      # }
+  else:
+    boxscore = game
+    
+
+  inputs = master_inputs(db=db,game=boxscore)
+
+  if not test:
+    input_data = {}
     if inputs:
       x = [[inputs[i] for i in X_V4_INPUTS]]
+      for i in X_V4_INPUTS:
+        input_data[i] = inputs[i]
     else:
       x = [[]]
     return {
       'data': {
         'data': x,
+        'input_data': input_data,
         'game_id': safe_chain(boxscore,'id'),
         'date': safe_chain(boxscore,'gameDate'),
         'state': safe_chain(boxscore,'gameState'),
@@ -107,7 +111,52 @@ def nhl_data(game,message='',test=False):
       },
       'message': message,
     }
+  else:
+    homeTeam = safe_chain(boxscore,'homeTeam','id')
+    awayTeam = safe_chain(boxscore,'awayTeam','id')
+    awayScore = safe_chain(boxscore,'awayTeam','score')
+    homeScore = safe_chain(boxscore,'homeTeam','score')
+    suplement_data = {
+      'id': safe_chain(boxscore,'id'),
+      'season': safe_chain(boxscore,'season'),
+      'gameType': safe_chain(boxscore,'gameType'),
+      'venue': n2n(safe_chain(boxscore,'venue','default')),
+      'neutralSite': 0,
+      'homeTeam': homeTeam,
+      'awayTeam': awayTeam,
+      'awayScore': awayScore,
+      'homeScore': homeScore,
+      'winner': homeTeam if homeScore > awayScore else awayTeam,
+    }
+    x_data = []
+    y_data = []
+    input_data = {}
+    x = [[inputs[i] for i in X_V4_INPUTS]]
+    for i in X_V4_INPUTS:
+      input_data[i] = inputs[i]
+    for i in X_V4_INPUTS:
+      if i in suplement_data.keys():
+        x_data.append(suplement_data[i])
+      else:
+        x_data.append(inputs[i])
+    for i in Y_V4_OUTPUTS:
+      if i in suplement_data.keys():
+        y_data.append(suplement_data[i])
+      elif i in inputs:
+        y_data.append(inputs[i])
+
+    test_data = [x_data]
+    test_result = [y_data]
+    return {
+      'data':test_data,
+      'result':test_result,
+      'input_data': input_data,
+      }
+
 
 # game = requests.get(f"https://api-web.nhle.com/v1/schedule/now").json()
 # data = nhl_data(game=game['gameWeek'][0]['games'][0])
 # print(data)
+
+def nhl_test(boxscore):
+  return nhl_data(game=boxscore,test=True)
