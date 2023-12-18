@@ -13,7 +13,7 @@ import os
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from util.training_data import save_training_data
-from util.helpers import latestIDs
+from util.helpers import latestIDs, adjusted_winner
 import boto3
 import io
 from inputs.inputs import master_inputs
@@ -125,7 +125,6 @@ def ai_return_dict(data, prediction, confidence=-1):
     'awayScoreConfidence': awayScoreConfidence,
     'offset': offset,
     'live': live_data,
-    # 'data': data['data']['data'],
     'message': data['message'],
   }
 
@@ -163,8 +162,8 @@ def test_model():
   Boxscores = db['dev_boxscores']
   startID = request.args.get('start', default=-1, type=int)
   endID = request.args.get('end', default=-1, type=int)
-  # startID = int(request.json['startId'])
-  # endID = int(request.json['endId'])
+  show_data = request.args.get('data', default=-1, type=int)
+
   if startID == -1 or endID == -1:
     md = metadata()
     if startID == -1:
@@ -194,17 +193,19 @@ def test_model():
   }
 
   for boxscore in boxscore_list:
+    awayId = boxscore['awayTeam']['id']
+    homeId = boxscore['homeTeam']['id']
     test_data = nhl_test(boxscore=boxscore)
     test_prediction = model.predict(test_data['data'])
     test_confidence = model.predict_proba(test_data['data'])
-    predicted_winner = test_prediction[0][2]
+    predicted_winner = adjusted_winner(awayId, homeId, test_prediction[0][2])
     predicted_homeScore = test_prediction[0][0]
     predicted_awayScore = test_prediction[0][1]
-    test_winner = test_data['result'][0][2]
+    test_winner = adjusted_winner(awayId, homeId, test_data['result'][0][2])
     test_homeScore = test_data['result'][0][0]
     test_awayScore = test_data['result'][0][1]
     test_results[boxscore['gameDate']]['results'].append({
-      'data': test_data['input_data'],
+      'data': test_data['input_data'] if show_data != -1 else {},
       'winner': 1 if predicted_winner==test_winner else 0,
       'homeScore': 1 if predicted_homeScore==test_homeScore else 0,
       'awayScore': 1 if predicted_awayScore==test_awayScore else 0,
@@ -213,8 +214,7 @@ def test_model():
       'homeScoreConfidence': int((np.max(test_confidence[0], axis=1) * 100)[0]),
       'awayScoreConfidence': int((np.max(test_confidence[1], axis=1) * 100)[0]),
     })
-    # print(int((np.max(test_confidence[2], axis=1) * 100)[0]))
-    # print(predicted_winner==test_winner,predicted_homeScore==test_homeScore,predicted_awayScore==test_awayScore)
+    
   for boxscore in boxscore_list:
     winner_total = 0
     home_score_total = 0
@@ -261,24 +261,6 @@ def collect_boxscores():
     boxscores.append(boxscore_data)
   Boxscores.insert_many(boxscores)
   return {'status':'done'}
-
-# @app.route('/collect/training-data-v3', methods=['GET'])
-# def collect_training_data_v3():
-#   seasons = list(db["dev_seasons"].find(
-#     {},
-#     {'_id':0,'seasonId': 1}
-#   ))
-#   seasons = [season['seasonId'] for season in seasons]
-#   Trainings_v3 = db['dev_trainings_v3']
-#   for season in seasons:
-#     print(f'Fired {season}')
-#     try:
-#       training_data = load(f'training_data/training_data_v3_{season}.joblib')
-#       Trainings_v3.insert_many(training_data)
-#     except Exception as error:
-#       print(f'{season} - {error}')
-#     print(f'DONE {season}')
-#   return {'status':'done'}
 
 @app.route('/collect/training-data', methods=['GET'])
 def collect_training_data():
@@ -440,12 +422,12 @@ def save_boxscores():
   date = request.args.get('date', default='now', type=str)
   Games = db['dev_games']
   latest_ids = latestIDs()
-  if date != 'now':
-    Boxscores = db['dev_boxscores']
-    boxscores = []
-    for id in range(latest_ids['saved']['boxscore']+1,latest_ids['live']['boxscore']+1):
-      boxscore_data = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore").json()
-      Boxscores.insert_one(boxscore_data)
+  
+  Boxscores = db['dev_boxscores']
+  boxscores = []
+  for id in range(latest_ids['saved']['boxscore']+1,latest_ids['live']['boxscore']+1):
+    boxscore_data = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore").json()
+    Boxscores.insert_one(boxscore_data)
   
   schedule = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   for week in schedule['gameWeek']:

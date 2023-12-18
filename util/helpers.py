@@ -474,3 +474,13 @@ def latestIDs(training_data=-1):
       'boxscore': latest_final_game,
     },
   }
+
+def adjusted_winner(awayId,homeId,winnerId):
+  away_offset = abs(awayId - winnerId)
+  home_offset = abs(homeId - winnerId)
+  if away_offset < home_offset:
+    return awayId
+  elif home_offset < away_offset:
+    return homeId
+  else:
+    return winnerId
