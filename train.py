@@ -18,7 +18,7 @@ from util.training_data import season_training_data, game_training_data
 
 RE_PULL = False
 
-VERSION = 4
+VERSION = 5
 
 def xPlayerData(homeAway,position,index,isGoalie=False,gamesBack=-1):
   if isGoalie:
@@ -254,8 +254,8 @@ def train(inData):
 tdList = os.listdir(f'training_data/v{VERSION}')
 
 USE_SEASONS = True
-SKIP_SEASONS = [td.replace(f'training_data_v{VERSION}_','').replace('.joblib','') for td in tdList] if len(tdList) > 0 and not f'training_data_v{VERSION}.joblib' in os.listdir('training_data') else []
-
+SKIP_SEASONS = [int(td.replace(f'training_data_v{VERSION}_','').replace('.joblib','')) for td in tdList] if len(tdList) > 0 and not f'training_data_v{VERSION}.joblib' in os.listdir('training_data') else []
+START_SEASON = 20052006
 
 if __name__ == '__main__':
   if RE_PULL:
@@ -265,10 +265,11 @@ if __name__ == '__main__':
     db = client["hockey"]
     if USE_SEASONS:
       seasons = list(db["dev_seasons"].find(
-        {},
+        {'seasonId': {'$gte': START_SEASON}},
         {'_id':0,'seasonId': 1}
       ))
-      seasons = [season['seasonId'] for season in seasons]
+      seasons = [int(season['seasonId']) for season in seasons]
+      print(seasons)
       if (len(SKIP_SEASONS) > 0):
         for season in SKIP_SEASONS:
           seasons.remove(season)
@@ -300,7 +301,6 @@ if __name__ == '__main__':
     training_data_path = f'training_data/training_data_v{VERSION}.joblib'
     print(training_data_path)
     result = load(training_data_path)
-    print(result[len(result)-1])
     # f = open('training_data/training_data_text.txt', 'w')
     # f.write(json.dumps(result[60000:60500]))
   print('Games Collected')

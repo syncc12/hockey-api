@@ -22,7 +22,7 @@ LATEST_DATE_TRAINED = '2023-11-11'
 LATEST_DATE_COLLECTED = '2023-11-17'
 LATEST_ID_COLLECTED = '2023020253'
 
-VERSION = 4
+VERSION = 5
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -246,6 +246,7 @@ def test_model():
   test_results['allAwayScorePercent'] = (all_away_score_total / all_list_total) * 100
   test_results['allH2HScorePercent'] = (all_home_away_score_total / all_list_total) * 100
   test_results['allTotalScorePercent'] = (all_score_total / all_list_total) * 100
+  test_results['totalGames'] = list_total
   
   return test_results
 
