@@ -1,6 +1,7 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\inputs')
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\constants')
 
 import requests
 import json
@@ -15,6 +16,9 @@ from joblib import dump, load
 import pandas as pd
 from multiprocessing import Pool
 from util.training_data import season_training_data, game_training_data
+from constants.inputConstants import X_V4_INPUTS, Y_V4_OUTPUTS
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 RE_PULL = False
 
@@ -241,15 +245,37 @@ def train(inData):
     'homeBackupGoalieCatches','homeBackupGoalieAge','homeBackupGoalieHeight','homeBackupGoalieWeight'
   ]].values
   y = data [['homeScore','awayScore','winner']].values
+  y_winner = data [['winner']].values.ravel()
+  y_homeScore = data [['homeScore']].values.ravel()
+  y_awayScore = data [['awayScore']].values.ravel()
 
   imputer.fit(x)
   x = imputer.transform(x)
 
+  x_train, x_test, y_train_winner, y_test_winner = train_test_split(x, y_winner, test_size=0.2, random_state=12)
+  x_train, x_test, y_train_homeScore, y_test_homeScore = train_test_split(x, y_homeScore, test_size=0.2, random_state=12)
+  x_train, x_test, y_train_awayScore, y_test_awayScore = train_test_split(x, y_awayScore, test_size=0.2, random_state=12)
+
   clf = RandomForestClassifier(random_state=12)
+  clf_winner = RandomForestClassifier(random_state=12)
+  clf_homeScore = RandomForestClassifier(random_state=12)
+  clf_awayScore = RandomForestClassifier(random_state=12)
 
   clf.fit(x,y)
+  clf_winner.fit(x_train,y_train_winner)
+  clf_homeScore.fit(x_train,y_train_homeScore)
+  clf_awayScore.fit(x_train,y_train_awayScore)
+  predictions_winner = clf_winner.predict(x_test)
+  predictions_homeScore = clf_homeScore.predict(x_test)
+  predictions_awayScore = clf_awayScore.predict(x_test)
+  print("Winner Accuracy:", accuracy_score(y_test_winner, predictions_winner))
+  print("Home Score Accuracy:", accuracy_score(y_test_homeScore, predictions_homeScore))
+  print("Away Score Accuracy:", accuracy_score(y_test_awayScore, predictions_awayScore))
 
   dump(clf, f'models/nhl_ai_v{VERSION}.joblib')
+  dump(clf_winner, f'models/nhl_ai_v{VERSION}_winner.joblib')
+  dump(clf_homeScore, f'models/nhl_ai_v{VERSION}_homeScore.joblib')
+  dump(clf_awayScore, f'models/nhl_ai_v{VERSION}_awayScore.joblib')
 
 tdList = os.listdir(f'training_data/v{VERSION}')
 
