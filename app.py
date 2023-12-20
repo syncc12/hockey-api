@@ -32,6 +32,9 @@ db = client['hockey']
 CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
 
 model = load(f'models/nhl_ai_v{VERSION}.joblib')
+model_winner = load(f'models/nhl_ai_v{VERSION}_winner.joblib')
+model_homeScore = load(f'models/nhl_ai_v{VERSION}_homeScore.joblib')
+model_awayScore = load(f'models/nhl_ai_v{VERSION}_awayScore.joblib')
 
 def ai_return_dict(data, prediction, confidence=-1):
   if confidence != -1:
@@ -135,8 +138,17 @@ def ai(game_data):
   if len(data['data']['data'][0]) == 0:
     return ai_return_dict(data,[[]])
 
-  prediction = model.predict(data['data']['data'])
-  confidence = model.predict_proba(data['data']['data'])
+  prediction_winner = model_winner.predict(data['data']['data'])
+  prediction_homeScore = model_homeScore.predict(data['data']['data'])
+  prediction_awayScore = model_awayScore.predict(data['data']['data'])
+  confidence_winner = model_winner.predict_proba(data['data']['data'])
+  confidence_homeScore = model_homeScore.predict_proba(data['data']['data'])
+  confidence_awayScore = model_awayScore.predict_proba(data['data']['data'])
+  prediction = [[prediction_homeScore,prediction_awayScore,prediction_winner]]
+  confidence = [confidence_homeScore,confidence_awayScore,confidence_winner]
+
+  # print('prediction_winner',prediction_winner)
+  # print('confidence_winner',confidence_winner)
 
   return ai_return_dict(data,prediction,confidence)
 
@@ -196,11 +208,15 @@ def test_model():
     awayId = boxscore['awayTeam']['id']
     homeId = boxscore['homeTeam']['id']
     test_data = nhl_test(boxscore=boxscore)
-    test_prediction = model.predict(test_data['data'])
-    test_confidence = model.predict_proba(test_data['data'])
-    predicted_winner = adjusted_winner(awayId, homeId, test_prediction[0][2])
-    predicted_homeScore = test_prediction[0][0]
-    predicted_awayScore = test_prediction[0][1]
+    test_prediction_winner = model_winner.predict(test_data['data'])
+    test_prediction_homeScore = model_homeScore.predict(test_data['data'])
+    test_prediction_awayScore = model_awayScore.predict(test_data['data'])
+    test_confidence_winner = model_winner.predict_proba(test_data['data'])
+    test_confidence_homeScore = model_homeScore.predict_proba(test_data['data'])
+    test_confidence_awayScore = model_awayScore.predict_proba(test_data['data'])
+    predicted_winner = adjusted_winner(awayId, homeId, test_prediction_winner[0])
+    predicted_homeScore = test_prediction_homeScore[0]
+    predicted_awayScore = test_prediction_awayScore[0]
     test_winner = adjusted_winner(awayId, homeId, test_data['result'][0][2])
     test_homeScore = test_data['result'][0][0]
     test_awayScore = test_data['result'][0][1]
@@ -210,9 +226,9 @@ def test_model():
       'homeScore': 1 if predicted_homeScore==test_homeScore else 0,
       'awayScore': 1 if predicted_awayScore==test_awayScore else 0,
       'totalScore': 1 if (predicted_homeScore+predicted_awayScore)==(test_homeScore+test_awayScore)  else 0,
-      'winnerConfidence': int((np.max(test_confidence[2], axis=1) * 100)[0]),
-      'homeScoreConfidence': int((np.max(test_confidence[0], axis=1) * 100)[0]),
-      'awayScoreConfidence': int((np.max(test_confidence[1], axis=1) * 100)[0]),
+      'winnerConfidence': int((np.max(test_confidence_winner, axis=1) * 100)[0]),
+      'homeScoreConfidence': int((np.max(test_confidence_homeScore, axis=1) * 100)[0]),
+      'awayScoreConfidence': int((np.max(test_confidence_awayScore, axis=1) * 100)[0]),
     })
     
   for boxscore in boxscore_list:
