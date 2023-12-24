@@ -12,7 +12,7 @@ from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer,
 from inputs.inputs import master_inputs
 from util.query import get_last_game_team_stats
 from joblib import load, dump
-from constants.inputConstants import X_V4_INPUTS, Y_V4_OUTPUTS
+from constants.inputConstants import X_V6_INPUTS, Y_V6_OUTPUTS
 
 REPLACE_VALUE = -1
 
@@ -76,8 +76,8 @@ def nhl_data(game,message='',test=False):
   if not test:
     input_data = {}
     if inputs:
-      x = [[inputs[i] for i in X_V4_INPUTS]]
-      for i in X_V4_INPUTS:
+      x = [[inputs[i] for i in X_V6_INPUTS]]
+      for i in X_V6_INPUTS:
         input_data[i] = inputs[i]
     else:
       x = [[]]
@@ -131,15 +131,15 @@ def nhl_data(game,message='',test=False):
     x_data = []
     y_data = []
     input_data = {}
-    x = [[inputs[i] for i in X_V4_INPUTS]]
-    for i in X_V4_INPUTS:
+    x = [[inputs[i] for i in X_V6_INPUTS]]
+    for i in X_V6_INPUTS:
       input_data[i] = inputs[i]
-    for i in X_V4_INPUTS:
+    for i in X_V6_INPUTS:
       if i in suplement_data.keys():
         x_data.append(suplement_data[i])
       else:
         x_data.append(inputs[i])
-    for i in Y_V4_OUTPUTS:
+    for i in Y_V6_OUTPUTS:
       if i in suplement_data.keys():
         y_data.append(suplement_data[i])
       elif i in inputs:

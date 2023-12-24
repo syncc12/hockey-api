@@ -22,7 +22,7 @@ LATEST_DATE_TRAINED = '2023-11-11'
 LATEST_DATE_COLLECTED = '2023-11-17'
 LATEST_ID_COLLECTED = '2023020253'
 
-VERSION = 5
+VERSION = 6
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -31,20 +31,26 @@ db = client['hockey']
 
 CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
 
-model = load(f'models/nhl_ai_v{VERSION}.joblib')
+# model = load(f'models/nhl_ai_v{VERSION}.joblib')
 model_winner = load(f'models/nhl_ai_v{VERSION}_winner.joblib')
 model_homeScore = load(f'models/nhl_ai_v{VERSION}_homeScore.joblib')
 model_awayScore = load(f'models/nhl_ai_v{VERSION}_awayScore.joblib')
+model_totalGoals = load(f'models/nhl_ai_v{VERSION}_totalGoals.joblib')
+model_goalDifferential = load(f'models/nhl_ai_v{VERSION}_goalDifferential.joblib')
 
 def ai_return_dict(data, prediction, confidence=-1):
   if confidence != -1:
     winnerConfidence = int((np.max(confidence[2], axis=1) * 100)[0])
     homeScoreConfidence = int((np.max(confidence[0], axis=1) * 100)[0])
     awayScoreConfidence = int((np.max(confidence[1], axis=1) * 100)[0])
+    totalGoalsConfidence = int((np.max(confidence[3], axis=1) * 100)[0])
+    goalDifferentialConfidence = int((np.max(confidence[4], axis=1) * 100)[0])
   else:
     winnerConfidence = -1
     homeScoreConfidence = -1
     awayScoreConfidence = -1
+    totalGoalsConfidence = -1
+    goalDifferentialConfidence = -1
 
   homeId = data['data']['home_team']['id']
   awayId = data['data']['away_team']['id']
@@ -52,6 +58,8 @@ def ai_return_dict(data, prediction, confidence=-1):
     winnerId = -1
     homeScore = -1
     awayScore = -1
+    totalGoals = -1
+    goalDifferential = -1
     state = 'OFF'
     homeTeam = data['data']['home_team']['city']
     awayTeam = data['data']['away_team']['city']
@@ -69,6 +77,8 @@ def ai_return_dict(data, prediction, confidence=-1):
     winnerId = int(prediction[0][2])
     homeScore = int(prediction[0][0])
     awayScore = int(prediction[0][1])
+    totalGoals = int(prediction[0][3])
+    goalDifferential = int(prediction[0][4])
     state = data['data']['state']
     homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
     awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
@@ -123,9 +133,13 @@ def ai_return_dict(data, prediction, confidence=-1):
     'winningTeam': winningTeam,
     'homeScore': homeScore,
     'awayScore': awayScore,
+    'totalGoals': totalGoals,
+    'goalDifferential': goalDifferential,
     'winnerConfidence': winnerConfidence,
     'homeScoreConfidence': homeScoreConfidence,
     'awayScoreConfidence': awayScoreConfidence,
+    'totalGoalsConfidence': totalGoalsConfidence,
+    'goalDifferentialConfidence': goalDifferentialConfidence,
     'offset': offset,
     'live': live_data,
     'message': data['message'],
@@ -141,11 +155,15 @@ def ai(game_data):
   prediction_winner = model_winner.predict(data['data']['data'])
   prediction_homeScore = model_homeScore.predict(data['data']['data'])
   prediction_awayScore = model_awayScore.predict(data['data']['data'])
+  prediction_totalGoals = model_totalGoals.predict(data['data']['data'])
+  prediction_goalDifferential = model_goalDifferential.predict(data['data']['data'])
   confidence_winner = model_winner.predict_proba(data['data']['data'])
   confidence_homeScore = model_homeScore.predict_proba(data['data']['data'])
   confidence_awayScore = model_awayScore.predict_proba(data['data']['data'])
-  prediction = [[prediction_homeScore,prediction_awayScore,prediction_winner]]
-  confidence = [confidence_homeScore,confidence_awayScore,confidence_winner]
+  confidence_totalGoals = model_totalGoals.predict_proba(data['data']['data'])
+  confidence_goalDifferential = model_goalDifferential.predict_proba(data['data']['data'])
+  prediction = [[prediction_homeScore,prediction_awayScore,prediction_winner,prediction_totalGoals,prediction_goalDifferential]]
+  confidence = [confidence_homeScore,confidence_awayScore,confidence_winner,confidence_totalGoals,confidence_goalDifferential]
 
   # print('prediction_winner',prediction_winner)
   # print('confidence_winner',confidence_winner)
@@ -194,8 +212,10 @@ def test_model():
   all_home_score_total = 0
   all_away_score_total = 0
   all_home_away_score_total = 0
-  all_score_total = 0
+  all_goal_total = 0
+  all_goal_differential_total = 0
   all_list_total = 0
+  all_ids = []
   for boxscore in boxscore_list:
     test_results[boxscore['gameDate']] = {
     'results': [],
@@ -205,64 +225,84 @@ def test_model():
   }
 
   for boxscore in boxscore_list:
+    all_ids.append(boxscore['id'])
     awayId = boxscore['awayTeam']['id']
     homeId = boxscore['homeTeam']['id']
     test_data = nhl_test(boxscore=boxscore)
     test_prediction_winner = model_winner.predict(test_data['data'])
     test_prediction_homeScore = model_homeScore.predict(test_data['data'])
     test_prediction_awayScore = model_awayScore.predict(test_data['data'])
+    test_prediction_totalGoals = model_totalGoals.predict(test_data['data'])
+    test_prediction_goalDifferential = model_goalDifferential.predict(test_data['data'])
     test_confidence_winner = model_winner.predict_proba(test_data['data'])
     test_confidence_homeScore = model_homeScore.predict_proba(test_data['data'])
     test_confidence_awayScore = model_awayScore.predict_proba(test_data['data'])
+    test_confidence_totalGoals = model_totalGoals.predict_proba(test_data['data'])
+    test_confidence_goalDifferential = model_goalDifferential.predict_proba(test_data['data'])
     predicted_winner = adjusted_winner(awayId, homeId, test_prediction_winner[0])
     predicted_homeScore = test_prediction_homeScore[0]
     predicted_awayScore = test_prediction_awayScore[0]
+    predicted_totalGoals = test_prediction_totalGoals[0]
+    predicted_goalDifferential = test_prediction_goalDifferential[0]
     test_winner = adjusted_winner(awayId, homeId, test_data['result'][0][2])
     test_homeScore = test_data['result'][0][0]
     test_awayScore = test_data['result'][0][1]
+    test_totalGoals = test_data['result'][0][1]
+    test_goalDifferential = test_data['result'][0][1]
     test_results[boxscore['gameDate']]['results'].append({
       'data': test_data['input_data'] if show_data != -1 else {},
       'winner': 1 if predicted_winner==test_winner else 0,
       'homeScore': 1 if predicted_homeScore==test_homeScore else 0,
       'awayScore': 1 if predicted_awayScore==test_awayScore else 0,
-      'totalScore': 1 if (predicted_homeScore+predicted_awayScore)==(test_homeScore+test_awayScore)  else 0,
+      'totalGoals': 1 if predicted_totalGoals==test_totalGoals else 0,
+      'goalDifferential': 1 if predicted_goalDifferential==test_goalDifferential else 0,
       'winnerConfidence': int((np.max(test_confidence_winner, axis=1) * 100)[0]),
       'homeScoreConfidence': int((np.max(test_confidence_homeScore, axis=1) * 100)[0]),
       'awayScoreConfidence': int((np.max(test_confidence_awayScore, axis=1) * 100)[0]),
+      'totalGoalsConfidence': int((np.max(test_confidence_totalGoals, axis=1) * 100)[0]),
+      'goalDifferentialConfidence': int((np.max(test_confidence_goalDifferential, axis=1) * 100)[0]),
     })
     
-  for boxscore in boxscore_list:
+  # for boxscore in boxscore_list:
     winner_total = 0
     home_score_total = 0
     away_score_total = 0
     home_away_score_total = 0
-    score_total = 0
+    goal_total = 0
+    goal_differential_total = 0
     list_total = len(test_results[boxscore['gameDate']]['results'])
     all_list_total += list_total
     for r in test_results[boxscore['gameDate']]['results']:
       winner_total += r['winner']
       home_score_total += r['homeScore']
       away_score_total += r['awayScore']
-      score_total += r['totalScore']
+      goal_total += r['totalGoals']
+      goal_differential_total += r['goalDifferential']
       if home_score_total == 1 and away_score_total == 1:
         home_away_score_total += 1
     all_winner_total += winner_total
     all_home_score_total += home_score_total
     all_away_score_total += away_score_total
     all_home_away_score_total += home_away_score_total
-    all_score_total += score_total
+    all_goal_total += goal_total
+    all_goal_differential_total += goal_differential_total
     test_results[boxscore['gameDate']]['winnerPercent'] = (winner_total / list_total) * 100
     test_results[boxscore['gameDate']]['homeScorePercent'] = (home_score_total / list_total) * 100
     test_results[boxscore['gameDate']]['awayScorePercent'] = (away_score_total / list_total) * 100
     test_results[boxscore['gameDate']]['h2hScorePercent'] = (home_away_score_total / list_total) * 100
-    test_results[boxscore['gameDate']]['totalScorePercent'] = (score_total / list_total) * 100
+    test_results[boxscore['gameDate']]['goalTotalPercent'] = (goal_total / list_total) * 100
+    test_results[boxscore['gameDate']]['goalDifferentialPercent'] = (goal_differential_total / list_total) * 100
+    test_results[boxscore['gameDate']]['totalGames'] = list_total
   
   test_results['allWinnerPercent'] = (all_winner_total / all_list_total) * 100
   test_results['allHomeScorePercent'] = (all_home_score_total / all_list_total) * 100
   test_results['allAwayScorePercent'] = (all_away_score_total / all_list_total) * 100
   test_results['allH2HScorePercent'] = (all_home_away_score_total / all_list_total) * 100
-  test_results['allTotalScorePercent'] = (all_score_total / all_list_total) * 100
-  test_results['totalGames'] = list_total
+  test_results['allGoalTotalPercent'] = (all_goal_total / all_list_total) * 100
+  test_results['allGoalDifferentialPercent'] = (all_goal_differential_total / all_list_total) * 100
+  test_results['allIDs'] = all_ids
+  test_results['allIDLength'] = len(all_ids)
+  test_results['totalGames'] = all_list_total
   
   return test_results
 
@@ -366,6 +406,8 @@ def predict_day_simple():
       'winningTeam': f"{ai_data['winningTeam']} - {ai_data['winnerConfidence']}%",
       'message': ai_data['message'],
       'offset': ai_data['offset'],
+      'totalGoals': f"{ai_data['totalGoals']} - {ai_data['totalGoalsConfidence']}%",
+      'goalDifferential': f"{ai_data['goalDifferential']} - {ai_data['goalDifferentialConfidence']}%",
     }
     games.append(simple_data)
   
@@ -383,6 +425,16 @@ def predict_week():
       games[day['dayAbbrev']].append(ai_data)
 
   return jsonify(games)
+
+@app.route('/nhl/ids', methods=['GET'])
+def get_day_ids():
+  date = request.args.get('date', default='now', type=str)
+  res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+  ids = []
+  for game in res['gameWeek'][0]['games']:
+    ids.append(game['id'])
+  
+  return {'ids':ids}
 
 @app.route('/nhl/<date>', methods=['GET'])
 def date_predict(date):

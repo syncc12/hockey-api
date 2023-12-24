@@ -12,7 +12,7 @@ db = client["hockey"]
 Boxscores = db["dev_boxscores"]
 Games = db["dev_games"]
 
-VERSION = 4
+VERSION = 6
 def season_training_data(season):
   print('fired',season)
 
@@ -48,8 +48,8 @@ def season_training_data(season):
       'awayTeam': awayTeam,
       'boxscore': safe_chain(boxscores,i,'boxscore'),
       'neutralSite': safe_chain(games,i,'neutralSite'),
-      'homeSplitSquad': safe_chain(games,i,'homeTeam','homeSplitSquad'),
-      'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
+      # 'homeSplitSquad': safe_chain(games,i,'homeTeam','homeSplitSquad'),
+      # 'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
     }
 
     # boxscore_data = compile_training_data(db=db, game=game_data)
@@ -124,3 +124,32 @@ def save_training_data(boxscores,neutralSite):
   }
   boxscore_data = compile_training_data(db=db, game=game_data)
   return boxscore_data
+
+def update_training_data(gameId):
+  print('fired',gameId['id'])
+
+  boxscores = list(Boxscores.find(
+    {'id': int(gameId['id'])},
+    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1}
+  ))
+  games = list(Games.find(
+    {'id': int(gameId['id'])},
+    {'id': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1}
+  ))
+
+  game_data = {
+    'id': safe_chain(boxscores,0,'id'),
+    'season': safe_chain(boxscores,0,'season'),
+    'gameType': safe_chain(boxscores,0,'gameType'),
+    'gameDate': safe_chain(boxscores,0,'gameDate'),
+    'venue': safe_chain(boxscores,0,'venue'),
+    'homeTeam': safe_chain(boxscores,0,'homeTeam'),
+    'awayTeam': safe_chain(boxscores,0,'awayTeam'),
+    'boxscore': safe_chain(boxscores,0,'boxscore'),
+    'neutralSite': safe_chain(games,0,'neutralSite'),
+  }
+  # boxscore_data = compile_training_data(db=db, game=game_data)
+  training_data = master_inputs(db=db, game=game_data)
+
+  print('DONE ', gameId['id'])
+  return training_data

@@ -15,14 +15,17 @@ from sklearn.impute import SimpleImputer
 from joblib import dump, load
 import pandas as pd
 from multiprocessing import Pool
-from util.training_data import season_training_data, game_training_data
+from util.training_data import season_training_data, game_training_data, update_training_data
 from constants.inputConstants import X_V4_INPUTS, Y_V4_OUTPUTS
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from util.helpers import latestIDs
+import time
 
-RE_PULL = False
+RE_PULL = True
+UPDATE = False
 
-VERSION = 5
+VERSION = 6
 
 def xPlayerData(homeAway,position,index,isGoalie=False,gamesBack=-1):
   if isGoalie:
@@ -116,138 +119,25 @@ def xTeamData(homeAway,gamesBack=-1):
 def train(inData):
   imputer = SimpleImputer(strategy='constant', fill_value=-1)
   data = pd.DataFrame(inData)
-  # x = data [['id','season','gameType','venue','neutralSite','homeTeam','awayTeam','awaySplitSquad','homeSplitSquad','startTime','date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1','awayForward1','awayForward1Position','awayForward1Age','awayForward1Shoots','awayForward2','awayForward2Position','awayForward2Age','awayForward2Shoots','awayForward3','awayForward3Position','awayForward3Age','awayForward3Shoots','awayForward4','awayForward4Position','awayForward4Age','awayForward4Shoots','awayForward5','awayForward5Position','awayForward5Age','awayForward5Shoots','awayForward6','awayForward6Position','awayForward6Age','awayForward6Shoots','awayForward7','awayForward7Position','awayForward7Age','awayForward7Shoots','awayForward8','awayForward8Position','awayForward8Age','awayForward8Shoots','awayForward9','awayForward9Position','awayForward9Age','awayForward9Shoots','awayForward10','awayForward10Position','awayForward10Age','awayForward10Shoots','awayForward11','awayForward11Position','awayForward11Age','awayForward11Shoots','awayForward12','awayForward12Position','awayForward12Age','awayForward12Shoots','awayForward13','awayForward13Position','awayForward13Age','awayForward13Shoots','awayDefenseman1','awayDefenseman1Position','awayDefenseman1Age','awayDefenseman1Shoots','awayDefenseman2','awayDefenseman2Position','awayDefenseman2Age','awayDefenseman2Shoots','awayDefenseman3','awayDefenseman3Position','awayDefenseman3Age','awayDefenseman3Shoots','awayDefenseman4','awayDefenseman4Position','awayDefenseman4Age','awayDefenseman4Shoots','awayDefenseman5','awayDefenseman5Position','awayDefenseman5Age','awayDefenseman5Shoots','awayDefenseman6','awayDefenseman6Position','awayDefenseman6Age','awayDefenseman6Shoots','awayDefenseman7','awayDefenseman7Position','awayDefenseman7Age','awayDefenseman7Shoots','awayStartingGoalie','awayStartingGoalieCatches','awayStartingGoalieAge','awayStartingGoalieHeight','awayStartingGoalieWeight','awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieAge','awayBackupGoalieHeight','awayBackupGoalieWeight','awayThirdGoalie','awayThirdGoalieCatches','awayThirdGoalieAge','awayThirdGoalieHeight','awayThirdGoalieWeight','homeForward1','homeForward1Position','homeForward1Age','homeForward1Shoots','homeForward2','homeForward2Position','homeForward2Age','homeForward2Shoots','homeForward3','homeForward3Position','homeForward3Age','homeForward3Shoots','homeForward4','homeForward4Position','homeForward4Age','homeForward4Shoots','homeForward5','homeForward5Position','homeForward5Age','homeForward5Shoots','homeForward6','homeForward6Position','homeForward6Age','homeForward6Shoots','homeForward7','homeForward7Position','homeForward7Age','homeForward7Shoots','homeForward8','homeForward8Position','homeForward8Age','homeForward8Shoots','homeForward9','homeForward9Position','homeForward9Age','homeForward9Shoots','homeForward10','homeForward10Position','homeForward10Age','homeForward10Shoots','homeForward11','homeForward11Position','homeForward11Age','homeForward11Shoots','homeForward12','homeForward12Position','homeForward12Age','homeForward12Shoots','homeForward13','homeForward13Position','homeForward13Age','homeForward13Shoots','homeDefenseman1','homeDefenseman1Position','homeDefenseman1Age','homeDefenseman1Shoots','homeDefenseman2','homeDefenseman2Position','homeDefenseman2Age','homeDefenseman2Shoots','homeDefenseman3','homeDefenseman3Position','homeDefenseman3Age','homeDefenseman3Shoots','homeDefenseman4','homeDefenseman4Position','homeDefenseman4Age','homeDefenseman4Shoots','homeDefenseman5','homeDefenseman5Position','homeDefenseman5Age','homeDefenseman5Shoots','homeDefenseman6','homeDefenseman6Position','homeDefenseman6Age','homeDefenseman6Shoots','homeDefenseman7','homeDefenseman7Position','homeDefenseman7Age','homeDefenseman7Shoots','homeStartingGoalie','homeStartingGoalieCatches','homeStartingGoalieAge','homeStartingGoalieHeight','homeStartingGoalieWeight','homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieAge','homeBackupGoalieHeight','homeBackupGoalieWeight','homeThirdGoalie','homeThirdGoalieCatches','homeThirdGoalieAge','homeThirdGoalieHeight','homeThirdGoalieWeight']].values
-  # x = data [['id','season','gameType','venue','neutralSite','homeTeam','awayTeam','startTime','date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1','awayForward1','awayForward1Position','awayForward1Age','awayForward1Shoots','awayForward2','awayForward2Position','awayForward2Age','awayForward2Shoots','awayForward3','awayForward3Position','awayForward3Age','awayForward3Shoots','awayForward4','awayForward4Position','awayForward4Age','awayForward4Shoots','awayForward5','awayForward5Position','awayForward5Age','awayForward5Shoots','awayForward6','awayForward6Position','awayForward6Age','awayForward6Shoots','awayForward7','awayForward7Position','awayForward7Age','awayForward7Shoots','awayForward8','awayForward8Position','awayForward8Age','awayForward8Shoots','awayForward9','awayForward9Position','awayForward9Age','awayForward9Shoots','awayForward10','awayForward10Position','awayForward10Age','awayForward10Shoots','awayForward11','awayForward11Position','awayForward11Age','awayForward11Shoots','awayForward12','awayForward12Position','awayForward12Age','awayForward12Shoots','awayForward13','awayForward13Position','awayForward13Age','awayForward13Shoots','awayDefenseman1','awayDefenseman1Position','awayDefenseman1Age','awayDefenseman1Shoots','awayDefenseman2','awayDefenseman2Position','awayDefenseman2Age','awayDefenseman2Shoots','awayDefenseman3','awayDefenseman3Position','awayDefenseman3Age','awayDefenseman3Shoots','awayDefenseman4','awayDefenseman4Position','awayDefenseman4Age','awayDefenseman4Shoots','awayDefenseman5','awayDefenseman5Position','awayDefenseman5Age','awayDefenseman5Shoots','awayDefenseman6','awayDefenseman6Position','awayDefenseman6Age','awayDefenseman6Shoots','awayDefenseman7','awayDefenseman7Position','awayDefenseman7Age','awayDefenseman7Shoots','awayStartingGoalie','awayStartingGoalieCatches','awayStartingGoalieAge','awayStartingGoalieHeight','awayStartingGoalieWeight','awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieAge','awayBackupGoalieHeight','awayBackupGoalieWeight','awayThirdGoalie','awayThirdGoalieCatches','awayThirdGoalieAge','awayThirdGoalieHeight','awayThirdGoalieWeight','homeForward1','homeForward1Position','homeForward1Age','homeForward1Shoots','homeForward2','homeForward2Position','homeForward2Age','homeForward2Shoots','homeForward3','homeForward3Position','homeForward3Age','homeForward3Shoots','homeForward4','homeForward4Position','homeForward4Age','homeForward4Shoots','homeForward5','homeForward5Position','homeForward5Age','homeForward5Shoots','homeForward6','homeForward6Position','homeForward6Age','homeForward6Shoots','homeForward7','homeForward7Position','homeForward7Age','homeForward7Shoots','homeForward8','homeForward8Position','homeForward8Age','homeForward8Shoots','homeForward9','homeForward9Position','homeForward9Age','homeForward9Shoots','homeForward10','homeForward10Position','homeForward10Age','homeForward10Shoots','homeForward11','homeForward11Position','homeForward11Age','homeForward11Shoots','homeForward12','homeForward12Position','homeForward12Age','homeForward12Shoots','homeForward13','homeForward13Position','homeForward13Age','homeForward13Shoots','homeDefenseman1','homeDefenseman1Position','homeDefenseman1Age','homeDefenseman1Shoots','homeDefenseman2','homeDefenseman2Position','homeDefenseman2Age','homeDefenseman2Shoots','homeDefenseman3','homeDefenseman3Position','homeDefenseman3Age','homeDefenseman3Shoots','homeDefenseman4','homeDefenseman4Position','homeDefenseman4Age','homeDefenseman4Shoots','homeDefenseman5','homeDefenseman5Position','homeDefenseman5Age','homeDefenseman5Shoots','homeDefenseman6','homeDefenseman6Position','homeDefenseman6Age','homeDefenseman6Shoots','homeDefenseman7','homeDefenseman7Position','homeDefenseman7Age','homeDefenseman7Shoots','homeStartingGoalie','homeStartingGoalieCatches','homeStartingGoalieAge','homeStartingGoalieHeight','homeStartingGoalieWeight','homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieAge','homeBackupGoalieHeight','homeBackupGoalieWeight','homeThirdGoalie','homeThirdGoalieCatches','homeThirdGoalieAge','homeThirdGoalieHeight','homeThirdGoalieWeight']].values
-  # x = data [
-  #   ['id','season','gameType','venue','neutralSite'] +
-  #   xTeamData('home',5) +
-  #   xTeamData('away',5) +
-  #   ['startTime','date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1'] +
-  #   xPlayerData('away','Forward',1) +
-  #   xPlayerData('away','Forward',2) +
-  #   xPlayerData('away','Forward',3) +
-  #   xPlayerData('away','Forward',4) +
-  #   xPlayerData('away','Forward',5) +
-  #   xPlayerData('away','Forward',6) +
-  #   xPlayerData('away','Forward',7) +
-  #   xPlayerData('away','Forward',8) +
-  #   xPlayerData('away','Forward',9) +
-  #   xPlayerData('away','Forward',10) +
-  #   xPlayerData('away','Forward',11) +
-  #   xPlayerData('away','Forward',12) +
-  #   xPlayerData('away','Forward',13) +
-  #   xPlayerData('away','Defenseman',1) +
-  #   xPlayerData('away','Defenseman',2) +
-  #   xPlayerData('away','Defenseman',3) +
-  #   xPlayerData('away','Defenseman',4) +
-  #   xPlayerData('away','Defenseman',5) +
-  #   xPlayerData('away','Defenseman',6) +
-  #   xPlayerData('away','Defenseman',7) +
-  #   xPlayerData('away','Goalie','Starting',True) +
-  #   xPlayerData('away','Goalie','Backup',True) +
-  #   xPlayerData('home','Forward',1) +
-  #   xPlayerData('home','Forward',2) +
-  #   xPlayerData('home','Forward',3) +
-  #   xPlayerData('home','Forward',4) +
-  #   xPlayerData('home','Forward',5) +
-  #   xPlayerData('home','Forward',6) +
-  #   xPlayerData('home','Forward',7) +
-  #   xPlayerData('home','Forward',8) +
-  #   xPlayerData('home','Forward',9) +
-  #   xPlayerData('home','Forward',10) +
-  #   xPlayerData('home','Forward',11) +
-  #   xPlayerData('home','Forward',12) +
-  #   xPlayerData('home','Forward',13) +
-  #   xPlayerData('home','Defenseman',1) +
-  #   xPlayerData('home','Defenseman',2) +
-  #   xPlayerData('home','Defenseman',3) +
-  #   xPlayerData('home','Defenseman',4) +
-  #   xPlayerData('home','Defenseman',5) +
-  #   xPlayerData('home','Defenseman',6) +
-  #   xPlayerData('home','Defenseman',7) +
-  #   xPlayerData('home','Goalie','Starting',True) +
-  #   xPlayerData('home','Goalie','Backup',True)
-  # ].values
   x = data [[
-    'id','season','gameType','venue','neutralSite','homeTeam','homeTeamBack1GameId','homeTeamBack1GameDate','homeTeamBack1GameType','homeTeamBack1GameVenue',
-    'homeTeamBack1GameStartTime','homeTeamBack1GameEasternOffset','homeTeamBack1GameVenueOffset','homeTeamBack1GameOutcome','homeTeamBack1GameHomeAway',
-    'homeTeamBack1GameFinalPeriod','homeTeamBack1GameScore','homeTeamBack1GameShots','homeTeamBack1GameFaceoffWinPercentage','homeTeamBack1GamePowerPlays',
-    'homeTeamBack1GamePowerPlayPercentage','homeTeamBack1GamePIM','homeTeamBack1GameHits','homeTeamBack1GameBlocks','homeTeamBack1GameOpponent',
-    'homeTeamBack1GameOpponentScore','homeTeamBack1GameOpponentShots','homeTeamBack1GameOpponentFaceoffWinPercentage','homeTeamBack1GameOpponentPowerPlays',
-    'homeTeamBack1GameOpponentPowerPlayPercentage','homeTeamBack1GameOpponentPIM','homeTeamBack1GameOpponentHits','homeTeamBack1GameOpponentBlocks',
-    'homeTeamBack2GameId','homeTeamBack2GameDate','homeTeamBack2GameType','homeTeamBack2GameVenue','homeTeamBack2GameStartTime','homeTeamBack2GameEasternOffset',
-    'homeTeamBack2GameVenueOffset','homeTeamBack2GameOutcome','homeTeamBack2GameHomeAway','homeTeamBack2GameFinalPeriod','homeTeamBack2GameScore',
-    'homeTeamBack2GameShots','homeTeamBack2GameFaceoffWinPercentage','homeTeamBack2GamePowerPlays','homeTeamBack2GamePowerPlayPercentage','homeTeamBack2GamePIM',
-    'homeTeamBack2GameHits','homeTeamBack2GameBlocks','homeTeamBack2GameOpponent','homeTeamBack2GameOpponentScore','homeTeamBack2GameOpponentShots',
-    'homeTeamBack2GameOpponentFaceoffWinPercentage','homeTeamBack2GameOpponentPowerPlays','homeTeamBack2GameOpponentPowerPlayPercentage','homeTeamBack2GameOpponentPIM',
-    'homeTeamBack2GameOpponentHits','homeTeamBack2GameOpponentBlocks','homeTeamBack3GameId','homeTeamBack3GameDate','homeTeamBack3GameType','homeTeamBack3GameVenue',
-    'homeTeamBack3GameStartTime','homeTeamBack3GameEasternOffset','homeTeamBack3GameVenueOffset','homeTeamBack3GameOutcome','homeTeamBack3GameHomeAway',
-    'homeTeamBack3GameFinalPeriod','homeTeamBack3GameScore','homeTeamBack3GameShots','homeTeamBack3GameFaceoffWinPercentage','homeTeamBack3GamePowerPlays',
-    'homeTeamBack3GamePowerPlayPercentage','homeTeamBack3GamePIM','homeTeamBack3GameHits','homeTeamBack3GameBlocks','homeTeamBack3GameOpponent','homeTeamBack3GameOpponentScore',
-    'homeTeamBack3GameOpponentShots','homeTeamBack3GameOpponentFaceoffWinPercentage','homeTeamBack3GameOpponentPowerPlays','homeTeamBack3GameOpponentPowerPlayPercentage',
-    'homeTeamBack3GameOpponentPIM','homeTeamBack3GameOpponentHits','homeTeamBack3GameOpponentBlocks','homeTeamBack4GameId','homeTeamBack4GameDate','homeTeamBack4GameType',
-    'homeTeamBack4GameVenue','homeTeamBack4GameStartTime','homeTeamBack4GameEasternOffset','homeTeamBack4GameVenueOffset','homeTeamBack4GameOutcome','homeTeamBack4GameHomeAway',
-    'homeTeamBack4GameFinalPeriod','homeTeamBack4GameScore','homeTeamBack4GameShots','homeTeamBack4GameFaceoffWinPercentage','homeTeamBack4GamePowerPlays',
-    'homeTeamBack4GamePowerPlayPercentage','homeTeamBack4GamePIM','homeTeamBack4GameHits','homeTeamBack4GameBlocks','homeTeamBack4GameOpponent','homeTeamBack4GameOpponentScore',
-    'homeTeamBack4GameOpponentShots','homeTeamBack4GameOpponentFaceoffWinPercentage','homeTeamBack4GameOpponentPowerPlays','homeTeamBack4GameOpponentPowerPlayPercentage',
-    'homeTeamBack4GameOpponentPIM','homeTeamBack4GameOpponentHits','homeTeamBack4GameOpponentBlocks','homeTeamBack5GameId','homeTeamBack5GameDate','homeTeamBack5GameType',
-    'homeTeamBack5GameVenue','homeTeamBack5GameStartTime','homeTeamBack5GameEasternOffset','homeTeamBack5GameVenueOffset','homeTeamBack5GameOutcome','homeTeamBack5GameHomeAway',
-    'homeTeamBack5GameFinalPeriod','homeTeamBack5GameScore','homeTeamBack5GameShots','homeTeamBack5GameFaceoffWinPercentage','homeTeamBack5GamePowerPlays',
-    'homeTeamBack5GamePowerPlayPercentage','homeTeamBack5GamePIM','homeTeamBack5GameHits','homeTeamBack5GameBlocks','homeTeamBack5GameOpponent','homeTeamBack5GameOpponentScore',
-    'homeTeamBack5GameOpponentShots','homeTeamBack5GameOpponentFaceoffWinPercentage','homeTeamBack5GameOpponentPowerPlays','homeTeamBack5GameOpponentPowerPlayPercentage',
-    'homeTeamBack5GameOpponentPIM','homeTeamBack5GameOpponentHits','homeTeamBack5GameOpponentBlocks','awayTeam','awayTeamBack1GameId','awayTeamBack1GameDate','awayTeamBack1GameType',
-    'awayTeamBack1GameVenue','awayTeamBack1GameStartTime','awayTeamBack1GameEasternOffset','awayTeamBack1GameVenueOffset','awayTeamBack1GameOutcome','awayTeamBack1GameHomeAway',
-    'awayTeamBack1GameFinalPeriod','awayTeamBack1GameScore','awayTeamBack1GameShots','awayTeamBack1GameFaceoffWinPercentage','awayTeamBack1GamePowerPlays',
-    'awayTeamBack1GamePowerPlayPercentage','awayTeamBack1GamePIM','awayTeamBack1GameHits','awayTeamBack1GameBlocks','awayTeamBack1GameOpponent','awayTeamBack1GameOpponentScore',
-    'awayTeamBack1GameOpponentShots','awayTeamBack1GameOpponentFaceoffWinPercentage','awayTeamBack1GameOpponentPowerPlays','awayTeamBack1GameOpponentPowerPlayPercentage',
-    'awayTeamBack1GameOpponentPIM','awayTeamBack1GameOpponentHits','awayTeamBack1GameOpponentBlocks','awayTeamBack2GameId','awayTeamBack2GameDate','awayTeamBack2GameType',
-    'awayTeamBack2GameVenue','awayTeamBack2GameStartTime','awayTeamBack2GameEasternOffset','awayTeamBack2GameVenueOffset','awayTeamBack2GameOutcome','awayTeamBack2GameHomeAway',
-    'awayTeamBack2GameFinalPeriod','awayTeamBack2GameScore','awayTeamBack2GameShots','awayTeamBack2GameFaceoffWinPercentage','awayTeamBack2GamePowerPlays',
-    'awayTeamBack2GamePowerPlayPercentage','awayTeamBack2GamePIM','awayTeamBack2GameHits','awayTeamBack2GameBlocks','awayTeamBack2GameOpponent','awayTeamBack2GameOpponentScore',
-    'awayTeamBack2GameOpponentShots','awayTeamBack2GameOpponentFaceoffWinPercentage','awayTeamBack2GameOpponentPowerPlays','awayTeamBack2GameOpponentPowerPlayPercentage',
-    'awayTeamBack2GameOpponentPIM','awayTeamBack2GameOpponentHits','awayTeamBack2GameOpponentBlocks','awayTeamBack3GameId','awayTeamBack3GameDate','awayTeamBack3GameType',
-    'awayTeamBack3GameVenue','awayTeamBack3GameStartTime','awayTeamBack3GameEasternOffset','awayTeamBack3GameVenueOffset','awayTeamBack3GameOutcome','awayTeamBack3GameHomeAway',
-    'awayTeamBack3GameFinalPeriod','awayTeamBack3GameScore','awayTeamBack3GameShots','awayTeamBack3GameFaceoffWinPercentage','awayTeamBack3GamePowerPlays',
-    'awayTeamBack3GamePowerPlayPercentage','awayTeamBack3GamePIM','awayTeamBack3GameHits','awayTeamBack3GameBlocks','awayTeamBack3GameOpponent','awayTeamBack3GameOpponentScore',
-    'awayTeamBack3GameOpponentShots','awayTeamBack3GameOpponentFaceoffWinPercentage','awayTeamBack3GameOpponentPowerPlays','awayTeamBack3GameOpponentPowerPlayPercentage',
-    'awayTeamBack3GameOpponentPIM','awayTeamBack3GameOpponentHits','awayTeamBack3GameOpponentBlocks','awayTeamBack4GameId','awayTeamBack4GameDate','awayTeamBack4GameType',
-    'awayTeamBack4GameVenue','awayTeamBack4GameStartTime','awayTeamBack4GameEasternOffset','awayTeamBack4GameVenueOffset','awayTeamBack4GameOutcome','awayTeamBack4GameHomeAway',
-    'awayTeamBack4GameFinalPeriod','awayTeamBack4GameScore','awayTeamBack4GameShots','awayTeamBack4GameFaceoffWinPercentage','awayTeamBack4GamePowerPlays',
-    'awayTeamBack4GamePowerPlayPercentage','awayTeamBack4GamePIM','awayTeamBack4GameHits','awayTeamBack4GameBlocks','awayTeamBack4GameOpponent','awayTeamBack4GameOpponentScore',
-    'awayTeamBack4GameOpponentShots','awayTeamBack4GameOpponentFaceoffWinPercentage','awayTeamBack4GameOpponentPowerPlays','awayTeamBack4GameOpponentPowerPlayPercentage',
-    'awayTeamBack4GameOpponentPIM','awayTeamBack4GameOpponentHits','awayTeamBack4GameOpponentBlocks','awayTeamBack5GameId','awayTeamBack5GameDate','awayTeamBack5GameType',
-    'awayTeamBack5GameVenue','awayTeamBack5GameStartTime','awayTeamBack5GameEasternOffset','awayTeamBack5GameVenueOffset','awayTeamBack5GameOutcome','awayTeamBack5GameHomeAway',
-    'awayTeamBack5GameFinalPeriod','awayTeamBack5GameScore','awayTeamBack5GameShots','awayTeamBack5GameFaceoffWinPercentage','awayTeamBack5GamePowerPlays',
-    'awayTeamBack5GamePowerPlayPercentage','awayTeamBack5GamePIM','awayTeamBack5GameHits','awayTeamBack5GameBlocks','awayTeamBack5GameOpponent','awayTeamBack5GameOpponentScore',
-    'awayTeamBack5GameOpponentShots','awayTeamBack5GameOpponentFaceoffWinPercentage','awayTeamBack5GameOpponentPowerPlays','awayTeamBack5GameOpponentPowerPlayPercentage',
-    'awayTeamBack5GameOpponentPIM','awayTeamBack5GameOpponentHits','awayTeamBack5GameOpponentBlocks','startTime','date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1',
-    'linesman1','awayForward1','awayForward1Position','awayForward1Age','awayForward1Shoots','awayForward2','awayForward2Position','awayForward2Age','awayForward2Shoots',
-    'awayForward3','awayForward3Position','awayForward3Age','awayForward3Shoots','awayForward4','awayForward4Position','awayForward4Age','awayForward4Shoots','awayForward5',
-    'awayForward5Position','awayForward5Age','awayForward5Shoots','awayForward6','awayForward6Position','awayForward6Age','awayForward6Shoots','awayForward7','awayForward7Position',
-    'awayForward7Age','awayForward7Shoots','awayForward8','awayForward8Position','awayForward8Age','awayForward8Shoots','awayForward9','awayForward9Position','awayForward9Age',
-    'awayForward9Shoots','awayForward10','awayForward10Position','awayForward10Age','awayForward10Shoots','awayForward11','awayForward11Position','awayForward11Age','awayForward11Shoots',
-    'awayForward12','awayForward12Position','awayForward12Age','awayForward12Shoots','awayForward13','awayForward13Position','awayForward13Age','awayForward13Shoots','awayDefenseman1',
-    'awayDefenseman1Position','awayDefenseman1Age','awayDefenseman1Shoots','awayDefenseman2','awayDefenseman2Position','awayDefenseman2Age','awayDefenseman2Shoots','awayDefenseman3',
-    'awayDefenseman3Position','awayDefenseman3Age','awayDefenseman3Shoots','awayDefenseman4','awayDefenseman4Position','awayDefenseman4Age','awayDefenseman4Shoots','awayDefenseman5',
-    'awayDefenseman5Position','awayDefenseman5Age','awayDefenseman5Shoots','awayDefenseman6','awayDefenseman6Position','awayDefenseman6Age','awayDefenseman6Shoots','awayDefenseman7',
-    'awayDefenseman7Position','awayDefenseman7Age','awayDefenseman7Shoots','awayStartingGoalie','awayStartingGoalieCatches','awayStartingGoalieAge','awayStartingGoalieHeight',
-    'awayStartingGoalieWeight','awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieAge','awayBackupGoalieHeight','awayBackupGoalieWeight','homeForward1','homeForward1Position',
-    'homeForward1Age','homeForward1Shoots','homeForward2','homeForward2Position','homeForward2Age','homeForward2Shoots','homeForward3','homeForward3Position','homeForward3Age',
-    'homeForward3Shoots','homeForward4','homeForward4Position','homeForward4Age','homeForward4Shoots','homeForward5','homeForward5Position','homeForward5Age','homeForward5Shoots',
-    'homeForward6','homeForward6Position','homeForward6Age','homeForward6Shoots','homeForward7','homeForward7Position','homeForward7Age','homeForward7Shoots','homeForward8',
-    'homeForward8Position','homeForward8Age','homeForward8Shoots','homeForward9','homeForward9Position','homeForward9Age','homeForward9Shoots','homeForward10','homeForward10Position',
-    'homeForward10Age','homeForward10Shoots','homeForward11','homeForward11Position','homeForward11Age','homeForward11Shoots','homeForward12','homeForward12Position','homeForward12Age',
-    'homeForward12Shoots','homeForward13','homeForward13Position','homeForward13Age','homeForward13Shoots','homeDefenseman1','homeDefenseman1Position','homeDefenseman1Age',
-    'homeDefenseman1Shoots','homeDefenseman2','homeDefenseman2Position','homeDefenseman2Age','homeDefenseman2Shoots','homeDefenseman3','homeDefenseman3Position','homeDefenseman3Age',
-    'homeDefenseman3Shoots','homeDefenseman4','homeDefenseman4Position','homeDefenseman4Age','homeDefenseman4Shoots','homeDefenseman5','homeDefenseman5Position','homeDefenseman5Age',
-    'homeDefenseman5Shoots','homeDefenseman6','homeDefenseman6Position','homeDefenseman6Age','homeDefenseman6Shoots','homeDefenseman7','homeDefenseman7Position','homeDefenseman7Age',
-    'homeDefenseman7Shoots','homeStartingGoalie','homeStartingGoalieCatches','homeStartingGoalieAge','homeStartingGoalieHeight','homeStartingGoalieWeight','homeBackupGoalie',
-    'homeBackupGoalieCatches','homeBackupGoalieAge','homeBackupGoalieHeight','homeBackupGoalieWeight'
+    'id','season','gameType','venue','neutralSite','homeTeam','awayTeam','startTime','date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1','awayForward1','awayForward1Age',
+    'awayForward2','awayForward2Age','awayForward3','awayForward3Age','awayForward4','awayForward4Age','awayForward5','awayForward5Age','awayForward6','awayForward6Age','awayForward7',
+    'awayForward7Age','awayForward8','awayForward8Age','awayForward9','awayForward9Age','awayForward10','awayForward10Age','awayForward11','awayForward11Age','awayForward12','awayForward12Age',
+    'awayForward13','awayForward13Age','awayDefenseman1','awayDefenseman1Age','awayDefenseman2','awayDefenseman2Age','awayDefenseman3','awayDefenseman3Age','awayDefenseman4','awayDefenseman4Age',
+    'awayDefenseman5','awayDefenseman5Age','awayDefenseman6','awayDefenseman6Age','awayDefenseman7','awayDefenseman7Age','awayStartingGoalie','awayStartingGoalieCatches','awayStartingGoalieAge',
+    'awayStartingGoalieHeight','awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieAge','awayBackupGoalieHeight','homeForward1','homeForward1Age','homeForward2','homeForward2Age',
+    'homeForward3','homeForward3Age','homeForward4','homeForward4Age','homeForward5','homeForward5Age','homeForward6','homeForward6Age','homeForward7','homeForward7Age','homeForward8',
+    'homeForward8Age','homeForward9','homeForward9Age','homeForward10','homeForward10Age','homeForward11','homeForward11Age','homeForward12','homeForward12Age','homeForward13','homeForward13Age',
+    'homeDefenseman1','homeDefenseman1Age','homeDefenseman2','homeDefenseman2Age','homeDefenseman3','homeDefenseman3Age','homeDefenseman4','homeDefenseman4Age','homeDefenseman5',
+    'homeDefenseman5Age','homeDefenseman6','homeDefenseman6Age','homeDefenseman7','homeDefenseman7Age','homeStartingGoalie','homeStartingGoalieCatches','homeStartingGoalieAge',
+    'homeStartingGoalieHeight','homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieAge','homeBackupGoalieHeight'
   ]].values
-  y = data [['homeScore','awayScore','winner']].values
+  # y = data [['homeScore','awayScore','winner','totalGoals','goalDifferential']].values
   y_winner = data [['winner']].values.ravel()
   y_homeScore = data [['homeScore']].values.ravel()
   y_awayScore = data [['awayScore']].values.ravel()
+  y_totalGoals = data [['totalGoals']].values.ravel()
+  y_goalDifferential = data [['goalDifferential']].values.ravel()
 
   imputer.fit(x)
   x = imputer.transform(x)
@@ -255,33 +145,68 @@ def train(inData):
   x_train, x_test, y_train_winner, y_test_winner = train_test_split(x, y_winner, test_size=0.2, random_state=12)
   x_train, x_test, y_train_homeScore, y_test_homeScore = train_test_split(x, y_homeScore, test_size=0.2, random_state=12)
   x_train, x_test, y_train_awayScore, y_test_awayScore = train_test_split(x, y_awayScore, test_size=0.2, random_state=12)
+  x_train, x_test, y_train_totalGoals, y_test_totalGoals = train_test_split(x, y_totalGoals, test_size=0.2, random_state=12)
+  x_train, x_test, y_train_goalDifferential, y_test_goalDifferential = train_test_split(x, y_goalDifferential, test_size=0.2, random_state=12)
 
-  clf = RandomForestClassifier(random_state=12)
+  # clf = RandomForestClassifier(random_state=12)
   clf_winner = RandomForestClassifier(random_state=12)
   clf_homeScore = RandomForestClassifier(random_state=12)
   clf_awayScore = RandomForestClassifier(random_state=12)
+  clf_totalGoals = RandomForestClassifier(random_state=12)
+  clf_goalDifferential = RandomForestClassifier(random_state=12)
 
-  clf.fit(x,y)
+  # clf.fit(x,y)
   clf_winner.fit(x_train,y_train_winner)
   clf_homeScore.fit(x_train,y_train_homeScore)
   clf_awayScore.fit(x_train,y_train_awayScore)
+  clf_totalGoals.fit(x_train,y_train_totalGoals)
+  clf_goalDifferential.fit(x_train,y_train_goalDifferential)
   predictions_winner = clf_winner.predict(x_test)
   predictions_homeScore = clf_homeScore.predict(x_test)
   predictions_awayScore = clf_awayScore.predict(x_test)
-  print("Winner Accuracy:", accuracy_score(y_test_winner, predictions_winner))
-  print("Home Score Accuracy:", accuracy_score(y_test_homeScore, predictions_homeScore))
-  print("Away Score Accuracy:", accuracy_score(y_test_awayScore, predictions_awayScore))
+  predictions_totalGoals = clf_totalGoals.predict(x_test)
+  predictions_goalDifferential = clf_goalDifferential.predict(x_test)
+  winner_accuracy = accuracy_score(y_test_winner, predictions_winner)
+  homeScore_accuracy = accuracy_score(y_test_homeScore, predictions_homeScore)
+  awayScore_accuracy = accuracy_score(y_test_awayScore, predictions_awayScore)
+  totalGoals_accuracy = accuracy_score(y_test_totalGoals, predictions_totalGoals)
+  goalDifferential_accuracy = accuracy_score(y_test_goalDifferential, predictions_goalDifferential)
+  print("Winner Accuracy:", winner_accuracy)
+  print("Home Score Accuracy:", homeScore_accuracy)
+  print("Away Score Accuracy:", awayScore_accuracy)
+  print("Total Goals Accuracy:", totalGoals_accuracy)
+  print("Goal Differential Accuracy:", goalDifferential_accuracy)
 
-  dump(clf, f'models/nhl_ai_v{VERSION}.joblib')
+  TrainingRecords = db['dev_training_records']
+  Metadata = db['dev_metadata']
+
+  timestamp = time.time()
+  TrainingRecords.insert_one({
+    'savedAt': timestamp,
+    'lastTrainedId': inData[len(inData)]['id'],
+    'accuracies': {
+      'winner': winner_accuracy,
+      'homeScore': homeScore_accuracy,
+      'awayScore': awayScore_accuracy,
+      'totalGoals': totalGoals_accuracy,
+      'goalDifferential': goalDifferential_accuracy,
+    }
+  })
+
+  # dump(clf, f'models/nhl_ai_v{VERSION}.joblib')
   dump(clf_winner, f'models/nhl_ai_v{VERSION}_winner.joblib')
   dump(clf_homeScore, f'models/nhl_ai_v{VERSION}_homeScore.joblib')
   dump(clf_awayScore, f'models/nhl_ai_v{VERSION}_awayScore.joblib')
+  dump(clf_totalGoals, f'models/nhl_ai_v{VERSION}_totalGoals.joblib')
+  dump(clf_goalDifferential, f'models/nhl_ai_v{VERSION}_goalDifferential.joblib')
 
 tdList = os.listdir(f'training_data/v{VERSION}')
 
 USE_SEASONS = True
 SKIP_SEASONS = [int(td.replace(f'training_data_v{VERSION}_','').replace('.joblib','')) for td in tdList] if len(tdList) > 0 and not f'training_data_v{VERSION}.joblib' in os.listdir('training_data') else []
 START_SEASON = 20052006
+LATEST_SEASON = 20232024
+MAX_ID = 2023020514
 
 if __name__ == '__main__':
   if RE_PULL:
@@ -301,14 +226,15 @@ if __name__ == '__main__':
           seasons.remove(season)
         print(seasons)
     else:
-      startID = 1924030112
-      endID = 1924030114
-      games = db["dev_games"].find(
+      ids = latestIDs()
+      startID = ids['saved']['training']
+      endID = MAX_ID
+      games = list(db["dev_games"].find(
         {'id':{'$gte':startID,'$lt':endID+1}},
         # {'id':{'$lt':endID+1}},
         {'id': 1, '_id': 0}
-      )
-
+      ))
+    
     pool = Pool(processes=4)
     if USE_SEASONS:
       result = pool.map(season_training_data,seasons)
@@ -321,13 +247,13 @@ if __name__ == '__main__':
     result = np.concatenate(result).tolist()
     pool.close()
     dump(result,f'training_data/training_data_v{VERSION}.joblib')
-    # f = open('training_data/training_data_text.txt','w')
-    # f.write(json.dumps(result[60000:60500]))
+    f = open('training_data/training_data_text.txt', 'w')
+    f.write(json.dumps(result[len(result)-200:len(result)]))
   else:
     training_data_path = f'training_data/training_data_v{VERSION}.joblib'
     print(training_data_path)
     result = load(training_data_path)
-    # f = open('training_data/training_data_text.txt', 'w')
-    # f.write(json.dumps(result[60000:60500]))
+    f = open('training_data/training_data_text.txt', 'w')
+    f.write(json.dumps(result[len(result)-200:len(result)]))
   print('Games Collected')
   train(result)

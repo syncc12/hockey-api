@@ -1,5 +1,8 @@
+import sys
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
+
 from pymongo import MongoClient
-from helpers import safe_chain, n2n, formatTime, formatDatetime, formatDate
+from util.helpers import safe_chain, n2n, formatTime, formatDatetime, formatDate
 
 GAMES_BACK = 5
 
