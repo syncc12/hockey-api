@@ -15,7 +15,7 @@ import os
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from util.training_data import save_training_data
-from util.helpers import latestIDs, adjusted_winner
+from util.helpers import false_chain, latestIDs, adjusted_winner
 from inputs.inputs import master_inputs
 from pages.nhl.nhl_helpers import ai, ai_return_dict
 from constants.constants import VERSION
@@ -318,7 +318,7 @@ def metadata(db,**kwargs):
 def save_boxscores(db,date,**kwargs):
   Games = db['dev_games']
   latest_ids = latestIDs()
-  
+  Odds = db['dev_odds']
   Boxscores = db['dev_boxscores']
   boxscores = []
   for id in range(latest_ids['saved']['boxscore']+1,latest_ids['live']['boxscore']+1):
@@ -328,13 +328,37 @@ def save_boxscores(db,date,**kwargs):
   schedule = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   for week in schedule['gameWeek']:
     for game in week['games']:
-      if game['id'] <= latest_ids['live']['game']:
-        try:
+      try:
+        if game['id'] <= latest_ids['live']['game']:
           game['date'] = week['date']
           Games.insert_one(game)
-        except DuplicateKeyError:
-          print('DUPLICATE', game['id'])
-          pass
+        else:
+          if false_chain(game,'homeTeam','odds') and false_chain(game,'awayTeam','odds'):
+            for i in range(0, len(schedule['oddsPartners'])):
+              if schedule['oddsPartners'][i]['country'].lower() == 'us':
+                usPartnerId = schedule['oddsPartners'][i]['partnerId']
+                usPartnerIndex = i
+                for provider in game['homeTeam']['odds']:
+                  if provider['providerId'] == usPartnerId:
+                    usHomeOdds = provider['value']
+                    break
+                for provider in game['awayTeam']['odds']:
+                  if provider['providerId'] == usPartnerId:
+                    usAwayOdds = provider['value']
+                    break
+                break
+            Odds.insert_one({
+              'id': game['id'],
+              'date': week['date'],
+              'odds': {
+                'homeTeam': usHomeOdds,
+                'awayTeam': usAwayOdds,
+                },
+              'oddsPartner': schedule['oddsPartners'][usPartnerIndex]['name']
+            })
+      except DuplicateKeyError:
+        print('DUPLICATE', game['id'])
+        pass
   
   print(latest_ids)
 
