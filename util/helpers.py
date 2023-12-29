@@ -487,3 +487,62 @@ def adjusted_winner(awayId,homeId,winnerId):
 
 def pad_list(lst, length, value):
   return lst + [value] * (length - len(lst))
+
+def add_players(db,playerIds):
+  Players = db['dev_players']
+  player_list = []
+  for id in playerIds:
+    res = requests.get(f"https://api-web.nhle.com/v1/player/{id}/landing").json()
+    player_list.append({
+      'playerId': res['playerId'],
+      'firstName': res['firstName']['default'],
+      'lastName': res['lastName']['default'],
+      'sweaterNumber': res['sweaterNumber'],
+      'heightInInches': res['heightInInches'],
+      'weightInPounds': res['weightInPounds'],
+      'birthDate': res['birthDate'],
+      'shootsCatches': res['shootsCatches'],
+      'playerSlug': res['playerSlug'],
+    })
+  Players.insert_many(player_list)
+  return player_list
+
+def add_player(db,playerId):
+  Players = db['dev_players']
+  res = requests.get(f"https://api-web.nhle.com/v1/player/{playerId}/landing").json()
+  player_data = {
+    'playerId': res['playerId'],
+    'firstName': res['firstName']['default'],
+    'lastName': res['lastName']['default'],
+    'sweaterNumber': safe_chain(res,'sweaterNumber'),
+    'heightInInches': res['heightInInches'],
+    'weightInPounds': res['weightInPounds'],
+    'birthDate': res['birthDate'],
+    'shootsCatches': res['shootsCatches'],
+    'playerSlug': res['playerSlug'],
+  }
+  Players.insert_one(player_data)
+  return player_data
+
+def collect_players(db,allPlayerIds):
+  if len(allPlayerIds) > 0:
+    Players = db['dev_players']
+    allPlayers = list(Players.find(
+      {'$or': allPlayerIds},
+      {'_id': 0, 'playerId': 1, 'birthDate': 1, 'shootsCatches': 1, 'weightInPounds': 1, 'heightInInches': 1}
+    ))
+    playerIds = [p['playerId'] for p in allPlayers]
+    for playerId in allPlayerIds:
+      if not playerId['playerId'] in playerIds:
+        player_data = add_player(db,playerId['playerId'])
+        allPlayers.append({
+          'playerId': player_data['playerId'],
+          'birthDate': player_data['birthDate'],
+          'shootsCatches': player_data['shootsCatches'],
+          'weightInPounds': player_data['weightInPounds'],
+          'heightInInches': player_data['heightInInches'],
+        })
+    return allPlayers
+  else:
+    return []
+

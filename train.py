@@ -178,12 +178,12 @@ def train(inData):
   print("Goal Differential Accuracy:", goalDifferential_accuracy)
 
   TrainingRecords = db['dev_training_records']
-  Metadata = db['dev_metadata']
+  # Metadata = db['dev_metadata']
 
   timestamp = time.time()
   TrainingRecords.insert_one({
     'savedAt': timestamp,
-    'lastTrainedId': inData[len(inData)]['id'],
+    'lastTrainedId': inData[len(inData)-1]['id'],
     'accuracies': {
       'winner': winner_accuracy,
       'homeScore': homeScore_accuracy,

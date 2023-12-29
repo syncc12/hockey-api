@@ -73,17 +73,31 @@ def nhl_data(game,message='',test=False):
     
 
   inputs = master_inputs(db=db,game=boxscore,isProjectedLineup=isProjectedLineup)
-  if not inputs['options']['projectedLineup']:
-    inputs = inputs['data']
-  else:
-    inputs = inputs['data'].values()[0]
 
   if not test:
     input_data = {}
     if inputs:
-      x = [[inputs[i] for i in X_V6_INPUTS]]
-      for i in X_V6_INPUTS:
-        input_data[i] = inputs[i]
+      if false_chain(inputs,'options','projectedLineup'):
+        input_keys = list(inputs['data'].keys())
+        x = {
+          f'{input_keys[0]}': [[list(inputs['data'].values())[0][i] for i in X_V6_INPUTS]],
+          f'{input_keys[1]}': [[list(inputs['data'].values())[1][i] for i in X_V6_INPUTS]],
+          f'{input_keys[2]}': [[list(inputs['data'].values())[2][i] for i in X_V6_INPUTS]],
+          f'{input_keys[3]}': [[list(inputs['data'].values())[3][i] for i in X_V6_INPUTS]],
+        }
+        input_data[input_keys[0]] = {}
+        input_data[input_keys[1]] = {}
+        input_data[input_keys[2]] = {}
+        input_data[input_keys[3]] = {}
+        for i in X_V6_INPUTS:
+          input_data[input_keys[0]][i] = inputs['data'][input_keys[0]][i]
+          input_data[input_keys[1]][i] = inputs['data'][input_keys[1]][i]
+          input_data[input_keys[2]][i] = inputs['data'][input_keys[2]][i]
+          input_data[input_keys[3]][i] = inputs['data'][input_keys[3]][i]
+      else:
+        x = [[inputs[i] for i in X_V6_INPUTS]]
+        for i in X_V6_INPUTS:
+          input_data[i] = inputs[i]
     else:
       x = [[]]
     return {
@@ -114,6 +128,7 @@ def nhl_data(game,message='',test=False):
           'intermission': safe_chain(boxscore,'clock','inIntermission'),
         },
       },
+      'isProjectedLineup': inputs['options']['projectedLineup'],
       'message': message,
     }
   else:

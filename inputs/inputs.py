@@ -1,4 +1,4 @@
-from util.helpers import safe_chain, n2n, false_chain, getPlayer, getAge, b2n, isNaN, formatDate, formatDatetime, formatTime, safe_none
+from util.helpers import safe_chain, n2n, false_chain, getPlayer, getAge, b2n, isNaN, formatDate, formatDatetime, formatTime, safe_none, collect_players
 import math
 import requests
 from pymongo import MongoClient
@@ -58,6 +58,8 @@ def master_inputs(db, game, isProjectedLineup=False):
     ))
   else:
     allPlayers = []
+  
+  # allPlayers = collect_players(db,allPlayerIds)
 
   homeStartingGoalieID = -1
   homeBackupGoalieID = -1
@@ -69,9 +71,9 @@ def master_inputs(db, game, isProjectedLineup=False):
       awayStartingGoalieID = pbgs['awayTeam']['goalies'][0]['playerId']
     
     if len(pbgs['awayTeam']['goalies']) > 1:
-      startingTOI = -1
-      startingID = -1
-      backupID = -1
+      startingTOI = safe_none(formatTime(pbgs['awayTeam']['goalies'][0]['toi']))
+      startingID = pbgs['awayTeam']['goalies'][0]['playerId']
+      backupID = pbgs['awayTeam']['goalies'][1]['playerId']
       for g in pbgs['awayTeam']['goalies']:
         if safe_none(formatTime(g['toi'])) > safe_none(startingTOI):
           startingTOI = safe_none(formatTime(g['toi']))
@@ -85,9 +87,9 @@ def master_inputs(db, game, isProjectedLineup=False):
       homeStartingGoalieID = pbgs['homeTeam']['goalies'][0]['playerId']
     
     if len(pbgs['homeTeam']['goalies']) > 1:
-      startingTOI = -1
-      startingID = -1
-      backupID = -1
+      startingTOI = safe_none(formatTime(pbgs['homeTeam']['goalies'][0]['toi']))
+      startingID =  pbgs['homeTeam']['goalies'][0]['playerId']
+      backupID = pbgs['homeTeam']['goalies'][1]['playerId']
       for g in pbgs['homeTeam']['goalies']:
         if safe_none(formatTime(g['toi'])) > safe_none(startingTOI):
           startingTOI = safe_none(formatTime(g['toi']))
@@ -99,17 +101,7 @@ def master_inputs(db, game, isProjectedLineup=False):
   # lastPlayerStats = last_player_game_stats(db=db,gameId=game['id'],playerIDs=allPlayerIds)
 
   try:
-    all_inputs = {
-      **base_inputs(awayTeam,homeTeam,game,gi,startTime,date),
-      **forwards(awayForwardIds,allPlayers,game,isAway=True),
-      **defense(awayDefenseIds,allPlayers,game,isAway=True),
-      **goalie(awayStartingGoalieID,allPlayers,game,isStarting=True,isAway=True),
-      **goalie(awayBackupGoalieID,allPlayers,game,isStarting=False,isAway=True),
-      **forwards(homeForwardIds,allPlayers,game,isAway=False),
-      **defense(homeDefenseIds,allPlayers,game,isAway=False),
-      **goalie(homeStartingGoalieID,allPlayers,game,isStarting=True,isAway=False),
-      **goalie(homeBackupGoalieID,allPlayers,game,isStarting=False,isAway=False),
-    }
+    all_inputs = {}
     if isProjectedLineup:
       all_inputs = {
         f'{awayStartingGoalieID}|{homeStartingGoalieID}': {

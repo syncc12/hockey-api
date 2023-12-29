@@ -53,7 +53,7 @@ def season_training_data(season):
     }
 
     # boxscore_data = compile_training_data(db=db, game=game_data)
-    boxscore_data = master_inputs(db=db, game=game_data)
+    boxscore_data = master_inputs(db=db, game=game_data)['data']
     if boxscore_data:
       training_data.append(boxscore_data)
     print(season,f'{i+1}/{len(games)}')
