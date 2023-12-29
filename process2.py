@@ -11,7 +11,6 @@ import os
 from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup
 from inputs.inputs import master_inputs
 from util.query import get_last_game_team_stats
-from joblib import load, dump
 from constants.inputConstants import X_V6_INPUTS, Y_V6_OUTPUTS
 
 REPLACE_VALUE = -1
@@ -20,10 +19,12 @@ def nhl_data(game,message='',test=False):
   db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
   client = MongoClient(db_url)
   db = client['hockey']
+  isProjectedLineup = False
   if not test:
     boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
     check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
     if not check_pbgs:
+      isProjectedLineup = True
       away_last_game = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'])
       home_last_game = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'])
       away_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{away_last_game}/boxscore").json()
@@ -71,7 +72,11 @@ def nhl_data(game,message='',test=False):
     boxscore = game
     
 
-  inputs = master_inputs(db=db,game=boxscore)
+  inputs = master_inputs(db=db,game=boxscore,isProjectedLineup=isProjectedLineup)
+  if not inputs['options']['projectedLineup']:
+    inputs = inputs['data']
+  else:
+    inputs = inputs['data'].values()[0]
 
   if not test:
     input_data = {}

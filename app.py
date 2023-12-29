@@ -38,7 +38,8 @@ def nhl_test_model():
   startID = request.args.get('start', default=-1, type=int)
   endID = request.args.get('end', default=-1, type=int)
   show_data = request.args.get('data', default=-1, type=int)
-  return test_model(db, startID,endID,show_data, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
+  wager = request.args.get('wager', default=10, type=int)
+  return test_model(db, startID,endID,show_data,wager, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
 
 @app.route('/collect/boxscores', methods=['POST'])
 def nhl_collect_boxscores():
@@ -63,12 +64,14 @@ def nhl_predict():
 @app.route('/nhl/day', methods=['GET'])
 def nhl_predict_day():
   date = request.args.get('date', default='now', type=str)
-  return predict_day(db, date, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
+  day = request.args.get('day', default=1, type=int)
+  return predict_day(db, date, day, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
 
 @app.route('/nhl/day/simple', methods=['GET'])
 def nhl_predict_day_simple():
   date = request.args.get('date', default='now', type=str)
-  return predict_day_simple(db, date, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
+  day = request.args.get('day', default=1, type=int)
+  return predict_day_simple(db, date, day, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
 
 @app.route('/nhl/week', methods=['GET'])
 def nhl_predict_week():

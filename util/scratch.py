@@ -7,9 +7,14 @@ from helpers import n2n
 from pymongo import MongoClient, ASCENDING
 
 
-# db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
-# client = MongoClient(db_url)
-# db = client['hockey']
+db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
+client = MongoClient(db_url)
+db = client['hockey']
+
+Odds = db['dev_odds']
+
+game_odds = Odds.find_one({'id': 2024020528})
+print(game_odds)
 
 # Games = db['dev_games']
 

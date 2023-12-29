@@ -100,15 +100,8 @@ def ai_return_dict(data, prediction, confidence=-1):
       'leader': live_leader,
       'leaderId': live_leaderId,
     }
-
-  return {
-    'gameId': data['data']['game_id'],
-    'date': data['data']['date'],
-    'state': state,
-    'homeId': homeId,
-    'awayId': awayId,
-    'homeTeam': homeTeam,
-    'awayTeam': awayTeam,
+  
+  predicted_data = {
     'winnerId': winnerId,
     'winningTeam': winningTeam,
     'homeScore': homeScore,
@@ -121,6 +114,17 @@ def ai_return_dict(data, prediction, confidence=-1):
     'totalGoalsConfidence': totalGoalsConfidence,
     'goalDifferentialConfidence': goalDifferentialConfidence,
     'offset': offset,
+  }
+
+  return {
+    'gameId': data['data']['game_id'],
+    'date': data['data']['date'],
+    'state': state,
+    'homeId': homeId,
+    'awayId': awayId,
+    'homeTeam': homeTeam,
+    'awayTeam': awayTeam,
+    'prediction': predicted_data,
     'live': live_data,
     'message': data['message'],
   }

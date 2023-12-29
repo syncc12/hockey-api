@@ -484,3 +484,6 @@ def adjusted_winner(awayId,homeId,winnerId):
     return homeId
   else:
     return winnerId
+
+def pad_list(lst, length, value):
+  return lst + [value] * (length - len(lst))

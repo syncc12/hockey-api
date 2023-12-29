@@ -29,11 +29,12 @@ def debug():
   return jsonify(data)
 
 
-def test_model(db,startID,endID,show_data,**kwargs):
+def test_model(db,startID,endID,show_data,wager,**kwargs):
   Boxscores = db['dev_boxscores']
+  Odds = db['dev_odds']
 
   if startID == -1 or endID == -1:
-    md = metadata()
+    md = metadata(db)
     if startID == -1:
       startID = md['saved']['training']+1
     if endID == -1:
@@ -88,7 +89,7 @@ def test_model(db,startID,endID,show_data,**kwargs):
     test_totalGoals = test_data['result'][0][1]
     test_goalDifferential = test_data['result'][0][1]
     test_results[boxscore['gameDate']]['results'].append({
-      'data': test_data['input_data'] if show_data != -1 else {},
+      'id': boxscore['id'],
       'winner': 1 if predicted_winner==test_winner else 0,
       'homeScore': 1 if predicted_homeScore==test_homeScore else 0,
       'awayScore': 1 if predicted_awayScore==test_awayScore else 0,
@@ -100,14 +101,33 @@ def test_model(db,startID,endID,show_data,**kwargs):
       'totalGoalsConfidence': int((np.max(test_confidence_totalGoals, axis=1) * 100)[0]),
       'goalDifferentialConfidence': int((np.max(test_confidence_goalDifferential, axis=1) * 100)[0]),
     })
+    test_results_len = len(test_results[boxscore['gameDate']]['results']) - 1
+    if show_data != -1:
+      test_results[boxscore['gameDate']]['results'][test_results_len]['data'] = test_data['input_data']
+    game_odds = Odds.find_one({'id':boxscore['id']})
+    winnings = 0
+    returns = 0
+    if game_odds:
+      test_results[boxscore['gameDate']]['results'][test_results_len]['awayOdds'] = float(game_odds['odds']['awayTeam'])
+      test_results[boxscore['gameDate']]['results'][test_results_len]['homeOdds'] = float(game_odds['odds']['homeTeam'])
+      if test_results[boxscore['gameDate']]['results'][test_results_len]['winner']:
+        winning_odds = float(game_odds['odds']['awayTeam']) if test_winner == awayId else float(game_odds['odds']['homeTeam'])
+        winnings = abs(((100/winning_odds)*wager) if winning_odds < 0 else ((winning_odds/100)*wager))
+        returns = winnings + wager
+    test_results[boxscore['gameDate']]['results'][test_results_len]['winnings'] = winnings
+    test_results[boxscore['gameDate']]['results'][test_results_len]['returns'] = returns
+      
+
     
-  # for boxscore in boxscore_list:
+    ## All Totals
     winner_total = 0
     home_score_total = 0
     away_score_total = 0
     home_away_score_total = 0
     goal_total = 0
     goal_differential_total = 0
+    winnings_total = 0
+    returns_total = 0
     list_total = len(test_results[boxscore['gameDate']]['results'])
     all_list_total += list_total
     for r in test_results[boxscore['gameDate']]['results']:
@@ -116,6 +136,8 @@ def test_model(db,startID,endID,show_data,**kwargs):
       away_score_total += r['awayScore']
       goal_total += r['totalGoals']
       goal_differential_total += r['goalDifferential']
+      winnings_total += r['winnings']
+      returns_total += r['returns']
       if home_score_total == 1 and away_score_total == 1:
         home_away_score_total += 1
     all_winner_total += winner_total
@@ -130,6 +152,10 @@ def test_model(db,startID,endID,show_data,**kwargs):
     test_results[boxscore['gameDate']]['h2hScorePercent'] = (home_away_score_total / list_total) * 100
     test_results[boxscore['gameDate']]['goalTotalPercent'] = (goal_total / list_total) * 100
     test_results[boxscore['gameDate']]['goalDifferentialPercent'] = (goal_differential_total / list_total) * 100
+    test_results[boxscore['gameDate']]['totalWinnings'] = f'${winnings_total}'
+    test_results[boxscore['gameDate']]['totalWagered'] = f'${list_total * wager}'
+    test_results[boxscore['gameDate']]['totalReturned'] = f'${returns_total}'
+    test_results[boxscore['gameDate']]['totalProfit'] = f'${returns_total - (list_total * wager)}'
     test_results[boxscore['gameDate']]['totalGames'] = list_total
   
   test_results['allWinnerPercent'] = (all_winner_total / all_list_total) * 100
@@ -141,6 +167,7 @@ def test_model(db,startID,endID,show_data,**kwargs):
   test_results['allIDs'] = all_ids
   test_results['allIDLength'] = len(all_ids)
   test_results['totalGames'] = all_list_total
+  test_results['wager'] = f'${wager}'
   
   return test_results
 
@@ -196,10 +223,8 @@ def predict(db,day,game,**kwargs):
   return ai(game_data, model_winner=kwargs['model_winner'],model_homeScore=kwargs['model_homeScore'],model_awayScore=kwargs['model_awayScore'],model_totalGoals=kwargs['model_totalGoals'],model_goalDifferential=kwargs['model_goalDifferential'])
 
 
-def predict_day(db,date,**kwargs):
+def predict_day(db,date,day,**kwargs):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
-
-  day = request.args.get('day', default=1, type=int)
 
   game_data = res['gameWeek'][day-1]
   games = []
@@ -209,10 +234,8 @@ def predict_day(db,date,**kwargs):
   return jsonify(games)
 
 
-def predict_day_simple(db,date,**kwargs):
+def predict_day_simple(db,date,day,**kwargs):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
-
-  day = request.args.get('day', default=1, type=int)
 
   game_data = res['gameWeek'][day-1]
   games = []
@@ -228,14 +251,14 @@ def predict_day_simple(db,date,**kwargs):
         'period': ai_data['live']['period'],
       }
     simple_data = {
-      'awayTeam': f"{ai_data['awayTeam']} - {ai_data['awayScore']} - {ai_data['awayScoreConfidence']}%",
-      'homeTeam': f"{ai_data['homeTeam']} - {ai_data['homeScore']} - {ai_data['homeScoreConfidence']}%",
+      'awayTeam': f"{ai_data['awayTeam']} - {ai_data['prediction']['awayScore']} - {ai_data['prediction']['awayScoreConfidence']}%",
+      'homeTeam': f"{ai_data['homeTeam']} - {ai_data['prediction']['homeScore']} - {ai_data['prediction']['homeScoreConfidence']}%",
       'live': live_data,
-      'winningTeam': f"{ai_data['winningTeam']} - {ai_data['winnerConfidence']}%",
+      'winningTeam': f"{ai_data['prediction']['winningTeam']} - {ai_data['prediction']['winnerConfidence']}%",
       'message': ai_data['message'],
-      'offset': ai_data['offset'],
-      'totalGoals': f"{ai_data['totalGoals']} - {ai_data['totalGoalsConfidence']}%",
-      'goalDifferential': f"{ai_data['goalDifferential']} - {ai_data['goalDifferentialConfidence']}%",
+      'offset': ai_data['prediction']['offset'],
+      'totalGoals': f"{ai_data['prediction']['totalGoals']} - {ai_data['prediction']['totalGoalsConfidence']}%",
+      'goalDifferential': f"{ai_data['prediction']['goalDifferential']} - {ai_data['prediction']['goalDifferentialConfidence']}%",
     }
     games.append(simple_data)
   
