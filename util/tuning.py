@@ -1,51 +1,11 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
 
-from joblib import load, dump
+from joblib import load
 import pandas as pd
-import os
-from helpers import n2n
-from pymongo import MongoClient, ASCENDING
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, train_test_split
-
-
-# db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
-# client = MongoClient(db_url)
-# db = client['hockey']
-
-# Odds = db['dev_odds']
-
-# game_odds = Odds.find_one(
-#   {'id': 2024020528},
-#   {'_id':0,'odds':1}
-# )
-# # game_odds = Odds.find_one(
-# #   {'id': 2023020555},
-# #   {'_id':0,'odds':1}
-# # )
-# print(game_odds)
-
-# # Games = db['dev_games']
-
-# # pipeline = [
-# #   {"$group": {
-# #     "_id": "$id", 
-# #     "uniqueIds": {"$addToSet": "$_id"},
-# #     "count": {"$sum": 1}
-# #   }},
-# #   {"$match": {
-# #     "count": {"$gt": 1}
-# #   }}
-# # ]
-# # duplicates = Games.aggregate(pipeline)
-
-# # for document in duplicates:
-# #   for id in document["uniqueIds"][1:]:
-# #     Games.delete_one({"_id": id})
-      
-# # Games.create_index([("id", ASCENDING)], unique=True)
 
 def hyperparameter_tuning():
   imputer = SimpleImputer(strategy='constant', fill_value=-1)
@@ -98,7 +58,3 @@ def hyperparameter_tuning():
 
 
 hyperparameter_tuning()
-
-# check_number = 18658
-# for i in range(1,31):
-#   print(i,check_number/i)
