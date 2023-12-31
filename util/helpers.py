@@ -2,6 +2,7 @@ import math
 import requests
 from pymongo import MongoClient
 from datetime import datetime
+import numpy as np
 
 REPLACE_VALUE = -1
 
@@ -546,3 +547,61 @@ def collect_players(db,allPlayerIds):
   else:
     return []
 
+def recommended_wagers(totalWager,gameData,isProjectedLineup=False):
+  if not isinstance(gameData,list):
+    gameData = [gameData]
+  
+  if not isProjectedLineup:
+    winner_odds = []
+    for g in gameData:
+      winning_team = 'home' if g['prediction']['winnerId'] == g['homeId'] else 'away'
+      win_odds = g[f'{winning_team}Odds']
+      win_odds = (100/(win_odds+100)) if win_odds >= 0 else (abs(win_odds)/(abs(win_odds)+100))
+      winner_odds.append(win_odds)
+    winner_confidence = [(g['prediction']['winnerConfidence'])/100 for g in gameData]
+    # print('winner_odds',winner_odds)
+    # print('winner_confidence',winner_confidence)
+
+def test_recommended_wagers(totalWager,odds,confidence,winners=[]):
+  confidence_boost = (100 - np.max(confidence)) / 100
+  # confidence_boost = 0
+  odds_weight = 1
+  confidence_weight = 1
+  odds = [(100/(o+100)) if o >= 0 else (abs(o)/(abs(o)+100)) for o in odds]
+  confidence = [(c/100)+confidence_boost for c in confidence]
+  wager_per_game = totalWager / len(odds)
+  wagers = []
+  winnings = []
+  wins = []
+  for i in range(0, len(odds)):
+    game_wager = wager_per_game * (odds[i] * odds_weight) * (confidence[i] * confidence_weight)
+    # game_wager = wager_per_game * (confidence[i] * confidence_weight)
+    wagers.append(game_wager)
+  
+  remainingWagers = totalWager - sum(wagers)
+  third = math.floor(len(odds) / 3)
+
+  sorted_confidence = sorted(list(enumerate(confidence)), key=lambda i: i[1], reverse=True)
+  top_third = [i for i, e in sorted_confidence[:third]]
+
+  third_remainingWagers = remainingWagers / 3
+  spread_remainingWagers = remainingWagers / len(wagers)
+  # for i in top_third:
+  for i in range(0, len(wagers)):
+    # wagers[i] + third_remainingWagers
+    wagers[i] + spread_remainingWagers
+
+  for i in range(0, len(odds)):
+    game_winnings = game_wager + (game_wager * odds[i])
+    winnings.append(game_winnings)
+    if winners[i] == 1:
+      wins.append(game_winnings)
+
+
+  totalWinnings = sum(wins) - sum(wagers)
+  print('confidence_boost',confidence_boost)
+  print('odds',odds)
+  print('confidence',confidence)
+  print('wagers',wagers)
+  print('winnings',winnings)
+  print('totalWinnings',totalWinnings)

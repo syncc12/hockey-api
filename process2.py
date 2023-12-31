@@ -15,12 +15,14 @@ from constants.inputConstants import X_V6_INPUTS, Y_V6_OUTPUTS
 
 REPLACE_VALUE = -1
 
-def nhl_data(game,message='',test=False):
-  db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
-  client = MongoClient(db_url)
-  db = client['hockey']
+def nhl_data(db,game,message='',test=False):
   isProjectedLineup = False
   if not test:
+    Odds = db['dev_odds']
+    game_odds = Odds.find_one(
+      {'id':game['id']},
+      {'_id':0,'odds':1}
+    )
     boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
     check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
     if not check_pbgs:
@@ -77,7 +79,7 @@ def nhl_data(game,message='',test=False):
   if not test:
     input_data = {}
     if inputs:
-      if false_chain(inputs,'options','projectedLineup'):
+      if safe_chain(inputs,'options','projectedLineup') and safe_chain(inputs,'options','projectedLineup') != -1:
         input_keys = list(inputs['data'].keys())
         x = {
           f'{input_keys[0]}': [[list(inputs['data'].values())[0][i] for i in X_V6_INPUTS]],
@@ -95,11 +97,13 @@ def nhl_data(game,message='',test=False):
           input_data[input_keys[2]][i] = inputs['data'][input_keys[2]][i]
           input_data[input_keys[3]][i] = inputs['data'][input_keys[3]][i]
       else:
-        x = [[inputs[i] for i in X_V6_INPUTS]]
+        x = [[inputs['data'][i] for i in X_V6_INPUTS]]
         for i in X_V6_INPUTS:
-          input_data[i] = inputs[i]
+          input_data[i] = inputs['data'][i]
     else:
       x = [[]]
+    homeOdds = float(game_odds['odds']['homeTeam']) if game_odds else -1
+    awayOdds = float(game_odds['odds']['awayTeam']) if game_odds else -1
     return {
       'data': {
         'data': x,
@@ -112,12 +116,14 @@ def nhl_data(game,message='',test=False):
           'city': safe_chain(game,'homeTeam','placeName','default'),
           'name': safe_chain(boxscore,'homeTeam','name','default'),
           'abbreviation': safe_chain(boxscore,'homeTeam','abbrev'),
+          'odds': homeOdds,
         },
         'away_team': {
           'id': safe_chain(boxscore,'awayTeam','id'),
           'city': safe_chain(game,'awayTeam','placeName','default'),
           'name': safe_chain(boxscore,'awayTeam','name','default'),
           'abbreviation': safe_chain(boxscore,'awayTeam','abbrev'),
+          'odds': awayOdds,
         },
         'live': {
           'home_score': safe_chain(boxscore,'homeTeam','score'),
@@ -151,19 +157,19 @@ def nhl_data(game,message='',test=False):
     x_data = []
     y_data = []
     input_data = {}
-    x = [[inputs[i] for i in X_V6_INPUTS]]
+    x = [[inputs['data'][i] for i in X_V6_INPUTS]]
     for i in X_V6_INPUTS:
-      input_data[i] = inputs[i]
+      input_data[i] = inputs['data'][i]
     for i in X_V6_INPUTS:
       if i in suplement_data.keys():
         x_data.append(suplement_data[i])
       else:
-        x_data.append(inputs[i])
+        x_data.append(inputs['data'][i])
     for i in Y_V6_OUTPUTS:
       if i in suplement_data.keys():
         y_data.append(suplement_data[i])
       elif i in inputs:
-        y_data.append(inputs[i])
+        y_data.append(inputs['data'][i])
 
     test_data = [x_data]
     test_result = [y_data]
@@ -178,5 +184,5 @@ def nhl_data(game,message='',test=False):
 # data = nhl_data(game=game['gameWeek'][0]['games'][0])
 # print(data)
 
-def nhl_test(boxscore):
-  return nhl_data(game=boxscore,test=True)
+def nhl_test(db,boxscore):
+  return nhl_data(db=db,game=boxscore,test=True)

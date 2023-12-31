@@ -13,7 +13,14 @@ db = client['hockey']
 
 Odds = db['dev_odds']
 
-game_odds = Odds.find_one({'id': 2024020528})
+game_odds = Odds.find_one(
+  {'id': 2024020528},
+  {'_id':0,'odds':1}
+)
+# game_odds = Odds.find_one(
+#   {'id': 2023020555},
+#   {'_id':0,'odds':1}
+# )
 print(game_odds)
 
 # Games = db['dev_games']

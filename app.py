@@ -1,11 +1,13 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\pages\nhl')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
 
 from flask import Flask, request, jsonify, Response
 from joblib import load
 from pymongo import MongoClient
 from pages.nhl.service import debug, test_model, collect_boxscores, collect_training_data, predict, predict_day, predict_day_simple, predict_week, get_day_ids, date_predict, now, game_date, metadata, save_boxscores
 from constants.constants import VERSION
+from util.helpers import recommended_wagers
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -59,13 +61,17 @@ def nhl_collect_training_data():
 def nhl_predict():
   day = request.args.get('day', default=1, type=int)
   game = request.args.get('game', default=1, type=int)
-  return predict(db, day,game, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
+  date = request.args.get('date', default="now", type=str)
+  return predict(db,day,game,date, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
 
 @app.route('/nhl/day', methods=['GET'])
 def nhl_predict_day():
   date = request.args.get('date', default='now', type=str)
   day = request.args.get('day', default=1, type=int)
-  return predict_day(db, date, day, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
+  prediction = predict_day(db, date, day, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
+  
+  recommended_wagers(100,prediction,False)
+  return jsonify(prediction)
 
 @app.route('/nhl/day/simple', methods=['GET'])
 def nhl_predict_day_simple():

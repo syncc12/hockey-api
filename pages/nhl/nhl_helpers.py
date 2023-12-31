@@ -13,7 +13,7 @@ import os
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from util.training_data import save_training_data
-from util.helpers import latestIDs, adjusted_winner
+from util.helpers import latestIDs, adjusted_winner, recommended_wagers
 import boto3
 import io
 from inputs.inputs import master_inputs
@@ -184,7 +184,7 @@ def ai_return_dict(data, prediction, confidence=-1):
     'offset': offset,
   }
 
-  return {
+  out_data = {
     'gameId': data['data']['game_id'],
     'date': data['data']['date'],
     'state': state,
@@ -192,15 +192,17 @@ def ai_return_dict(data, prediction, confidence=-1):
     'awayId': awayId,
     'homeTeam': homeTeam,
     'awayTeam': awayTeam,
+    'homeOdds': data['data']['home_team']['odds'],
+    'awayOdds': data['data']['away_team']['odds'],
     'prediction': predicted_data,
     'live': live_data,
     'message': data['message'],
   }
+  return out_data
 
-def ai(game_data, **kwargs):
+def ai(db, game_data, **kwargs):
   # data = nhl_ai(game_data)
-  data = nhl_data(game_data)
-
+  data = nhl_data(db, game_data)
   if not data['isProjectedLineup']:
     if len(data['data']['data'][0]) == 0:
       return ai_return_dict(data,[[]])
