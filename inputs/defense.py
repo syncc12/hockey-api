@@ -1,9 +1,9 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
 
-from util.helpers import getPlayer, getAge, pad_list
+from util.helpers import getPlayer, getAge, pad_list, getGamesPlayed
 
-def defense(ids,allPlayers,game,isAway=True,REPLACE_VALUE=-1):
+def defense(db,ids,allPlayers,game,isAway=True,REPLACE_VALUE=-1):
   homeAway = 'away' if isAway else 'home'
 
   defense_dict = {}
@@ -13,5 +13,6 @@ def defense(ids,allPlayers,game,isAway=True,REPLACE_VALUE=-1):
   for i in range(0,len(ids)):
     defense_dict[f'{homeAway}Defenseman{i+1}'] = ids[i]
     defense_dict[f'{homeAway}Defenseman{i+1}Age'] = getAge(getPlayer(allPlayers,ids[i]),game['gameDate']) if ids[i] != -1 else REPLACE_VALUE
+    defense_dict[f'{homeAway}Defenseman{i+1}GamesPlayed'] = getGamesPlayed(db,ids[i],game['id'])
 
   return defense_dict

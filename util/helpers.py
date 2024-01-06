@@ -605,3 +605,93 @@ def test_recommended_wagers(totalWager,odds,confidence,winners=[]):
   print('wagers',wagers)
   print('winnings',winnings)
   print('totalWinnings',totalWinnings)
+
+def getGamesPlayed(db,playerId,gameId=-1):
+  Boxscores = db['dev_boxscores']
+  if gameId == -1:
+    query = {
+      '$or':[
+        {'boxscore.playerByGameStats.awayTeam.forwards': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.awayTeam.defense': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.awayTeam.goalies': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.homeTeam.forwards': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.homeTeam.defense': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.homeTeam.goalies': {'$elemMatch': {'playerId': playerId}}},
+      ]
+    }
+  else:
+    query = {
+      '$or':[
+        {'boxscore.playerByGameStats.awayTeam.forwards': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.awayTeam.defense': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.awayTeam.goalies': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.homeTeam.forwards': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.homeTeam.defense': {'$elemMatch': {'playerId': playerId}}},
+        {'boxscore.playerByGameStats.homeTeam.goalies': {'$elemMatch': {'playerId': playerId}}},
+      ],
+      'id': {'$lt': gameId},
+    }
+  return Boxscores.count_documents(query)
+
+def getAllGamesPlayed(db,playerIds=[],gameId=-1):
+  if len(playerIds) > 0:
+    Boxscores = db['dev_boxscores']
+    player_counts = {}
+
+    if gameId == -1:
+      for playerId in playerIds:
+        query = {
+          '$or':[
+            {'boxscore.playerByGameStats.awayTeam.forwards': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.awayTeam.defense': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.awayTeam.goalies': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.homeTeam.forwards': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.homeTeam.defense': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.homeTeam.goalies': {'$elemMatch': {'playerId': playerId}}},
+          ]
+        }
+        count = Boxscores.count_documents(query)
+        player_counts[playerId] = count
+    else:
+      for playerId in playerIds:
+        query = {
+          '$or':[
+            {'boxscore.playerByGameStats.awayTeam.forwards': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.awayTeam.defense': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.awayTeam.goalies': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.homeTeam.forwards': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.homeTeam.defense': {'$elemMatch': {'playerId': playerId}}},
+            {'boxscore.playerByGameStats.homeTeam.goalies': {'$elemMatch': {'playerId': playerId}}},
+          ],
+          'id': {'$lt': gameId},
+        }
+        count = Boxscores.count_documents(query)
+        player_counts[playerId] = count
+    return player_counts
+  else:
+    return -1
+
+def getTotalGamesPlayed(db,playerIds=[],gameId=-1):
+  if len(playerIds) > 0:
+    Boxscores = db['dev_boxscores']
+    player_query = []
+    for playerId in playerIds:
+      player_query.append({'boxscore.playerByGameStats.awayTeam.forwards': {'$elemMatch': {'playerId': playerId}}})
+      player_query.append({'boxscore.playerByGameStats.awayTeam.defense': {'$elemMatch': {'playerId': playerId}}})
+      player_query.append({'boxscore.playerByGameStats.awayTeam.goalies': {'$elemMatch': {'playerId': playerId}}})
+      player_query.append({'boxscore.playerByGameStats.homeTeam.forwards': {'$elemMatch': {'playerId': playerId}}})
+      player_query.append({'boxscore.playerByGameStats.homeTeam.defense': {'$elemMatch': {'playerId': playerId}}})
+      player_query.append({'boxscore.playerByGameStats.homeTeam.goalies': {'$elemMatch': {'playerId': playerId}}})
+
+    if gameId == -1:
+      query = {
+        '$or': player_query
+      }
+    else:
+      query = {
+        '$or': player_query,
+        'id': {'$lt': gameId},
+      }
+    return Boxscores.count_documents(query)
+  else:
+    return -1

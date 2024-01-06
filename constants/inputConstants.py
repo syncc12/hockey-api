@@ -95,3 +95,11 @@ X_V6_INPUTS = [
 ]
 
 Y_V6_OUTPUTS = ['homeScore','awayScore','winner','totalGoals','goalDifferential']
+
+
+FORWARD_INPUTS = ['Age', 'GamesPlayed']
+DEFENSE_INPUTS = ['Age', 'GamesPlayed']
+GOALIE_INPUTS = ['Catches', 'Age', 'GamesPlayed']
+
+FORWARD_INPUTS_ZIP = [(i,) + tuple(FORWARD_INPUTS) for i in range(0,12)]
+HOME_FORWARD_INPUTS = [f'homeForward{i[0]+1}' for i in FORWARD_INPUTS_ZIP]

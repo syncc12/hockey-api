@@ -4,7 +4,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
 from util.helpers import safe_chain, getPlayer, getAge, n2n, b2n
 
 
-def base_inputs(awayTeam,homeTeam,game,gi,startTime,date):
+def base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date):
   return {
     'id': safe_chain(game,'id'),
     'season': safe_chain(game,'season'),
