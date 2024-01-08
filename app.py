@@ -5,8 +5,8 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
 from flask import Flask, request, jsonify, Response
 from joblib import load
 from pymongo import MongoClient
-from pages.nhl.service import debug, test_model, collect_boxscores, collect_training_data, predict, predict_day, predict_day_simple, predict_week, get_day_ids, date_predict, now, game_date, metadata, save_boxscores
-from constants.constants import VERSION
+from pages.nhl.service import debug, test_model, collect_boxscores, predict, predict_day, predict_day_simple, predict_week, get_day_ids, date_predict, now, game_date, metadata, save_boxscores
+from constants.constants import FILE_VERSION
 from util.helpers import recommended_wagers
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
@@ -16,12 +16,12 @@ db = client['hockey']
 
 CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
 
-# model = load(f'models/nhl_ai_v{VERSION}.joblib')
-model_winner = load(f'models/nhl_ai_v{VERSION}_winner.joblib')
-model_homeScore = load(f'models/nhl_ai_v{VERSION}_homeScore.joblib')
-model_awayScore = load(f'models/nhl_ai_v{VERSION}_awayScore.joblib')
-model_totalGoals = load(f'models/nhl_ai_v{VERSION}_totalGoals.joblib')
-model_goalDifferential = load(f'models/nhl_ai_v{VERSION}_goalDifferential.joblib')
+# model = load(f'models/nhl_ai_v{FILE_VERSION}.joblib')
+model_winner = load(f'models/nhl_ai_v{FILE_VERSION}_winner.joblib')
+model_homeScore = load(f'models/nhl_ai_v{FILE_VERSION}_homeScore.joblib')
+model_awayScore = load(f'models/nhl_ai_v{FILE_VERSION}_awayScore.joblib')
+model_totalGoals = load(f'models/nhl_ai_v{FILE_VERSION}_totalGoals.joblib')
+model_goalDifferential = load(f'models/nhl_ai_v{FILE_VERSION}_goalDifferential.joblib')
 
 app = Flask(__name__)
 
@@ -49,13 +49,13 @@ def nhl_collect_boxscores():
   endID = int(request.json['endId'])
   return collect_boxscores(db, startID,endID, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
 
-@app.route('/collect/training-data', methods=['GET'])
-def nhl_collect_training_data():
-  startID = request.args.get('start', default=-1, type=int)
-  endID = request.args.get('end', default=-1, type=int)
-  id = request.args.get('id', default=-1, type=int)
+# @app.route('/collect/training-data', methods=['GET'])
+# def nhl_collect_training_data():
+#   startID = request.args.get('start', default=-1, type=int)
+#   endID = request.args.get('end', default=-1, type=int)
+#   id = request.args.get('id', default=-1, type=int)
 
-  return collect_training_data(db, startID,endID,id, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
+#   return collect_training_data(db, startID,endID,id, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
 
 @app.route('/nhl', methods=['GET'])
 def nhl_predict():

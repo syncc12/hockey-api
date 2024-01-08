@@ -86,20 +86,60 @@ X_V6_INPUTS = [
   'awayForward7Age','awayForward8','awayForward8Age','awayForward9','awayForward9Age','awayForward10','awayForward10Age','awayForward11','awayForward11Age','awayForward12','awayForward12Age',
   'awayForward13','awayForward13Age','awayDefenseman1','awayDefenseman1Age','awayDefenseman2','awayDefenseman2Age','awayDefenseman3','awayDefenseman3Age','awayDefenseman4','awayDefenseman4Age',
   'awayDefenseman5','awayDefenseman5Age','awayDefenseman6','awayDefenseman6Age','awayDefenseman7','awayDefenseman7Age','awayStartingGoalie','awayStartingGoalieCatches','awayStartingGoalieAge',
-  'awayStartingGoalieHeight','awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieAge','awayBackupGoalieHeight','homeForward1','homeForward1Age','homeForward2','homeForward2Age',
+  'awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieAge','homeForward1','homeForward1Age','homeForward2','homeForward2Age',
   'homeForward3','homeForward3Age','homeForward4','homeForward4Age','homeForward5','homeForward5Age','homeForward6','homeForward6Age','homeForward7','homeForward7Age','homeForward8',
   'homeForward8Age','homeForward9','homeForward9Age','homeForward10','homeForward10Age','homeForward11','homeForward11Age','homeForward12','homeForward12Age','homeForward13','homeForward13Age',
   'homeDefenseman1','homeDefenseman1Age','homeDefenseman2','homeDefenseman2Age','homeDefenseman3','homeDefenseman3Age','homeDefenseman4','homeDefenseman4Age','homeDefenseman5',
   'homeDefenseman5Age','homeDefenseman6','homeDefenseman6Age','homeDefenseman7','homeDefenseman7Age','homeStartingGoalie','homeStartingGoalieCatches','homeStartingGoalieAge',
-  'homeStartingGoalieHeight','homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieAge','homeBackupGoalieHeight'
+  'homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieAge'
 ]
 
 Y_V6_OUTPUTS = ['homeScore','awayScore','winner','totalGoals','goalDifferential']
 
-
-FORWARD_INPUTS = ['Age', 'GamesPlayed']
-DEFENSE_INPUTS = ['Age', 'GamesPlayed']
+BASE_INPUTS = [
+  'id','season','gameType','venue','neutralSite','homeTeam','awayTeam','startTime',
+  'date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1'
+]
+FORWARD_INPUTS = ['Age', 'GamesPlayed', 'Goals', 'Assists', 'Points']
+DEFENSE_INPUTS = ['Age', 'GamesPlayed', 'Goals', 'Assists', 'Points']
 GOALIE_INPUTS = ['Catches', 'Age', 'GamesPlayed']
 
-FORWARD_INPUTS_ZIP = [(i,) + tuple(FORWARD_INPUTS) for i in range(0,12)]
-HOME_FORWARD_INPUTS = [f'homeForward{i[0]+1}' for i in FORWARD_INPUTS_ZIP]
+FORWARD_INPUTS_ZIP = [i for i in range(0,13)]
+DEFENSE_INPUTS_ZIP = [i for i in range(0,7)]
+
+X_INPUTS = BASE_INPUTS
+Y_OUTPUTS = ['homeScore','awayScore','winner','totalGoals','goalDifferential']
+
+for i in FORWARD_INPUTS_ZIP:
+  X_INPUTS.append(f'awayForward{i+1}')
+  for feature in FORWARD_INPUTS:
+    X_INPUTS.append(f'awayForward{i+1}{feature}')
+
+for i in DEFENSE_INPUTS_ZIP:
+  X_INPUTS.append(f'awayDefenseman{i+1}')
+  for feature in DEFENSE_INPUTS:
+    X_INPUTS.append(f'awayDefenseman{i+1}{feature}')
+
+X_INPUTS.append(f'awayStartingGoalie')
+for feature in GOALIE_INPUTS:
+  X_INPUTS.append(f'awayStartingGoalie{feature}')
+X_INPUTS.append(f'awayBackupGoalie')
+for feature in GOALIE_INPUTS:
+  X_INPUTS.append(f'awayBackupGoalie{feature}')
+
+for i in FORWARD_INPUTS_ZIP:
+  X_INPUTS.append(f'homeForward{i+1}')
+  for feature in FORWARD_INPUTS:
+    X_INPUTS.append(f'homeForward{i+1}{feature}')
+
+for i in DEFENSE_INPUTS_ZIP:
+  X_INPUTS.append(f'homeDefenseman{i+1}')
+  for feature in DEFENSE_INPUTS:
+    X_INPUTS.append(f'homeDefenseman{i+1}{feature}')
+
+X_INPUTS.append(f'homeStartingGoalie')
+for feature in GOALIE_INPUTS:
+  X_INPUTS.append(f'homeStartingGoalie{feature}')
+X_INPUTS.append(f'homeBackupGoalie')
+for feature in GOALIE_INPUTS:
+  X_INPUTS.append(f'homeBackupGoalie{feature}')

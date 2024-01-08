@@ -14,7 +14,7 @@ from pymongo.errors import DuplicateKeyError
 import os
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from util.training_data import save_training_data
+# from util.training_data import save_training_data
 from util.helpers import false_chain, latestIDs, adjusted_winner, test_recommended_wagers
 from inputs.inputs import master_inputs
 from pages.nhl.nhl_helpers import ai, ai_return_dict
@@ -293,24 +293,24 @@ def collect_boxscores(db,startID,endID,**kwargs):
   return {'status':'done'}
 
 
-def collect_training_data(db,startID,endID,id,**kwargs):
-  training_data = []
-  is_neutral_site = {}
-  if startID != -1 and endID != -1 and id == -1:
-    for id in range(startID, endID+1):
-      loop_data = data_loop(id=id,is_neutral_site=is_neutral_site)
-      is_neutral_site = loop_data['is_neutral_site']
-      training_data.append(save_training_data(boxscores=loop_data['boxscore_data'],neutralSite=is_neutral_site[loop_data['boxscore_data']['id']]))
-  else:
-    if startID == -1 and endID == -1 and id != -1:
-      loop_data = data_loop(id=id,is_neutral_site=is_neutral_site)
-    elif startID != -1 and endID == -1 and id == -1:
-      loop_data = data_loop(id=startID,is_neutral_site=is_neutral_site)
-    elif startID == -1 and endID != -1 and id == -1:
-      loop_data = data_loop(id=endID,is_neutral_site=is_neutral_site)
-    training_data.append(save_training_data(boxscores=loop_data['boxscore_data'],neutralSite=is_neutral_site[loop_data['boxscore_data']['id']]))
+# def collect_training_data(db,startID,endID,id,**kwargs):
+#   training_data = []
+#   is_neutral_site = {}
+#   if startID != -1 and endID != -1 and id == -1:
+#     for id in range(startID, endID+1):
+#       loop_data = data_loop(id=id,is_neutral_site=is_neutral_site)
+#       is_neutral_site = loop_data['is_neutral_site']
+#       training_data.append(save_training_data(boxscores=loop_data['boxscore_data'],neutralSite=is_neutral_site[loop_data['boxscore_data']['id']]))
+#   else:
+#     if startID == -1 and endID == -1 and id != -1:
+#       loop_data = data_loop(id=id,is_neutral_site=is_neutral_site)
+#     elif startID != -1 and endID == -1 and id == -1:
+#       loop_data = data_loop(id=startID,is_neutral_site=is_neutral_site)
+#     elif startID == -1 and endID != -1 and id == -1:
+#       loop_data = data_loop(id=endID,is_neutral_site=is_neutral_site)
+#     training_data.append(save_training_data(boxscores=loop_data['boxscore_data'],neutralSite=is_neutral_site[loop_data['boxscore_data']['id']]))
   
-  return training_data
+#   return training_data
   
 def data_loop(id,is_neutral_site={}):
   boxscore_data = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore").json()

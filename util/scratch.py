@@ -4,7 +4,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
 from joblib import load, dump
 import pandas as pd
 import os
-from helpers import n2n, getGamesPlayed, getAllGamesPlayed, getTotalGamesPlayed
+from helpers import n2n, getGamesPlayed, getAllGamesPlayed, getTotalGamesPlayed, getAllAges, getPlayerStats
 from pymongo import MongoClient, ASCENDING
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
@@ -103,10 +103,16 @@ db = client['hockey']
 # for i in range(1,31):
 #   print(i,check_number/i)
 
-players = [
-  8478585,
-  8475786,
-  8477934,
-]
-games_played = getTotalGamesPlayed(db,players,2023020220)
-print(games_played)
+# players = [
+#   8478585,
+#   8475786,
+#   8477934,
+# ]
+# games_played = getAllGamesPlayed(db,players,2023020220,'forwards')
+# # games_played = getAllGamesPlayed(db,players,2023020220)
+# print(games_played)
+
+# ages = getAllAges(db,players,'2024-1-6')
+# print(ages)
+stats = getPlayerStats(db,8478585,20232024,2023020220,'forwards')
+print(stats)

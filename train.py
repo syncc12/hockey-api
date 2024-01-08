@@ -16,16 +16,17 @@ from joblib import dump, load
 import pandas as pd
 from multiprocessing import Pool
 from util.training_data import season_training_data, game_training_data, update_training_data
-from constants.inputConstants import X_V4_INPUTS, Y_V4_OUTPUTS
+from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from util.helpers import latestIDs
 import time
+from constants.constants import VERSION, FILE_VERSION
 
 RE_PULL = True
 UPDATE = False
 
-VERSION = 6
+# VERSION = 6
 
 def xPlayerData(homeAway,position,index,isGoalie=False,gamesBack=-1):
   if isGoalie:
@@ -116,22 +117,25 @@ def xTeamData(homeAway,gamesBack=-1):
     teamKeys.append(f'{homeAway}TeamBack{i+1}GameOpponentBlocks')
   return teamKeys
 
-def train(inData):
+def train(db, inData):
   imputer = SimpleImputer(strategy='constant', fill_value=-1)
   data = pd.DataFrame(inData)
-  x = data [[
-    'id','season','gameType','venue','neutralSite','homeTeam','awayTeam','startTime','date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1','awayForward1','awayForward1Age',
-    'awayForward2','awayForward2Age','awayForward3','awayForward3Age','awayForward4','awayForward4Age','awayForward5','awayForward5Age','awayForward6','awayForward6Age','awayForward7',
-    'awayForward7Age','awayForward8','awayForward8Age','awayForward9','awayForward9Age','awayForward10','awayForward10Age','awayForward11','awayForward11Age','awayForward12','awayForward12Age',
-    'awayForward13','awayForward13Age','awayDefenseman1','awayDefenseman1Age','awayDefenseman2','awayDefenseman2Age','awayDefenseman3','awayDefenseman3Age','awayDefenseman4','awayDefenseman4Age',
-    'awayDefenseman5','awayDefenseman5Age','awayDefenseman6','awayDefenseman6Age','awayDefenseman7','awayDefenseman7Age','awayStartingGoalie','awayStartingGoalieCatches','awayStartingGoalieAge',
-    'awayStartingGoalieHeight','awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieAge','awayBackupGoalieHeight','homeForward1','homeForward1Age','homeForward2','homeForward2Age',
-    'homeForward3','homeForward3Age','homeForward4','homeForward4Age','homeForward5','homeForward5Age','homeForward6','homeForward6Age','homeForward7','homeForward7Age','homeForward8',
-    'homeForward8Age','homeForward9','homeForward9Age','homeForward10','homeForward10Age','homeForward11','homeForward11Age','homeForward12','homeForward12Age','homeForward13','homeForward13Age',
-    'homeDefenseman1','homeDefenseman1Age','homeDefenseman2','homeDefenseman2Age','homeDefenseman3','homeDefenseman3Age','homeDefenseman4','homeDefenseman4Age','homeDefenseman5',
-    'homeDefenseman5Age','homeDefenseman6','homeDefenseman6Age','homeDefenseman7','homeDefenseman7Age','homeStartingGoalie','homeStartingGoalieCatches','homeStartingGoalieAge',
-    'homeStartingGoalieHeight','homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieAge','homeBackupGoalieHeight'
-  ]].values
+  # x = data [[
+  #   'id','season','gameType','venue','neutralSite','homeTeam','awayTeam','startTime','date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1',
+  #   'awayForward1','awayForward1Age','awayForward1GamesPlayed','awayForward2','awayForward2Age','awayForward2GamesPlayed','awayForward3','awayForward3Age','awayForward3GamesPlayed','awayForward4','awayForward4Age','awayForward4GamesPlayed','awayForward5','awayForward5Age','awayForward5GamesPlayed',
+  #   'awayForward6','awayForward6Age','awayForward6GamesPlayed','awayForward7','awayForward7Age','awayForward7GamesPlayed','awayForward8','awayForward8Age','awayForward8GamesPlayed','awayForward9','awayForward9Age','awayForward9GamesPlayed','awayForward10','awayForward10Age','awayForward10GamesPlayed',
+  #   'awayForward11','awayForward11Age','awayForward11GamesPlayed','awayForward12','awayForward12Age','awayForward12GamesPlayed','awayForward13','awayForward13Age','awayForward13GamesPlayed',
+  #   'awayDefenseman1','awayDefenseman1Age','awayDefenseman1GamesPlayed','awayDefenseman2','awayDefenseman2Age','awayDefenseman2GamesPlayed','awayDefenseman3','awayDefenseman3Age','awayDefenseman3GamesPlayed','awayDefenseman4','awayDefenseman4Age','awayDefenseman4GamesPlayed','awayDefenseman5',
+  #   'awayDefenseman5Age','awayDefenseman5GamesPlayed','awayDefenseman6','awayDefenseman6Age','awayDefenseman6GamesPlayed','awayDefenseman7','awayDefenseman7Age','awayDefenseman7GamesPlayed',
+  #   'awayStartingGoalie','awayStartingGoalieCatches','awayStartingGoalieAge','awayStartingGoalieGamesPlayed','awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieAge','awayBackupGoalieGamesPlayed',
+  #   'homeForward1','homeForward1Age','homeForward1GamesPlayed','homeForward2','homeForward2Age','homeForward2GamesPlayed','homeForward3','homeForward3Age','homeForward3GamesPlayed','homeForward4','homeForward4Age','homeForward4GamesPlayed','homeForward5','homeForward5Age','homeForward5GamesPlayed',
+  #   'homeForward6','homeForward6Age','homeForward6GamesPlayed','homeForward7','homeForward7Age','homeForward7GamesPlayed','homeForward8','homeForward8Age','homeForward8GamesPlayed','homeForward9','homeForward9Age','homeForward9GamesPlayed','homeForward10','homeForward10Age','homeForward10GamesPlayed',
+  #   'homeForward11','homeForward11Age','homeForward11GamesPlayed','homeForward12','homeForward12Age','homeForward12GamesPlayed','homeForward13','homeForward13Age','homeForward13GamesPlayed',
+  #   'homeDefenseman1','homeDefenseman1Age','homeDefenseman1GamesPlayed','homeDefenseman2','homeDefenseman2Age','homeDefenseman2GamesPlayed','homeDefenseman3','homeDefenseman3Age','homeDefenseman3GamesPlayed','homeDefenseman4','homeDefenseman4Age','homeDefenseman4GamesPlayed','homeDefenseman5',
+  #   'homeDefenseman5Age','homeDefenseman5GamesPlayed','homeDefenseman6','homeDefenseman6Age','homeDefenseman6GamesPlayed','homeDefenseman7','homeDefenseman7Age','homeDefenseman7GamesPlayed',
+  #   'homeStartingGoalie','homeStartingGoalieCatches','homeStartingGoalieAge','homeStartingGoalieGamesPlayed','homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieAge','homeBackupGoalieGamesPlayed'
+  # ]].values
+  x = data [X_INPUTS]
   # y = data [['homeScore','awayScore','winner','totalGoals','goalDifferential']].values
   y_winner = data [['winner']].values.ravel()
   y_homeScore = data [['homeScore']].values.ravel()
@@ -184,6 +188,7 @@ def train(inData):
   TrainingRecords.insert_one({
     'savedAt': timestamp,
     'lastTrainedId': inData[len(inData)-1]['id'],
+    'version': VERSION,
     'accuracies': {
       'winner': winner_accuracy,
       'homeScore': homeScore_accuracy,
@@ -193,27 +198,27 @@ def train(inData):
     }
   })
 
-  # dump(clf, f'models/nhl_ai_v{VERSION}.joblib')
-  dump(clf_winner, f'models/nhl_ai_v{VERSION}_winner.joblib')
-  dump(clf_homeScore, f'models/nhl_ai_v{VERSION}_homeScore.joblib')
-  dump(clf_awayScore, f'models/nhl_ai_v{VERSION}_awayScore.joblib')
-  dump(clf_totalGoals, f'models/nhl_ai_v{VERSION}_totalGoals.joblib')
-  dump(clf_goalDifferential, f'models/nhl_ai_v{VERSION}_goalDifferential.joblib')
+  # dump(clf, f'models/nhl_ai_v{FILE_VERSION}.joblib')
+  dump(clf_winner, f'models/nhl_ai_v{FILE_VERSION}_winner.joblib')
+  dump(clf_homeScore, f'models/nhl_ai_v{FILE_VERSION}_homeScore.joblib')
+  dump(clf_awayScore, f'models/nhl_ai_v{FILE_VERSION}_awayScore.joblib')
+  dump(clf_totalGoals, f'models/nhl_ai_v{FILE_VERSION}_totalGoals.joblib')
+  dump(clf_goalDifferential, f'models/nhl_ai_v{FILE_VERSION}_goalDifferential.joblib')
 
 tdList = os.listdir(f'training_data/v{VERSION}')
 
 USE_SEASONS = True
-SKIP_SEASONS = [int(td.replace(f'training_data_v{VERSION}_','').replace('.joblib','')) for td in tdList] if len(tdList) > 0 and not f'training_data_v{VERSION}.joblib' in os.listdir('training_data') else []
+SKIP_SEASONS = [int(td.replace(f'training_data_v{FILE_VERSION}_','').replace('.joblib','')) for td in tdList] if len(tdList) > 0 and not f'training_data_v{FILE_VERSION}.joblib' in os.listdir('training_data') else []
 START_SEASON = 20052006
 LATEST_SEASON = 20232024
 MAX_ID = 2023020514
 
 if __name__ == '__main__':
+  # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
+  # client = MongoClient(db_url)
+  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+  db = client["hockey"]
   if RE_PULL:
-    # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
-    # client = MongoClient(db_url)
-    client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
-    db = client["hockey"]
     if USE_SEASONS:
       seasons = list(db["dev_seasons"].find(
         {'seasonId': {'$gte': START_SEASON}},
@@ -242,18 +247,18 @@ if __name__ == '__main__':
       result = pool.map(game_training_data,games)
     if len(SKIP_SEASONS) > 0:
       for skip_season in SKIP_SEASONS:
-        season_data = load(f'training_data/v{VERSION}/training_data_v{VERSION}_{skip_season}.joblib')
+        season_data = load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{skip_season}.joblib')
         result.append(season_data)
     result = np.concatenate(result).tolist()
     pool.close()
-    dump(result,f'training_data/training_data_v{VERSION}.joblib')
+    dump(result,f'training_data/training_data_v{FILE_VERSION}.joblib')
     f = open('training_data/training_data_text.txt', 'w')
     f.write(json.dumps(result[len(result)-200:len(result)]))
   else:
-    training_data_path = f'training_data/training_data_v{VERSION}.joblib'
+    training_data_path = f'training_data/training_data_v{FILE_VERSION}.joblib'
     print(training_data_path)
     result = load(training_data_path)
     f = open('training_data/training_data_text.txt', 'w')
     f.write(json.dumps(result[len(result)-200:len(result)]))
   print('Games Collected')
-  train(result)
+  train(db, result)

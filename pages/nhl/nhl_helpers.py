@@ -12,7 +12,6 @@ from pymongo.errors import DuplicateKeyError
 import os
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from util.training_data import save_training_data
 from util.helpers import latestIDs, adjusted_winner, recommended_wagers
 import boto3
 import io
