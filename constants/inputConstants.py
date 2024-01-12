@@ -100,9 +100,9 @@ BASE_INPUTS = [
   'id','season','gameType','venue','neutralSite','homeTeam','awayTeam','startTime',
   'date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1'
 ]
-FORWARD_INPUTS = ['Age', 'GamesPlayed', 'Goals', 'Assists', 'Points']
-DEFENSE_INPUTS = ['Age', 'GamesPlayed', 'Goals', 'Assists', 'Points']
-GOALIE_INPUTS = ['Catches', 'Age', 'GamesPlayed']
+FORWARD_INPUTS = ['Age']
+DEFENSE_INPUTS = ['Age']
+GOALIE_INPUTS = ['Catches', 'Age']
 
 FORWARD_INPUTS_ZIP = [i for i in range(0,13)]
 DEFENSE_INPUTS_ZIP = [i for i in range(0,7)]

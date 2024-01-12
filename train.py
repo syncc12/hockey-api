@@ -21,11 +21,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from util.helpers import latestIDs
 import time
-from constants.constants import VERSION, FILE_VERSION
+from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 
 RE_PULL = True
 UPDATE = False
-
 # VERSION = 6
 
 def xPlayerData(homeAway,position,index,isGoalie=False,gamesBack=-1):
@@ -146,18 +145,18 @@ def train(db, inData):
   imputer.fit(x)
   x = imputer.transform(x)
 
-  x_train, x_test, y_train_winner, y_test_winner = train_test_split(x, y_winner, test_size=0.2, random_state=12)
-  x_train, x_test, y_train_homeScore, y_test_homeScore = train_test_split(x, y_homeScore, test_size=0.2, random_state=12)
-  x_train, x_test, y_train_awayScore, y_test_awayScore = train_test_split(x, y_awayScore, test_size=0.2, random_state=12)
-  x_train, x_test, y_train_totalGoals, y_test_totalGoals = train_test_split(x, y_totalGoals, test_size=0.2, random_state=12)
-  x_train, x_test, y_train_goalDifferential, y_test_goalDifferential = train_test_split(x, y_goalDifferential, test_size=0.2, random_state=12)
+  x_train, x_test, y_train_winner, y_test_winner = train_test_split(x, y_winner, test_size=0.2, random_state=RANDOM_STATE)
+  x_train, x_test, y_train_homeScore, y_test_homeScore = train_test_split(x, y_homeScore, test_size=0.2, random_state=RANDOM_STATE)
+  x_train, x_test, y_train_awayScore, y_test_awayScore = train_test_split(x, y_awayScore, test_size=0.2, random_state=RANDOM_STATE)
+  x_train, x_test, y_train_totalGoals, y_test_totalGoals = train_test_split(x, y_totalGoals, test_size=0.2, random_state=RANDOM_STATE)
+  x_train, x_test, y_train_goalDifferential, y_test_goalDifferential = train_test_split(x, y_goalDifferential, test_size=0.2, random_state=RANDOM_STATE)
 
-  # clf = RandomForestClassifier(random_state=12)
-  clf_winner = RandomForestClassifier(random_state=12)
-  clf_homeScore = RandomForestClassifier(random_state=12)
-  clf_awayScore = RandomForestClassifier(random_state=12)
-  clf_totalGoals = RandomForestClassifier(random_state=12)
-  clf_goalDifferential = RandomForestClassifier(random_state=12)
+  # clf = RandomForestClassifier(random_state=RANDOM_STATE)
+  clf_winner = RandomForestClassifier(random_state=RANDOM_STATE)
+  clf_homeScore = RandomForestClassifier(random_state=RANDOM_STATE)
+  clf_awayScore = RandomForestClassifier(random_state=RANDOM_STATE)
+  clf_totalGoals = RandomForestClassifier(random_state=RANDOM_STATE)
+  clf_goalDifferential = RandomForestClassifier(random_state=RANDOM_STATE)
 
   # clf.fit(x,y)
   clf_winner.fit(x_train,y_train_winner)
@@ -180,6 +179,23 @@ def train(db, inData):
   print("Away Score Accuracy:", awayScore_accuracy)
   print("Total Goals Accuracy:", totalGoals_accuracy)
   print("Goal Differential Accuracy:", goalDifferential_accuracy)
+  
+  validation_winner = clf_winner.predict(x_train)
+  validation_homeScore = clf_homeScore.predict(x_train)
+  validation_awayScore = clf_awayScore.predict(x_train)
+  validation_totalGoals = clf_totalGoals.predict(x_train)
+  validation_goalDifferential = clf_goalDifferential.predict(x_train)
+  winner_accuracy_validation = accuracy_score(y_train_winner, validation_winner)
+  homeScore_accuracy_validation = accuracy_score(y_train_homeScore, validation_homeScore)
+  awayScore_accuracy_validation = accuracy_score(y_train_awayScore, validation_awayScore)
+  totalGoals_accuracy_validation = accuracy_score(y_train_totalGoals, validation_totalGoals)
+  goalDifferential_accuracy_validation = accuracy_score(y_train_goalDifferential, validation_goalDifferential)
+  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+  print("Winner Validation:", winner_accuracy_validation)
+  print("Home Score Validation:", homeScore_accuracy_validation)
+  print("Away Score Validation:", awayScore_accuracy_validation)
+  print("Total Goals Validation:", totalGoals_accuracy_validation)
+  print("Goal Differential Validation:", goalDifferential_accuracy_validation)
 
   TrainingRecords = db['dev_training_records']
   # Metadata = db['dev_metadata']
@@ -189,13 +205,25 @@ def train(db, inData):
     'savedAt': timestamp,
     'lastTrainedId': inData[len(inData)-1]['id'],
     'version': VERSION,
+    'inputs': X_INPUTS,
+    'outputs': Y_OUTPUTS,
+    'randomState': RANDOM_STATE,
+    'startingSeason': START_SEASON,
+    'finalSeason': END_SEASON,
     'accuracies': {
       'winner': winner_accuracy,
       'homeScore': homeScore_accuracy,
       'awayScore': awayScore_accuracy,
       'totalGoals': totalGoals_accuracy,
       'goalDifferential': goalDifferential_accuracy,
-    }
+    },
+    'validation': {
+      'winner': winner_accuracy_validation,
+      'homeScore': homeScore_accuracy_validation,
+      'awayScore': awayScore_accuracy_validation,
+      'totalGoals': totalGoals_accuracy_validation,
+      'goalDifferential': goalDifferential_accuracy_validation,
+    },
   })
 
   # dump(clf, f'models/nhl_ai_v{FILE_VERSION}.joblib')
@@ -205,11 +233,17 @@ def train(db, inData):
   dump(clf_totalGoals, f'models/nhl_ai_v{FILE_VERSION}_totalGoals.joblib')
   dump(clf_goalDifferential, f'models/nhl_ai_v{FILE_VERSION}_goalDifferential.joblib')
 
+
+
+dir_path = f'training_data/v{VERSION}'
+if not os.path.exists(dir_path):
+  os.makedirs(dir_path)
+
 tdList = os.listdir(f'training_data/v{VERSION}')
 
 USE_SEASONS = True
 SKIP_SEASONS = [int(td.replace(f'training_data_v{FILE_VERSION}_','').replace('.joblib','')) for td in tdList] if len(tdList) > 0 and not f'training_data_v{FILE_VERSION}.joblib' in os.listdir('training_data') else []
-START_SEASON = 20052006
+
 LATEST_SEASON = 20232024
 MAX_ID = 2023020514
 
@@ -221,7 +255,12 @@ if __name__ == '__main__':
   if RE_PULL:
     if USE_SEASONS:
       seasons = list(db["dev_seasons"].find(
-        {'seasonId': {'$gte': START_SEASON}},
+        {
+          'seasonId': {
+            '$gte': START_SEASON,
+            '$lte': END_SEASON,
+          }
+        },
         {'_id':0,'seasonId': 1}
       ))
       seasons = [int(season['seasonId']) for season in seasons]

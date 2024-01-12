@@ -10,15 +10,15 @@ def defense(db,ids,allPlayers,game,isAway=True,REPLACE_VALUE=-1):
 
   ids = pad_list(ids,7,-1)
 
-  all_games_played = getAllGamesPlayed(db,ids,game['id'],'defense')
+  # all_games_played = getAllGamesPlayed(db,ids,game['id'],'defense')
 
   for i in range(0,len(ids)):
-    player_stats = getPlayerStats(db,ids[i],game['season'],game['id'],'defense')
+    # player_stats = getPlayerStats(db,ids[i],game['season'],game['id'],'defense')
     defense_dict[f'{homeAway}Defenseman{i+1}'] = ids[i]
     defense_dict[f'{homeAway}Defenseman{i+1}Age'] = getAge(getPlayer(allPlayers,ids[i]),game['gameDate']) if ids[i] != -1 else REPLACE_VALUE
-    defense_dict[f'{homeAway}Defenseman{i+1}GamesPlayed'] = all_games_played[ids[i]]
-    defense_dict[f'{homeAway}Defenseman{i+1}Goals'] = player_stats['goals']
-    defense_dict[f'{homeAway}Defenseman{i+1}Assists'] = player_stats['assists']
-    defense_dict[f'{homeAway}Defenseman{i+1}Points'] = player_stats['points']
+    # defense_dict[f'{homeAway}Defenseman{i+1}GamesPlayed'] = all_games_played[ids[i]]
+    # defense_dict[f'{homeAway}Defenseman{i+1}Goals'] = player_stats['goals']
+    # defense_dict[f'{homeAway}Defenseman{i+1}Assists'] = player_stats['assists']
+    # defense_dict[f'{homeAway}Defenseman{i+1}Points'] = player_stats['points']
 
   return defense_dict

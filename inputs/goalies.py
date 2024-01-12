@@ -27,6 +27,6 @@ def goalie(db,playerId,allPlayers,game,isStarting=True,isAway=True,REPLACE_VALUE
     f'{homeAway}{startingBackup}Goalie': playerId,
     f'{homeAway}{startingBackup}GoalieCatches': n2n(safe_chain(getPlayer(allPlayers,playerId),0,'shootsCatches')),
     f'{homeAway}{startingBackup}GoalieAge': getAge(getPlayer(allPlayers,playerId),game['gameDate']) if playerId != -1 else REPLACE_VALUE,
-    # f'{homeAway}{startingBackup}GoalieHeight': safe_chain(getPlayer(allPlayers,playerId),0,'heightInInches'),
-    f'{homeAway}{startingBackup}GoalieGamesPlayed': getGamesPlayed(db,playerId,game['id'],'goalies'),
+    # # f'{homeAway}{startingBackup}GoalieHeight': safe_chain(getPlayer(allPlayers,playerId),0,'heightInInches'),
+    # f'{homeAway}{startingBackup}GoalieGamesPlayed': getGamesPlayed(db,playerId,game['id'],'goalies'),
   }

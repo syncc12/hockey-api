@@ -18,7 +18,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from util.helpers import false_chain, latestIDs, adjusted_winner, test_recommended_wagers
 from inputs.inputs import master_inputs
 from pages.nhl.nhl_helpers import ai, ai_return_dict
-from constants.constants import VERSION
+from constants.constants import VERSION, FILE_VERSION
 
 def debug():
   res = requests.get("https://api-web.nhle.com/v1/schedule/2023-11-22").json()
@@ -185,13 +185,13 @@ def test_model(db,startID,endID,show_data,wager,**kwargs):
       away_score_total += r['awayScore']
       goal_total += r['totalGoals']
       goal_differential_total += r['goalDifferential']
-      if game_odds:
-        winnings_total += r['betting']['winnings']['wager']
-        winnings10_total += r['betting']['winnings']['10']
-        winnings100_total += r['betting']['winnings']['100']
-        returns_total += r['betting']['returns']['wager']
-        returns10_total += r['betting']['returns']['10']
-        returns100_total += r['betting']['returns']['100']
+      # if game_odds:
+      #   winnings_total += r['betting']['winnings']['wager']
+      #   winnings10_total += r['betting']['winnings']['10']
+      #   winnings100_total += r['betting']['winnings']['100']
+      #   returns_total += r['betting']['returns']['wager']
+      #   returns10_total += r['betting']['returns']['10']
+      #   returns100_total += r['betting']['returns']['100']
       if home_score_total == 1 and away_score_total == 1:
         home_away_score_total += 1
     all_winner_total += winner_total
@@ -479,8 +479,9 @@ def game_date(db,date,**kwargs):
 
 
 def metadata(db,**kwargs):
-  CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
-  used_training_data = load(f'training_data/v{VERSION}/training_data_v{VERSION}_{CURRENT_SEASON}.joblib')
+  # CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
+  FINAL_SEASON = db["dev_training_records"].find_one({'version': VERSION})['finalSeason']
+  used_training_data = load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{FINAL_SEASON}.joblib')
   latest_ids = latestIDs(used_training_data)
   return latest_ids
 
