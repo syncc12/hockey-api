@@ -1,8 +1,8 @@
 import sys
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\inputs')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\inputs\nfl')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\constants')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\inputs')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\inputs\nfl')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
 
 from util.helpers import safe_chain, n2n
 import math

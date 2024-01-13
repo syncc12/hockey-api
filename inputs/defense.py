@@ -1,5 +1,5 @@
 import sys
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 from util.helpers import getPlayer, getAge, pad_list, getGamesPlayed, getAllGamesPlayed, getPlayerStats
 

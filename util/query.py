@@ -1,5 +1,5 @@
 import sys
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 from pymongo import MongoClient
 from util.helpers import safe_chain, n2n, formatTime, formatDatetime, formatDate

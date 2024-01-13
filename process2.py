@@ -1,7 +1,7 @@
 import sys
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\inputs')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\constants')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\inputs')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
 
 import requests
 from pymongo import MongoClient
@@ -11,6 +11,7 @@ import os
 from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup
 from inputs.inputs import master_inputs
 from util.query import get_last_game_team_stats
+from util.models import MODEL_NAMES
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 
 REPLACE_VALUE = -1
@@ -183,25 +184,25 @@ def nhl_data(db,game,message='',test=False):
       'period2PuckLine':abs(safe_chain(boxscore,'boxscore','linescore','byPeriod',1,'away') - safe_chain(boxscore,'boxscore','linescore','byPeriod',1,'home')),
       'period3PuckLine':abs(safe_chain(boxscore,'boxscore','linescore','byPeriod',2,'away') - safe_chain(boxscore,'boxscore','linescore','byPeriod',2,'home')),
     }
-    x_data = []
-    y_data = []
+    x_data = dict.fromkeys(MODEL_NAMES,[])
+    y_data = dict.fromkeys(MODEL_NAMES,[])
     input_data = {}
-    x = [[inputs['data'][i] for i in X_INPUTS]]
+    # x = [[inputs['data'][i] for i in X_INPUTS]]
     for i in X_INPUTS:
       input_data[i] = inputs['data'][i]
     for i in X_INPUTS:
       if i in suplement_data.keys():
-        x_data.append(suplement_data[i])
+        x_data[i].append(suplement_data[i])
       else:
-        x_data.append(inputs['data'][i])
+        x_data[i].append(inputs['data'][i])
     for i in Y_OUTPUTS:
       if i in suplement_data.keys():
-        y_data.append(suplement_data[i])
+        y_data[i].append(suplement_data[i])
       elif i in inputs:
-        y_data.append(inputs['data'][i])
+        y_data[i].append(inputs['data'][i])
 
-    test_data = [x_data]
-    test_result = [y_data]
+    test_data = x_data
+    test_result = y_data
     return {
       'data':test_data,
       'result':test_result,

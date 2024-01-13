@@ -1,5 +1,5 @@
 import sys
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\constants')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
 
 import lightgbm as lgb
 import pandas as pd

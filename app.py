@@ -1,6 +1,6 @@
 import sys
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\pages\nhl')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\pages\nhl')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 from flask import Flask, request, jsonify, Response
 from joblib import load

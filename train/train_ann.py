@@ -1,7 +1,7 @@
 import sys
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\inputs')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\constants')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\inputs')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential

@@ -1,6 +1,6 @@
 import sys
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\inputs')
-sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey-api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\inputs')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 import requests
 from pymongo import MongoClient
