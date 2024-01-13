@@ -91,12 +91,66 @@ def ai_return_dict(data, prediction, confidence=-1):
     awayScoreConfidence = int((np.max(confidence[0][1], axis=1) * 100)[0])
     totalGoalsConfidence = int((np.max(confidence[0][3], axis=1) * 100)[0])
     goalDifferentialConfidence = int((np.max(confidence[0][4], axis=1) * 100)[0])
+    finalPeriodConfidence = int((np.max(confidence[0][5], axis=1) * 100)[0])
+    pastRegulationConfidence = int((np.max(confidence[0][6], axis=1) * 100)[0])
+    awayShotsConfidence = int((np.max(confidence[0][7], axis=1) * 100)[0])
+    homeShotsConfidence = int((np.max(confidence[0][8], axis=1) * 100)[0])
+    awayShotsPeriod1Confidence = int((np.max(confidence[0][9], axis=1) * 100)[0])
+    homeShotsPeriod1Confidence = int((np.max(confidence[0][10], axis=1) * 100)[0])
+    awayShotsPeriod2Confidence = int((np.max(confidence[0][11], axis=1) * 100)[0])
+    homeShotsPeriod2Confidence = int((np.max(confidence[0][12], axis=1) * 100)[0])
+    awayShotsPeriod3Confidence = int((np.max(confidence[0][13], axis=1) * 100)[0])
+    homeShotsPeriod3Confidence = int((np.max(confidence[0][14], axis=1) * 100)[0])
+    awayShotsPeriod4Confidence = int((np.max(confidence[0][15], axis=1) * 100)[0])
+    homeShotsPeriod4Confidence = int((np.max(confidence[0][16], axis=1) * 100)[0])
+    awayShotsPeriod5Confidence = int((np.max(confidence[0][17], axis=1) * 100)[0])
+    homeShotsPeriod5Confidence = int((np.max(confidence[0][18], axis=1) * 100)[0])
+    awayScorePeriod1Confidence = int((np.max(confidence[0][19], axis=1) * 100)[0])
+    homeScorePeriod1Confidence = int((np.max(confidence[0][20], axis=1) * 100)[0])
+    awayScorePeriod2Confidence = int((np.max(confidence[0][21], axis=1) * 100)[0])
+    homeScorePeriod2Confidence = int((np.max(confidence[0][22], axis=1) * 100)[0])
+    awayScorePeriod3Confidence = int((np.max(confidence[0][23], axis=1) * 100)[0])
+    homeScorePeriod3Confidence = int((np.max(confidence[0][24], axis=1) * 100)[0])
+    awayScorePeriod4Confidence = int((np.max(confidence[0][25], axis=1) * 100)[0])
+    homeScorePeriod4Confidence = int((np.max(confidence[0][26], axis=1) * 100)[0])
+    awayScorePeriod5Confidence = int((np.max(confidence[0][27], axis=1) * 100)[0])
+    homeScorePeriod5Confidence = int((np.max(confidence[0][28], axis=1) * 100)[0])
+    period1PuckLineConfidence = int((np.max(confidence[0][29], axis=1) * 100)[0])
+    period2PuckLineConfidence = int((np.max(confidence[0][30], axis=1) * 100)[0])
+    period3PuckLineConfidence = int((np.max(confidence[0][31], axis=1) * 100)[0])
   else:
     winnerConfidence = -1
     homeScoreConfidence = -1
     awayScoreConfidence = -1
     totalGoalsConfidence = -1
     goalDifferentialConfidence = -1
+    finalPeriod = -1
+    pastRegulationConfidence = -1
+    awayShots = -1
+    homeShots = -1
+    awayShotsPeriod1 = -1
+    homeShotsPeriod1 = -1
+    awayShotsPeriod2 = -1
+    homeShotsPeriod2 = -1
+    awayShotsPeriod3 = -1
+    homeShotsPeriod3 = -1
+    awayShotsPeriod4 = -1
+    homeShotsPeriod4 = -1
+    awayShotsPeriod5 = -1
+    homeShotsPeriod5 = -1
+    awayScorePeriod1 = -1
+    homeScorePeriod1 = -1
+    awayScorePeriod2 = -1
+    homeScorePeriod2 = -1
+    awayScorePeriod3 = -1
+    homeScorePeriod3 = -1
+    awayScorePeriod4 = -1
+    homeScorePeriod4 = -1
+    awayScorePeriod5 = -1
+    homeScorePeriod5 = -1
+    period1PuckLine = -1
+    period2PuckLine = -1
+    period3PuckLine = -1
 
   homeId = data['data']['home_team']['id']
   awayId = data['data']['away_team']['id']
@@ -125,6 +179,33 @@ def ai_return_dict(data, prediction, confidence=-1):
     awayScore = int(prediction[0][1])
     totalGoals = int(prediction[0][3])
     goalDifferential = int(prediction[0][4])
+    finalPeriod = int(prediction[0][5])
+    pastRegulation = int(prediction[0][6])
+    awayShots = int(prediction[0][7])
+    homeShots = int(prediction[0][8])
+    awayShotsPeriod1 = int(prediction[0][9])
+    homeShotsPeriod1 = int(prediction[0][10])
+    awayShotsPeriod2 = int(prediction[0][11])
+    homeShotsPeriod2 = int(prediction[0][12])
+    awayShotsPeriod3 = int(prediction[0][13])
+    homeShotsPeriod3 = int(prediction[0][14])
+    awayShotsPeriod4 = int(prediction[0][15])
+    homeShotsPeriod4 = int(prediction[0][16])
+    awayShotsPeriod5 = int(prediction[0][17])
+    homeShotsPeriod5 = int(prediction[0][18])
+    awayScorePeriod1 = int(prediction[0][19])
+    homeScorePeriod1 = int(prediction[0][20])
+    awayScorePeriod2 = int(prediction[0][21])
+    homeScorePeriod2 = int(prediction[0][22])
+    awayScorePeriod3 = int(prediction[0][23])
+    homeScorePeriod3 = int(prediction[0][24])
+    awayScorePeriod4 = int(prediction[0][25])
+    homeScorePeriod4 = int(prediction[0][26])
+    awayScorePeriod5 = int(prediction[0][27])
+    homeScorePeriod5 = int(prediction[0][28])
+    period1PuckLine = int(prediction[0][29])
+    period2PuckLine = int(prediction[0][30])
+    period3PuckLine = int(prediction[0][31])
     state = data['data']['state']
     homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
     awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
@@ -174,11 +255,65 @@ def ai_return_dict(data, prediction, confidence=-1):
     'awayScore': awayScore,
     'totalGoals': totalGoals,
     'goalDifferential': goalDifferential,
+    'finalPeriod': finalPeriod,
+    'pastRegulation': pastRegulation,
+    'awayShots': awayShots,
+    'homeShots': homeShots,
+    'awayShotsPeriod1': awayShotsPeriod1,
+    'homeShotsPeriod1': homeShotsPeriod1,
+    'awayShotsPeriod2': awayShotsPeriod2,
+    'homeShotsPeriod2': homeShotsPeriod2,
+    'awayShotsPeriod3': awayShotsPeriod3,
+    'homeShotsPeriod3': homeShotsPeriod3,
+    'awayShotsPeriod4': awayShotsPeriod4,
+    'homeShotsPeriod4': homeShotsPeriod4,
+    'awayShotsPeriod5': awayShotsPeriod5,
+    'homeShotsPeriod5': homeShotsPeriod5,
+    'awayScorePeriod1': awayScorePeriod1,
+    'homeScorePeriod1': homeScorePeriod1,
+    'awayScorePeriod2': awayScorePeriod2,
+    'homeScorePeriod2': homeScorePeriod2,
+    'awayScorePeriod3': awayScorePeriod3,
+    'homeScorePeriod3': homeScorePeriod3,
+    'awayScorePeriod4': awayScorePeriod4,
+    'homeScorePeriod4': homeScorePeriod4,
+    'awayScorePeriod5': awayScorePeriod5,
+    'homeScorePeriod5': homeScorePeriod5,
+    'period1PuckLine': period1PuckLine,
+    'period2PuckLine': period2PuckLine,
+    'period3PuckLine': period3PuckLine,
     'winnerConfidence': winnerConfidence,
     'homeScoreConfidence': homeScoreConfidence,
     'awayScoreConfidence': awayScoreConfidence,
     'totalGoalsConfidence': totalGoalsConfidence,
     'goalDifferentialConfidence': goalDifferentialConfidence,
+    'finalPeriodConfidence': finalPeriodConfidence,
+    'pastRegulationConfidence': pastRegulationConfidence,
+    'awayShotsConfidence': awayShotsConfidence,
+    'homeShotsConfidence': homeShotsConfidence,
+    'awayShotsPeriod1Confidence': awayShotsPeriod1Confidence,
+    'homeShotsPeriod1Confidence': homeShotsPeriod1Confidence,
+    'awayShotsPeriod2Confidence': awayShotsPeriod2Confidence,
+    'homeShotsPeriod2Confidence': homeShotsPeriod2Confidence,
+    'awayShotsPeriod3Confidence': awayShotsPeriod3Confidence,
+    'homeShotsPeriod3Confidence': homeShotsPeriod3Confidence,
+    'awayShotsPeriod4Confidence': awayShotsPeriod4Confidence,
+    'homeShotsPeriod4Confidence': homeShotsPeriod4Confidence,
+    'awayShotsPeriod5Confidence': awayShotsPeriod5Confidence,
+    'homeShotsPeriod5Confidence': homeShotsPeriod5Confidence,
+    'awayScorePeriod1Confidence': awayScorePeriod1Confidence,
+    'homeScorePeriod1Confidence': homeScorePeriod1Confidence,
+    'awayScorePeriod2Confidence': awayScorePeriod2Confidence,
+    'homeScorePeriod2Confidence': homeScorePeriod2Confidence,
+    'awayScorePeriod3Confidence': awayScorePeriod3Confidence,
+    'homeScorePeriod3Confidence': homeScorePeriod3Confidence,
+    'awayScorePeriod4Confidence': awayScorePeriod4Confidence,
+    'homeScorePeriod4Confidence': homeScorePeriod4Confidence,
+    'awayScorePeriod5Confidence': awayScorePeriod5Confidence,
+    'homeScorePeriod5Confidence': homeScorePeriod5Confidence,
+    'period1PuckLineConfidence': period1PuckLineConfidence,
+    'period2PuckLineConfidence': period2PuckLineConfidence,
+    'period3PuckLineConfidence': period3PuckLineConfidence,
     'offset': offset,
   }
 
@@ -210,13 +345,68 @@ def ai(db, game_data, **kwargs):
     prediction_awayScore = kwargs['model_awayScore'].predict(data['data']['data'])
     prediction_totalGoals = kwargs['model_totalGoals'].predict(data['data']['data'])
     prediction_goalDifferential = kwargs['model_goalDifferential'].predict(data['data']['data'])
+    prediction_finalPeriod = kwargs['model_finalPeriod'].predict(data['data']['data'])
+    prediction_pastRegulation = kwargs['model_pastRegulation'].predict(data['data']['data'])
+    prediction_awayShots = kwargs['model_awayShots'].predict(data['data']['data'])
+    prediction_homeShots = kwargs['model_homeShots'].predict(data['data']['data'])
+    prediction_awayShotsPeriod1 = kwargs['model_awayShotsPeriod1'].predict(data['data']['data'])
+    prediction_homeShotsPeriod1 = kwargs['model_homeShotsPeriod1'].predict(data['data']['data'])
+    prediction_awayShotsPeriod2 = kwargs['model_awayShotsPeriod2'].predict(data['data']['data'])
+    prediction_homeShotsPeriod2 = kwargs['model_homeShotsPeriod2'].predict(data['data']['data'])
+    prediction_awayShotsPeriod3 = kwargs['model_awayShotsPeriod3'].predict(data['data']['data'])
+    prediction_homeShotsPeriod3 = kwargs['model_homeShotsPeriod3'].predict(data['data']['data'])
+    prediction_awayShotsPeriod4 = kwargs['model_awayShotsPeriod4'].predict(data['data']['data'])
+    prediction_homeShotsPeriod4 = kwargs['model_homeShotsPeriod4'].predict(data['data']['data'])
+    prediction_awayShotsPeriod5 = kwargs['model_awayShotsPeriod5'].predict(data['data']['data'])
+    prediction_homeShotsPeriod5 = kwargs['model_homeShotsPeriod5'].predict(data['data']['data'])
+    prediction_awayScorePeriod1 = kwargs['model_awayScorePeriod1'].predict(data['data']['data'])
+    prediction_homeScorePeriod1 = kwargs['model_homeScorePeriod1'].predict(data['data']['data'])
+    prediction_awayScorePeriod2 = kwargs['model_awayScorePeriod2'].predict(data['data']['data'])
+    prediction_homeScorePeriod2 = kwargs['model_homeScorePeriod2'].predict(data['data']['data'])
+    prediction_awayScorePeriod3 = kwargs['model_awayScorePeriod3'].predict(data['data']['data'])
+    prediction_homeScorePeriod3 = kwargs['model_homeScorePeriod3'].predict(data['data']['data'])
+    prediction_awayScorePeriod4 = kwargs['model_awayScorePeriod4'].predict(data['data']['data'])
+    prediction_homeScorePeriod4 = kwargs['model_homeScorePeriod4'].predict(data['data']['data'])
+    prediction_awayScorePeriod5 = kwargs['model_awayScorePeriod5'].predict(data['data']['data'])
+    prediction_homeScorePeriod5 = kwargs['model_homeScorePeriod5'].predict(data['data']['data'])
+    prediction_period1PuckLine = kwargs['model_period1PuckLine'].predict(data['data']['data'])
+    prediction_period2PuckLine = kwargs['model_period2PuckLine'].predict(data['data']['data'])
+    prediction_period3PuckLine = kwargs['model_period3PuckLine'].predict(data['data']['data'])
     confidence_winner = kwargs['model_winner'].predict_proba(data['data']['data'])
     confidence_homeScore = kwargs['model_homeScore'].predict_proba(data['data']['data'])
     confidence_awayScore = kwargs['model_awayScore'].predict_proba(data['data']['data'])
     confidence_totalGoals = kwargs['model_totalGoals'].predict_proba(data['data']['data'])
     confidence_goalDifferential = kwargs['model_goalDifferential'].predict_proba(data['data']['data'])
-    prediction = [[prediction_homeScore,prediction_awayScore,prediction_winner,prediction_totalGoals,prediction_goalDifferential]]
-    confidence = [[confidence_homeScore,confidence_awayScore,confidence_winner,confidence_totalGoals,confidence_goalDifferential]]
+    confidence_finalPeriod = kwargs['model_finalPeriod'].predict_proba(data['data']['data'])
+    confidence_pastRegulation = kwargs['model_pastRegulation'].predict_proba(data['data']['data'])
+    confidence_awayShots = kwargs['model_awayShots'].predict_proba(data['data']['data'])
+    confidence_homeShots = kwargs['model_homeShots'].predict_proba(data['data']['data'])
+    confidence_awayShotsPeriod1 = kwargs['model_awayShotsPeriod1'].predict_proba(data['data']['data'])
+    confidence_homeShotsPeriod1 = kwargs['model_homeShotsPeriod1'].predict_proba(data['data']['data'])
+    confidence_awayShotsPeriod2 = kwargs['model_awayShotsPeriod2'].predict_proba(data['data']['data'])
+    confidence_homeShotsPeriod2 = kwargs['model_homeShotsPeriod2'].predict_proba(data['data']['data'])
+    confidence_awayShotsPeriod3 = kwargs['model_awayShotsPeriod3'].predict_proba(data['data']['data'])
+    confidence_homeShotsPeriod3 = kwargs['model_homeShotsPeriod3'].predict_proba(data['data']['data'])
+    confidence_awayShotsPeriod4 = kwargs['model_awayShotsPeriod4'].predict_proba(data['data']['data'])
+    confidence_homeShotsPeriod4 = kwargs['model_homeShotsPeriod4'].predict_proba(data['data']['data'])
+    confidence_awayShotsPeriod5 = kwargs['model_awayShotsPeriod5'].predict_proba(data['data']['data'])
+    confidence_homeShotsPeriod5 = kwargs['model_homeShotsPeriod5'].predict_proba(data['data']['data'])
+    confidence_awayScorePeriod1 = kwargs['model_awayScorePeriod1'].predict_proba(data['data']['data'])
+    confidence_homeScorePeriod1 = kwargs['model_homeScorePeriod1'].predict_proba(data['data']['data'])
+    confidence_awayScorePeriod2 = kwargs['model_awayScorePeriod2'].predict_proba(data['data']['data'])
+    confidence_homeScorePeriod2 = kwargs['model_homeScorePeriod2'].predict_proba(data['data']['data'])
+    confidence_awayScorePeriod3 = kwargs['model_awayScorePeriod3'].predict_proba(data['data']['data'])
+    confidence_homeScorePeriod3 = kwargs['model_homeScorePeriod3'].predict_proba(data['data']['data'])
+    confidence_awayScorePeriod4 = kwargs['model_awayScorePeriod4'].predict_proba(data['data']['data'])
+    confidence_homeScorePeriod4 = kwargs['model_homeScorePeriod4'].predict_proba(data['data']['data'])
+    confidence_awayScorePeriod5 = kwargs['model_awayScorePeriod5'].predict_proba(data['data']['data'])
+    confidence_homeScorePeriod5 = kwargs['model_homeScorePeriod5'].predict_proba(data['data']['data'])
+    confidence_period1PuckLine = kwargs['model_period1PuckLine'].predict_proba(data['data']['data'])
+    confidence_period2PuckLine = kwargs['model_period2PuckLine'].predict_proba(data['data']['data'])
+    confidence_period3PuckLine = kwargs['model_period3PuckLine'].predict_proba(data['data']['data'])
+    
+    prediction = [[prediction_homeScore,prediction_awayScore,prediction_winner,prediction_totalGoals,prediction_goalDifferential,prediction_finalPeriod,prediction_pastRegulation,prediction_awayShots,prediction_homeShots,prediction_awayShotsPeriod1,prediction_homeShotsPeriod1,prediction_awayShotsPeriod2,prediction_homeShotsPeriod2,prediction_awayShotsPeriod3,prediction_homeShotsPeriod3,prediction_awayShotsPeriod4,prediction_homeShotsPeriod4,prediction_awayShotsPeriod5,prediction_homeShotsPeriod5,prediction_awayScorePeriod1,prediction_homeScorePeriod1,prediction_awayScorePeriod2,prediction_homeScorePeriod2,prediction_awayScorePeriod3,prediction_homeScorePeriod3,prediction_awayScorePeriod4,prediction_homeScorePeriod4,prediction_awayScorePeriod5,prediction_homeScorePeriod5,prediction_period1PuckLine,prediction_period2PuckLine,prediction_period3PuckLine]]
+    confidence = [[confidence_homeScore,confidence_awayScore,confidence_winner,confidence_totalGoals,confidence_goalDifferential,confidence_finalPeriod,confidence_pastRegulation,confidence_awayShots,confidence_homeShots,confidence_awayShotsPeriod1,confidence_homeShotsPeriod1,confidence_awayShotsPeriod2,confidence_homeShotsPeriod2,confidence_awayShotsPeriod3,confidence_homeShotsPeriod3,confidence_awayShotsPeriod4,confidence_homeShotsPeriod4,confidence_awayShotsPeriod5,confidence_homeShotsPeriod5,confidence_awayScorePeriod1,confidence_homeScorePeriod1,confidence_awayScorePeriod2,confidence_homeScorePeriod2,confidence_awayScorePeriod3,confidence_homeScorePeriod3,confidence_awayScorePeriod4,confidence_homeScorePeriod4,confidence_awayScorePeriod5,confidence_homeScorePeriod5,confidence_period1PuckLine,confidence_period2PuckLine,confidence_period3PuckLine]]
 
     return ai_return_dict(data,prediction,confidence)
 

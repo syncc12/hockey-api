@@ -27,6 +27,7 @@ def base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date):
     'linesman1': n2n(safe_chain(gi,'linesmen',0,'default')),
     'linesman2': n2n(safe_chain(gi,'linesmen',1,'default')),
     'finalPeriod': safe_chain(game,'period'),
+    'pastRegulation': 1 if safe_chain(game,'period') > 3 else 0,
     'awayShots': safe_chain(game,'awayTeam','sog'),
     'homeShots': safe_chain(game,'homeTeam','sog'),
     'awayShotsPeriod1': safe_chain(game,'boxscore','shotsByPeriod',0,'away'),

@@ -142,6 +142,7 @@ def train(db, inData):
   y_totalGoals = data [['totalGoals']].values.ravel()
   y_goalDifferential = data [['goalDifferential']].values.ravel()
   y_finalPeriod = data [['finalPeriod']].values.ravel()
+  y_pastRegulation = data [['pastRegulation']].values.ravel()
   y_awayShots = data [['awayShots']].values.ravel()
   y_homeShots = data [['homeShots']].values.ravel()
   y_awayShotsPeriod1 = data [['awayShotsPeriod1']].values.ravel()
@@ -175,6 +176,7 @@ def train(db, inData):
   x_totalGoals = x
   x_goalDifferential = x
   x_finalPeriod = x
+  x_pastRegulation = x
   x_awayShots = x
   x_homeShots = x
   x_awayShotsPeriod1 = x
@@ -207,6 +209,7 @@ def train(db, inData):
   x_train_totalGoals, x_test_totalGoals, y_train_totalGoals, y_test_totalGoals = train_test_split(x_totalGoals, y_totalGoals, test_size=0.2, random_state=RANDOM_STATE)
   x_train_goalDifferential, x_test_goalDifferential, y_train_goalDifferential, y_test_goalDifferential = train_test_split(x_goalDifferential, y_goalDifferential, test_size=0.2, random_state=RANDOM_STATE)
   x_train_finalPeriod, x_test_finalPeriod, y_train_finalPeriod, y_test_finalPeriod = train_test_split(x_finalPeriod, y_finalPeriod, test_size=0.2, random_state=RANDOM_STATE)
+  x_train_pastRegulation, x_test_pastRegulation, y_train_pastRegulation, y_test_pastRegulation = train_test_split(x_pastRegulation, y_pastRegulation, test_size=0.2, random_state=RANDOM_STATE)
   x_train_awayShots, x_test_awayShots, y_train_awayShots, y_test_awayShots = train_test_split(x_awayShots, y_awayShots, test_size=0.2, random_state=RANDOM_STATE)
   x_train_homeShots, x_test_homeShots, y_train_homeShots, y_test_homeShots = train_test_split(x_homeShots, y_homeShots, test_size=0.2, random_state=RANDOM_STATE)
   x_train_awayShotsPeriod1, x_test_awayShotsPeriod1, y_train_awayShotsPeriod1, y_test_awayShotsPeriod1 = train_test_split(x_awayShotsPeriod1, y_awayShotsPeriod1, test_size=0.2, random_state=RANDOM_STATE)
@@ -240,6 +243,7 @@ def train(db, inData):
   clf_totalGoals = RandomForestClassifier(random_state=RANDOM_STATE)
   clf_goalDifferential = RandomForestClassifier(random_state=RANDOM_STATE)
   clf_finalPeriod = RandomForestClassifier(random_state=RANDOM_STATE)
+  clf_pastRegulation = RandomForestClassifier(random_state=RANDOM_STATE)
   clf_awayShots = RandomForestClassifier(random_state=RANDOM_STATE)
   clf_homeShots = RandomForestClassifier(random_state=RANDOM_STATE)
   clf_awayShotsPeriod1 = RandomForestClassifier(random_state=RANDOM_STATE)
@@ -273,6 +277,7 @@ def train(db, inData):
   clf_totalGoals.fit(x_train_totalGoals,y_train_totalGoals)
   clf_goalDifferential.fit(x_train_goalDifferential,y_train_goalDifferential)
   clf_finalPeriod.fit(x_train_finalPeriod,y_train_finalPeriod)
+  clf_pastRegulation.fit(x_train_pastRegulation,y_train_pastRegulation)
   clf_awayShots.fit(x_train_awayShots,y_train_awayShots)
   clf_homeShots.fit(x_train_homeShots,y_train_homeShots)
   clf_awayShotsPeriod1.fit(x_train_awayShotsPeriod1,y_train_awayShotsPeriod1)
@@ -305,6 +310,7 @@ def train(db, inData):
   predictions_totalGoals = clf_totalGoals.predict(x_test_totalGoals)
   predictions_goalDifferential = clf_goalDifferential.predict(x_test_goalDifferential)
   predictions_finalPeriod = clf_finalPeriod.predict(x_test_finalPeriod)
+  predictions_pastRegulation = clf_pastRegulation.predict(x_test_pastRegulation)
   predictions_awayShots = clf_awayShots.predict(x_test_awayShots)
   predictions_homeShots = clf_homeShots.predict(x_test_homeShots)
   predictions_awayShotsPeriod1 = clf_awayShotsPeriod1.predict(x_test_awayShotsPeriod1)
@@ -337,6 +343,7 @@ def train(db, inData):
   totalGoals_accuracy = accuracy_score(y_test_totalGoals, predictions_totalGoals)
   goalDifferential_accuracy = accuracy_score(y_test_goalDifferential, predictions_goalDifferential)
   finalPeriod_accuracy = accuracy_score(y_test_finalPeriod, predictions_finalPeriod)
+  pastRegulation_accuracy = accuracy_score(y_test_pastRegulation, predictions_pastRegulation)
   awayShots_accuracy = accuracy_score(y_test_awayShots, predictions_awayShots)
   homeShots_accuracy = accuracy_score(y_test_homeShots, predictions_homeShots)
   awayShotsPeriod1_accuracy = accuracy_score(y_test_awayShotsPeriod1, predictions_awayShotsPeriod1)
@@ -368,6 +375,7 @@ def train(db, inData):
   print("Total Goals Accuracy:", totalGoals_accuracy)
   print("Goal Differential Accuracy:", goalDifferential_accuracy)
   print("finalPeriod Accuracy:", finalPeriod_accuracy)
+  print("pastRegulation Accuracy:", pastRegulation_accuracy)
   print("awayShots Accuracy:", awayShots_accuracy)
   print("homeShots Accuracy:", homeShots_accuracy)
   print("awayShotsPeriod1 Accuracy:", awayShotsPeriod1_accuracy)
@@ -413,6 +421,7 @@ def train(db, inData):
       'totalGoals': totalGoals_accuracy,
       'goalDifferential': goalDifferential_accuracy,
       'finalPeriod': finalPeriod_accuracy,
+      'pastRegulation': pastRegulation_accuracy,
       'awayShots': awayShots_accuracy,
       'homeShots': homeShots_accuracy,
       'awayShotsPeriod1': awayShotsPeriod1_accuracy,
@@ -448,6 +457,7 @@ def train(db, inData):
   dump(clf_totalGoals, f'models/nhl_ai_v{FILE_VERSION}_totalGoals.joblib')
   dump(clf_goalDifferential, f'models/nhl_ai_v{FILE_VERSION}_goalDifferential.joblib')
   dump(clf_finalPeriod, f'models/nhl_ai_v{FILE_VERSION}_finalPeriod.joblib')
+  dump(clf_pastRegulation, f'models/nhl_ai_v{FILE_VERSION}_pastRegulation.joblib')
   dump(clf_awayShots, f'models/nhl_ai_v{FILE_VERSION}_awayShots.joblib')
   dump(clf_homeShots, f'models/nhl_ai_v{FILE_VERSION}_homeShots.joblib')
   dump(clf_awayShotsPeriod1, f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod1.joblib')

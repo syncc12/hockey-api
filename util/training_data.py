@@ -23,7 +23,7 @@ def season_training_data(season):
   training_data = []
   boxscores = list(Boxscores.find(
     {'season': int(season)},
-    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1}
+    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1, 'period': 1}
   ))
   games = list(Games.find(
     {'season': int(season)},
@@ -48,6 +48,7 @@ def season_training_data(season):
       'gameType': safe_chain(boxscores,i,'gameType'),
       'gameDate': safe_chain(boxscores,i,'gameDate'),
       'venue': safe_chain(boxscores,i,'venue'),
+      'period': safe_chain(boxscores,i,'period'),
       'homeTeam': homeTeam,
       'awayTeam': awayTeam,
       'boxscore': safe_chain(boxscores,i,'boxscore'),
@@ -70,7 +71,7 @@ def game_training_data(gameId):
   training_data = []
   boxscores = list(Boxscores.find(
     {'id': int(gameId['id'])},
-    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1}
+    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1, 'period':1}
   ))
   games = list(Games.find(
     {'id': int(gameId['id'])},
@@ -83,6 +84,7 @@ def game_training_data(gameId):
     'gameType': safe_chain(boxscores,0,'gameType'),
     'gameDate': safe_chain(boxscores,0,'gameDate'),
     'venue': safe_chain(boxscores,0,'venue'),
+    'period': safe_chain(boxscores,0,'period'),
     'homeTeam': safe_chain(boxscores,0,'homeTeam'),
     'awayTeam': safe_chain(boxscores,0,'awayTeam'),
     'boxscore': safe_chain(boxscores,0,'boxscore'),
@@ -130,7 +132,7 @@ def update_training_data(gameId):
 
   boxscores = list(Boxscores.find(
     {'id': int(gameId['id'])},
-    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1}
+    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1, 'period':1}
   ))
   games = list(Games.find(
     {'id': int(gameId['id'])},
@@ -143,6 +145,7 @@ def update_training_data(gameId):
     'gameType': safe_chain(boxscores,0,'gameType'),
     'gameDate': safe_chain(boxscores,0,'gameDate'),
     'venue': safe_chain(boxscores,0,'venue'),
+    'period': safe_chain(boxscores,0,'period'),
     'homeTeam': safe_chain(boxscores,0,'homeTeam'),
     'awayTeam': safe_chain(boxscores,0,'awayTeam'),
     'boxscore': safe_chain(boxscores,0,'boxscore'),
