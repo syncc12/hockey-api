@@ -17,10 +17,9 @@ import boto3
 import io
 from inputs.inputs import master_inputs
 
-def ai_return_dict_projectedLineup(data, prediction, confidence=[-1,-1,-1,-1]):
+def ai_return_dict_projectedLineup(db, data, prediction, confidence=[-1,-1,-1,-1]):
   data_keys = list(data['data']['data'].keys())
   predicted_data = {}
-
   for d in range(0, len(data_keys)):
     predicted_data[data_keys[d]] = {}
     if confidence[d] != -1:
@@ -280,4 +279,4 @@ def ai(db, game_data, **kwargs):
       [confidence_homeScore_3,confidence_awayScore_3,confidence_winner_3,confidence_totalGoals_3,confidence_goalDifferential_3],
     ]
     
-    return ai_return_dict_projectedLineup(data,prediction,confidence)
+    return ai_return_dict_projectedLineup(db, data,prediction,confidence)

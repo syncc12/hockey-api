@@ -135,7 +135,14 @@ def projectedLineup(team,gameId):
   data = requests.get(TEAM_SEASON_SCHEDULE).json()
   gameIDs = [game['id'] for game in data['games'] if game['id'] < gameId]
   last_game = min(gameIDs, key=lambda x:abs(x-gameId))
-  return last_game
+  LAST_GAME_BOXSCORE = f'https://api-web.nhle.com/v1/gamecenter/{last_game}/boxscore'
+  boxscore = requests.get(LAST_GAME_BOXSCORE).json()
+  home_or_away = ''
+  if boxscore['awayTeam']['abbrev'] == team:
+    home_or_away = 'awayTeam'
+  elif boxscore['homeTeam']['abbrev'] == team:
+    home_or_away = 'homeTeam'
+  return last_game, home_or_away
 
 def latestIDs(training_data=-1):
   client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")

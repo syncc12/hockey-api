@@ -346,13 +346,13 @@ def predict_day(db,date,day,**kwargs):
 
 def predict_day_simple(db,date,day,**kwargs):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
-
   game_data = res['gameWeek'][day-1]
   games = []
   for game in game_data['games']:
     ai_data = ai(db, game, model_winner=kwargs['model_winner'],model_homeScore=kwargs['model_homeScore'],model_awayScore=kwargs['model_awayScore'],model_totalGoals=kwargs['model_totalGoals'],model_goalDifferential=kwargs['model_goalDifferential'])
     if ai_data['message'] == 'using projected lineup':
       goalie_combos = list(ai_data['prediction'].keys())
+      
       simple_data = {
         'prediction': {
           f'{goalie_combos[0]}': {

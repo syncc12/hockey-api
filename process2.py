@@ -27,18 +27,18 @@ def nhl_data(db,game,message='',test=False):
     check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
     if not check_pbgs:
       isProjectedLineup = True
-      away_last_game = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'])
-      home_last_game = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'])
+      away_last_game, away_home_away = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'])
+      home_last_game, home_home_away = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'])
       away_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{away_last_game}/boxscore").json()
       home_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{home_last_game}/boxscore").json()
       boxscore['boxscore'] = {
         'playerByGameStats': {
-          'awayTeam': away_last_boxscore['boxscore']['playerByGameStats']['awayTeam'],
-          'homeTeam': home_last_boxscore['boxscore']['playerByGameStats']['homeTeam'],
+          'awayTeam': away_last_boxscore['boxscore']['playerByGameStats'][away_home_away],
+          'homeTeam': home_last_boxscore['boxscore']['playerByGameStats'][home_home_away],
         },
         'gameInfo': {
-          'awayTeam': away_last_boxscore['boxscore']['gameInfo']['awayTeam'],
-          'homeTeam': home_last_boxscore['boxscore']['gameInfo']['homeTeam'],
+          'awayTeam': away_last_boxscore['boxscore']['gameInfo'][away_home_away],
+          'homeTeam': home_last_boxscore['boxscore']['gameInfo'][home_home_away],
         }
       }
       message = 'using projected lineup'
@@ -177,7 +177,7 @@ def nhl_data(db,game,message='',test=False):
       'data':test_data,
       'result':test_result,
       'input_data': input_data,
-      }
+    }
 
 
 # game = requests.get(f"https://api-web.nhle.com/v1/schedule/now").json()

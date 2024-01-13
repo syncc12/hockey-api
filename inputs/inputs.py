@@ -65,24 +65,35 @@ def master_inputs(db, game, isProjectedLineup=False):
   homeBackupGoalieID = -1
   awayStartingGoalieID = -1
   awayBackupGoalieID = -1
+  homeStartingGoalieName = ''
+  homeBackupGoalieName = ''
+  awayStartingGoalieName = ''
+  awayBackupGoalieName = ''
 
   if false_chain(pbgs,'awayTeam','goalies'):
     if len(pbgs['awayTeam']['goalies']) == 1:
       awayStartingGoalieID = pbgs['awayTeam']['goalies'][0]['playerId']
+      awayStartingGoalieName = pbgs['awayTeam']['goalies'][0]['name']['default']
     
     if len(pbgs['awayTeam']['goalies']) > 1:
       startingTOI = safe_none(formatTime(pbgs['awayTeam']['goalies'][0]['toi']))
       startingID = pbgs['awayTeam']['goalies'][0]['playerId']
       backupID = pbgs['awayTeam']['goalies'][1]['playerId']
+      startingName = pbgs['awayTeam']['goalies'][0]['name']['default']
+      backupName = pbgs['awayTeam']['goalies'][1]['name']['default']
       for g in pbgs['awayTeam']['goalies']:
         if safe_none(formatTime(g['toi'])) > safe_none(startingTOI):
           startingTOI = safe_none(formatTime(g['toi']))
           backupID = startingID
           startingID = g['playerId']
+          backupName = startingName
+          startingName = g['name']['default']
       awayStartingGoalieID = startingID
       awayBackupGoalieID = backupID
+      awayStartingGoalieName = startingName
+      awayBackupGoalieName = backupName
 
-  if false_chain(pbgs,'awayTeam','goalies'):
+  if false_chain(pbgs,'homeTeam','goalies'):
     if len(pbgs['homeTeam']['goalies']) == 1:
       homeStartingGoalieID = pbgs['homeTeam']['goalies'][0]['playerId']
     
@@ -90,13 +101,19 @@ def master_inputs(db, game, isProjectedLineup=False):
       startingTOI = safe_none(formatTime(pbgs['homeTeam']['goalies'][0]['toi']))
       startingID =  pbgs['homeTeam']['goalies'][0]['playerId']
       backupID = pbgs['homeTeam']['goalies'][1]['playerId']
+      startingName = pbgs['homeTeam']['goalies'][0]['name']['default']
+      backupName = pbgs['homeTeam']['goalies'][1]['name']['default']
       for g in pbgs['homeTeam']['goalies']:
         if safe_none(formatTime(g['toi'])) > safe_none(startingTOI):
           startingTOI = safe_none(formatTime(g['toi']))
           backupID = startingID
           startingID = g['playerId']
+          backupName = startingName
+          startingName = g['name']['default']
       homeStartingGoalieID = startingID
       homeBackupGoalieID = backupID
+      homeStartingGoalieName = startingName
+      homeBackupGoalieName = backupName
   
   # lastPlayerStats = last_player_game_stats(db=db,gameId=game['id'],playerIDs=allPlayerIds)
 
@@ -104,7 +121,7 @@ def master_inputs(db, game, isProjectedLineup=False):
     all_inputs = {}
     if isProjectedLineup:
       all_inputs = {
-        f'{awayStartingGoalieID}|{homeStartingGoalieID}': {
+        f'{awayStartingGoalieName}-{awayStartingGoalieID}|{homeStartingGoalieName}-{homeStartingGoalieID}': {
           **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
           **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
           **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
@@ -115,7 +132,7 @@ def master_inputs(db, game, isProjectedLineup=False):
           **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=True,isAway=False),
           **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=False,isAway=False),
         },
-        f'{awayStartingGoalieID}|{homeBackupGoalieID}': {
+        f'{awayStartingGoalieName}-{awayStartingGoalieID}|{homeBackupGoalieName}-{homeBackupGoalieID}': {
           **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
           **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
           **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
@@ -126,7 +143,7 @@ def master_inputs(db, game, isProjectedLineup=False):
           **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=True,isAway=False),
           **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=False,isAway=False),
         },
-        f'{awayBackupGoalieID}|{homeStartingGoalieID}': {
+        f'{awayBackupGoalieName}-{awayBackupGoalieID}|{homeStartingGoalieName}-{homeStartingGoalieID}': {
           **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
           **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
           **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
@@ -137,7 +154,7 @@ def master_inputs(db, game, isProjectedLineup=False):
           **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=True,isAway=False),
           **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=False,isAway=False),
         },
-        f'{awayBackupGoalieID}|{homeBackupGoalieID}': {
+        f'{awayBackupGoalieName}-{awayBackupGoalieID}|{homeBackupGoalieName}-{homeBackupGoalieID}': {
           **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
           **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
           **defense(db,awayDefenseIds,allPlayers,game,isAway=True),

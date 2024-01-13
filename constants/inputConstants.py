@@ -94,7 +94,12 @@ X_V6_INPUTS = [
   'homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieAge'
 ]
 
-Y_V6_OUTPUTS = ['homeScore','awayScore','winner','totalGoals','goalDifferential']
+Y_V6_OUTPUTS = [
+  'homeScore','awayScore','winner','totalGoals','goalDifferential','finalPeriod','awayShots','homeShots','awayShotsPeriod1','homeShotsPeriod1','awayShotsPeriod2',
+  'homeShotsPeriod2','awayShotsPeriod3','homeShotsPeriod3','awayShotsPeriod4','homeShotsPeriod4','awayShotsPeriod5','homeShotsPeriod5','awayScorePeriod1','homeScorePeriod1',
+  'awayScorePeriod2','homeScorePeriod2','awayScorePeriod3','homeScorePeriod3','awayScorePeriod4','homeScorePeriod4','awayScorePeriod5','homeScorePeriod5','period1PuckLine',
+  'period2PuckLine','period3PuckLine'
+]
 
 BASE_INPUTS = [
   'id','season','gameType','venue','neutralSite','homeTeam','awayTeam','startTime',
