@@ -8,6 +8,7 @@ from pymongo import MongoClient
 import math
 from datetime import datetime
 import os
+from joblib import dump
 from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup
 from inputs.inputs import master_inputs
 from util.query import get_last_game_team_stats
@@ -143,6 +144,18 @@ def nhl_data(db,game,message='',test=False):
     awayTeam = safe_chain(boxscore,'awayTeam','id')
     awayScore = safe_chain(boxscore,'awayTeam','score')
     homeScore = safe_chain(boxscore,'homeTeam','score')
+    # model_names_suplement = [
+    #   'id',
+    #   'season',
+    #   'gameType',
+    #   'venue',
+    #   'neutralSite',
+    #   'homeTeam',
+    #   'awayTeam',
+    # ]
+    # for name in model_names_suplement:
+    #   MODEL_NAMES.append(name)
+    
     suplement_data = {
       'id': safe_chain(boxscore,'id'),
       'season': safe_chain(boxscore,'season'),
@@ -184,25 +197,30 @@ def nhl_data(db,game,message='',test=False):
       'period2PuckLine':abs(safe_chain(boxscore,'boxscore','linescore','byPeriod',1,'away') - safe_chain(boxscore,'boxscore','linescore','byPeriod',1,'home')),
       'period3PuckLine':abs(safe_chain(boxscore,'boxscore','linescore','byPeriod',2,'away') - safe_chain(boxscore,'boxscore','linescore','byPeriod',2,'home')),
     }
-    x_data = dict.fromkeys(MODEL_NAMES,[])
-    y_data = dict.fromkeys(MODEL_NAMES,[])
+    x_data = {}
+    y_data = {}
+    for i in MODEL_NAMES:
+      x_data[i] = []
+      y_data[i] = 0
+
     input_data = {}
-    # x = [[inputs['data'][i] for i in X_INPUTS]]
     for i in X_INPUTS:
       input_data[i] = inputs['data'][i]
-    for i in X_INPUTS:
-      if i in suplement_data.keys():
-        x_data[i].append(suplement_data[i])
-      else:
-        x_data[i].append(inputs['data'][i])
+    for j in MODEL_NAMES:
+      for i in X_INPUTS:
+        if i in suplement_data.keys():
+          x_data[j].append(suplement_data[i])
+        else:
+          x_data[j].append(inputs['data'][i])
     for i in Y_OUTPUTS:
       if i in suplement_data.keys():
-        y_data[i].append(suplement_data[i])
+        y_data[i] = suplement_data[i]
       elif i in inputs:
-        y_data[i].append(inputs['data'][i])
+        y_data[i] = inputs['data'][i]
 
     test_data = x_data
     test_result = y_data
+
     return {
       'data':test_data,
       'result':test_result,

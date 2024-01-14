@@ -109,10 +109,38 @@ DEFENSE_INPUTS_ZIP = [i for i in range(0,7)]
 
 X_INPUTS = BASE_INPUTS
 Y_OUTPUTS = [
-  'homeScore','awayScore','winner','totalGoals','goalDifferential','finalPeriod','pastRegulation','awayShots','homeShots','awayShotsPeriod1','homeShotsPeriod1','awayShotsPeriod2',
-  'homeShotsPeriod2','awayShotsPeriod3','homeShotsPeriod3','awayShotsPeriod4','homeShotsPeriod4','awayShotsPeriod5','homeShotsPeriod5','awayScorePeriod1','homeScorePeriod1',
-  'awayScorePeriod2','homeScorePeriod2','awayScorePeriod3','homeScorePeriod3','awayScorePeriod4','homeScorePeriod4','awayScorePeriod5','homeScorePeriod5','period1PuckLine',
-  'period2PuckLine','period3PuckLine'
+  'homeScore',
+  'awayScore',
+  'winner',
+  'totalGoals',
+  'goalDifferential',
+  # 'finalPeriod',
+  # 'pastRegulation',
+  # 'awayShots',
+  # 'homeShots',
+  # 'awayShotsPeriod1',
+  # 'homeShotsPeriod1',
+  # 'awayShotsPeriod2',
+  # 'homeShotsPeriod2',
+  # 'awayShotsPeriod3',
+  # 'homeShotsPeriod3',
+  # 'awayShotsPeriod4',
+  # 'homeShotsPeriod4',
+  # 'awayShotsPeriod5',
+  # 'homeShotsPeriod5',
+  # 'awayScorePeriod1',
+  # 'homeScorePeriod1',
+  # 'awayScorePeriod2',
+  # 'homeScorePeriod2',
+  # 'awayScorePeriod3',
+  # 'homeScorePeriod3',
+  # 'awayScorePeriod4',
+  # 'homeScorePeriod4',
+  # 'awayScorePeriod5',
+  # 'homeScorePeriod5',
+  # 'period1PuckLine',
+  # 'period2PuckLine',
+  # 'period3PuckLine',
 ]
 
 for i in FORWARD_INPUTS_ZIP:

@@ -8,6 +8,7 @@ from pymongo import MongoClient
 from pages.nhl.service import debug, test_model, collect_boxscores, predict, predict_day, predict_day_simple, predict_week, get_day_ids, date_predict, now, game_date, metadata, save_boxscores
 from constants.constants import FILE_VERSION
 from util.helpers import recommended_wagers
+from util.models import MODELS
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -17,38 +18,39 @@ db = client['hockey']
 CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
 
 # model = load(f'models/nhl_ai_v{FILE_VERSION}.joblib')
-model_winner = load(f'models/nhl_ai_v{FILE_VERSION}_winner.joblib')
-model_homeScore = load(f'models/nhl_ai_v{FILE_VERSION}_homeScore.joblib')
-model_awayScore = load(f'models/nhl_ai_v{FILE_VERSION}_awayScore.joblib')
-model_totalGoals = load(f'models/nhl_ai_v{FILE_VERSION}_totalGoals.joblib')
-model_goalDifferential = load(f'models/nhl_ai_v{FILE_VERSION}_goalDifferential.joblib')
-model_finalPeriod = load(f'models/nhl_ai_v{FILE_VERSION}_finalPeriod.joblib')
-model_pastRegulation = load(f'models/nhl_ai_v{FILE_VERSION}_pastRegulation.joblib')
-model_awayShots = load(f'models/nhl_ai_v{FILE_VERSION}_awayShots.joblib')
-model_homeShots = load(f'models/nhl_ai_v{FILE_VERSION}_homeShots.joblib')
-model_awayShotsPeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod1.joblib')
-model_homeShotsPeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod1.joblib')
-model_awayShotsPeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod2.joblib')
-model_homeShotsPeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod2.joblib')
-model_awayShotsPeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod3.joblib')
-model_homeShotsPeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod3.joblib')
-model_awayShotsPeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod4.joblib')
-model_homeShotsPeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod4.joblib')
-model_awayShotsPeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod5.joblib')
-model_homeShotsPeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod5.joblib')
-model_awayScorePeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod1.joblib')
-model_homeScorePeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod1.joblib')
-model_awayScorePeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod2.joblib')
-model_homeScorePeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod2.joblib')
-model_awayScorePeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod3.joblib')
-model_homeScorePeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod3.joblib')
-model_awayScorePeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod4.joblib')
-model_homeScorePeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod4.joblib')
-model_awayScorePeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod5.joblib')
-model_homeScorePeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod5.joblib')
-model_period1PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period1PuckLine.joblib')
-model_period2PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period2PuckLine.joblib')
-model_period3PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period3PuckLine.joblib')
+# model_winner = load(f'models/nhl_ai_v{FILE_VERSION}_winner.joblib')
+# model_homeScore = load(f'models/nhl_ai_v{FILE_VERSION}_homeScore.joblib')
+# model_awayScore = load(f'models/nhl_ai_v{FILE_VERSION}_awayScore.joblib')
+# model_totalGoals = load(f'models/nhl_ai_v{FILE_VERSION}_totalGoals.joblib')
+# model_goalDifferential = load(f'models/nhl_ai_v{FILE_VERSION}_goalDifferential.joblib')
+# model_finalPeriod = load(f'models/nhl_ai_v{FILE_VERSION}_finalPeriod.joblib')
+# model_pastRegulation = load(f'models/nhl_ai_v{FILE_VERSION}_pastRegulation.joblib')
+# model_awayShots = load(f'models/nhl_ai_v{FILE_VERSION}_awayShots.joblib')
+# model_homeShots = load(f'models/nhl_ai_v{FILE_VERSION}_homeShots.joblib')
+# model_awayShotsPeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod1.joblib')
+# model_homeShotsPeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod1.joblib')
+# model_awayShotsPeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod2.joblib')
+# model_homeShotsPeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod2.joblib')
+# model_awayShotsPeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod3.joblib')
+# model_homeShotsPeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod3.joblib')
+# model_awayShotsPeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod4.joblib')
+# model_homeShotsPeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod4.joblib')
+# model_awayShotsPeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod5.joblib')
+# model_homeShotsPeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod5.joblib')
+# model_awayScorePeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod1.joblib')
+# model_homeScorePeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod1.joblib')
+# model_awayScorePeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod2.joblib')
+# model_homeScorePeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod2.joblib')
+# model_awayScorePeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod3.joblib')
+# model_homeScorePeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod3.joblib')
+# model_awayScorePeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod4.joblib')
+# model_homeScorePeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod4.joblib')
+# model_awayScorePeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod5.joblib')
+# model_homeScorePeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod5.joblib')
+# model_period1PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period1PuckLine.joblib')
+# model_period2PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period2PuckLine.joblib')
+# model_period3PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period3PuckLine.joblib')
+models = MODELS
 
 app = Flask(__name__)
 
@@ -68,13 +70,13 @@ def nhl_test_model():
   endID = request.args.get('end', default=-1, type=int)
   show_data = request.args.get('data', default=-1, type=int)
   wager = request.args.get('wager', default=10, type=int)
-  return test_model(db, startID,endID,show_data,wager, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return test_model(db, startID,endID,show_data,wager, models)
 
 @app.route('/collect/boxscores', methods=['POST'])
 def nhl_collect_boxscores():
   startID = int(request.json['startId'])
   endID = int(request.json['endId'])
-  return collect_boxscores(db, startID,endID, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return collect_boxscores(db, startID,endID, models)
 
 # @app.route('/collect/training-data', methods=['GET'])
 # def nhl_collect_training_data():
@@ -82,20 +84,20 @@ def nhl_collect_boxscores():
 #   endID = request.args.get('end', default=-1, type=int)
 #   id = request.args.get('id', default=-1, type=int)
 
-#   return collect_training_data(db, startID,endID,id, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential)
+#   return collect_training_data(db, startID,endID,id, models)
 
 @app.route('/nhl', methods=['GET'])
 def nhl_predict():
   day = request.args.get('day', default=1, type=int)
   game = request.args.get('game', default=1, type=int)
   date = request.args.get('date', default="now", type=str)
-  return predict(db,day,game,date, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return predict(db,day,game,date, models)
 
 @app.route('/nhl/day', methods=['GET'])
 def nhl_predict_day():
   date = request.args.get('date', default='now', type=str)
   day = request.args.get('day', default=1, type=int)
-  prediction = predict_day(db, date, day, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  prediction = predict_day(db, date, day, models)
   
   recommended_wagers(100,prediction,False)
   return jsonify(prediction)
@@ -104,37 +106,37 @@ def nhl_predict_day():
 def nhl_predict_day_simple():
   date = request.args.get('date', default='now', type=str)
   day = request.args.get('day', default=1, type=int)
-  return predict_day_simple(db, date, day, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return predict_day_simple(db, date, day, models)
 
 @app.route('/nhl/week', methods=['GET'])
 def nhl_predict_week():
-  return predict_week(db, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return predict_week(db, models)
 
 @app.route('/nhl/ids', methods=['GET'])
 def nhl_get_day_ids():
   date = request.args.get('date', default='now', type=str)
-  return get_day_ids(db, date, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return get_day_ids(db, date, models)
 
 @app.route('/nhl/<date>', methods=['GET'])
 def nhl_date_predict(date):
-  return date_predict(db, date, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return date_predict(db, date, models)
 
 @app.route('/now', methods=['GET'])
 def nhl_now():
-  return now(db, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return now(db, models)
 
 @app.route('/date/<date>', methods=['GET'])
 def nhl_game_date(date):
-  return game_date(db, date, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return game_date(db, date, models)
 
 @app.route('/metadata', methods=['GET'])
 def nhl_metadata():
-  return metadata(db, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return metadata(db, models)
 
 @app.route('/db/update', methods=['GET'])
 def nhl_save_boxscores():
   date = request.args.get('date', default='now', type=str)
-  return save_boxscores(db, date, model_winner=model_winner,model_homeScore=model_homeScore,model_awayScore=model_awayScore,model_totalGoals=model_totalGoals,model_goalDifferential=model_goalDifferential,model_finalPeriod=model_finalPeriod,model_pastRegulation=model_pastRegulation,model_awayShots=model_awayShots,model_homeShots=model_homeShots,model_awayShotsPeriod1=model_awayShotsPeriod1,model_homeShotsPeriod1=model_homeShotsPeriod1,model_awayShotsPeriod2=model_awayShotsPeriod2,model_homeShotsPeriod2=model_homeShotsPeriod2,model_awayShotsPeriod3=model_awayShotsPeriod3,model_homeShotsPeriod3=model_homeShotsPeriod3,model_awayShotsPeriod4=model_awayShotsPeriod4,model_homeShotsPeriod4=model_homeShotsPeriod4,model_awayShotsPeriod5=model_awayShotsPeriod5,model_homeShotsPeriod5=model_homeShotsPeriod5,model_awayScorePeriod1=model_awayScorePeriod1,model_homeScorePeriod1=model_homeScorePeriod1,model_awayScorePeriod2=model_awayScorePeriod2,model_homeScorePeriod2=model_homeScorePeriod2,model_awayScorePeriod3=model_awayScorePeriod3,model_homeScorePeriod3=model_homeScorePeriod3,model_awayScorePeriod4=model_awayScorePeriod4,model_homeScorePeriod4=model_homeScorePeriod4,model_awayScorePeriod5=model_awayScorePeriod5,model_homeScorePeriod5=model_homeScorePeriod5,model_period1PuckLine=model_period1PuckLine,model_period2PuckLine=model_period2PuckLine,model_period3PuckLine=model_period3PuckLine)
+  return save_boxscores(db, date, models)
 
 if __name__ == '__main__':
   app.run()

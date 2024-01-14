@@ -16,48 +16,18 @@ from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASO
 # RANDOM_STATE = 12
 # FILE_VERSION = 7
 
-MODEL_NAMES = [
-  'winner',
-  'homeScore',
-  'awayScore',
-  'totalGoals',
-  'goalDifferential',
-  'finalPeriod',
-  'pastRegulation',
-  'awayShots',
-  'homeShots',
-  'awayShotsPeriod1',
-  'homeShotsPeriod1',
-  'awayShotsPeriod2',
-  'homeShotsPeriod2',
-  'awayShotsPeriod3',
-  'homeShotsPeriod3',
-  'awayShotsPeriod4',
-  'homeShotsPeriod4',
-  'awayShotsPeriod5',
-  'homeShotsPeriod5',
-  'awayScorePeriod1',
-  'homeScorePeriod1',
-  'awayScorePeriod2',
-  'homeScorePeriod2',
-  'awayScorePeriod3',
-  'homeScorePeriod3',
-  'awayScorePeriod4',
-  'homeScorePeriod4',
-  'awayScorePeriod5',
-  'homeScorePeriod5',
-  'period1PuckLine',
-  'period2PuckLine',
-  'period3PuckLine',
-]
+MODEL_NAMES = Y_OUTPUTS
 
 MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')) for i in MODEL_NAMES])
 # MODELS = dict([(f'model_{i}',f'load(models/nhl_ai_v{FILE_VERSION}_{i}.joblib)') for i in MODEL_NAMES])
 
-def MODEL_X_INPUTS(x): dict([(f'x_{i}',x) for i in MODEL_NAMES])
-def MODEL_Y_OUTPUTS(data): dict([(f'y_{i}',data [[i]].values.ravel()) for i in MODEL_NAMES])
+def MODEL_X_INPUTS(x):
+  return dict([(f'x_{i}',x) for i in MODEL_NAMES])
+def MODEL_Y_OUTPUTS(data): 
+  return dict([(f'y_{i}',data [[i]].values.ravel()) for i in MODEL_NAMES])
 
-def MODEL_TRAIN_TEST_SPLIT(modelX,modelY): dict([(f'tts_{i}',train_test_split(modelX[f'x_{i}'], modelY[f'y_{i}'], test_size=0.2, random_state=RANDOM_STATE)) for i in MODEL_NAMES])
+def MODEL_TRAIN_TEST_SPLIT(modelX,modelY):
+  return dict([(f'tts_{i}',train_test_split(modelX[f'x_{i}'], modelY[f'y_{i}'], test_size=0.2, random_state=RANDOM_STATE)) for i in MODEL_NAMES])
 
 MODEL_CLF = dict([(f'clf_{i}',RandomForestClassifier(random_state=RANDOM_STATE)) for i in MODEL_NAMES])
 def MODEL_FIT(tts):
@@ -87,24 +57,39 @@ def MODEL_DUMP(clf):
   for i in MODEL_NAMES:
     dump(clf[f'clf_{i}'], f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')
 
+def MODEL_PREDICT(models,data):
+  out_dict = {}
+  for i in MODEL_NAMES:
+    out_dict[f'prediction_{i}'] = models[f'model_{i}'].predict(data['data']['data'])
+  return out_dict
+
+def MODEL_CONFIDENCE(models,data):
+  out_dict = {}
+  for i in MODEL_NAMES:
+    out_dict[f'confidence_{i}'] = int((np.max(models[f'model_{i}'].predict_proba(data['data']['data']), axis=1) * 100)[0])
+  return out_dict
+
 TEST_ALL_INIT = dict([(f'all_{i}_total',0) for i in MODEL_NAMES])
 TEST_LINE_INIT = dict([(f'{i}_total',0) for i in MODEL_NAMES])
 
-def TEST_LINE_UPDATE(testLine,r): dict([(f'{i}_total', testLine[f'{i}_total'] + r[i]) for i in MODEL_NAMES])
-def TEST_ALL_UPDATE(testAll,testLines): dict([(f'all_{i}_total', testAll[f'all_{i}_total'] + testLines[f'{i}_total']) for i in MODEL_NAMES])
+def TEST_LINE_UPDATE(testLine,r):
+  return dict([(f'{i}_total', testLine[f'{i}_total'] + r['results'][i]) for i in MODEL_NAMES])
+
+def TEST_ALL_UPDATE(testAll,testLines):
+  return dict([(f'all_{i}_total', testAll[f'all_{i}_total'] + testLines[f'{i}_total']) for i in MODEL_NAMES])
 
 def TEST_PREDICTION(models,test_data):
   out_dict = {}
   for i in MODEL_NAMES:
     model = models[f'model_{i}']
-    out_dict[f'test_prediction_{i}'] = model.predict(test_data['data'])
+    out_dict[f'test_prediction_{i}'] = model.predict([test_data['data'][i]])
   return out_dict
 
 def TEST_CONFIDENCE(models,test_data):
   out_dict = {}
   for i in MODEL_NAMES:
     model = models[f'model_{i}']
-    out_dict[f'test_confidence_{i}'] = model.predict_proba(test_data['data'])
+    out_dict[f'test_confidence_{i}'] = model.predict_proba([test_data['data'][i]])
   return out_dict
 
 def TEST_COMPARE(prediction,awayId,homeId):
@@ -114,27 +99,29 @@ def TEST_COMPARE(prediction,awayId,homeId):
       test_prediction_data = adjusted_winner(awayId,homeId,prediction[f'test_prediction_{i}'][0])
     else:
       test_prediction_data = prediction[f'test_prediction_{i}'][0]
-      out_dict[f'predicted_{i}'] = test_prediction_data
+    out_dict[f'predicted_{i}'] = test_prediction_data
   return out_dict
 
 def TEST_DATA(test_data,awayId,homeId):
   out_dict = {}
   for i in MODEL_NAMES:
+    # test_prediction_data = []
     if i == 'winner':
+      # print(test_data['result'])
       test_prediction_data = adjusted_winner(awayId,homeId,test_data['result'][i])
     else:
       test_prediction_data = test_data['result'][i]
-      out_dict[f'test_{i}'] = test_prediction_data
+    out_dict[f'test_{i}'] = test_prediction_data
   return out_dict
 
-def TEST_RESULTS(id,prediction,test):
-  out_dict = {'id':id}
+def TEST_RESULTS(prediction,test):
+  out_dict = {}
   for i in MODEL_NAMES:
     out_dict[i] = 1 if prediction[f'predicted_{i}']==test[f'test_{i}'] else 0
   return out_dict
 
-def TEST_CONFIDENCE_RESULTS(id,test_confidence):
-  out_dict = {'id':id}
+def TEST_CONFIDENCE_RESULTS(test_confidence):
+  out_dict = {}
   for i in MODEL_NAMES:
-    out_dict[i] = int((np.max(test_confidence[f'test_confidence_{i}'], axis=1) * 100)[0]),
+    out_dict[i] = int((np.max(test_confidence[f'test_confidence_{i}'], axis=1) * 100)[0])
   return out_dict
