@@ -17,39 +17,6 @@ db = client['hockey']
 
 CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
 
-# model = load(f'models/nhl_ai_v{FILE_VERSION}.joblib')
-# model_winner = load(f'models/nhl_ai_v{FILE_VERSION}_winner.joblib')
-# model_homeScore = load(f'models/nhl_ai_v{FILE_VERSION}_homeScore.joblib')
-# model_awayScore = load(f'models/nhl_ai_v{FILE_VERSION}_awayScore.joblib')
-# model_totalGoals = load(f'models/nhl_ai_v{FILE_VERSION}_totalGoals.joblib')
-# model_goalDifferential = load(f'models/nhl_ai_v{FILE_VERSION}_goalDifferential.joblib')
-# model_finalPeriod = load(f'models/nhl_ai_v{FILE_VERSION}_finalPeriod.joblib')
-# model_pastRegulation = load(f'models/nhl_ai_v{FILE_VERSION}_pastRegulation.joblib')
-# model_awayShots = load(f'models/nhl_ai_v{FILE_VERSION}_awayShots.joblib')
-# model_homeShots = load(f'models/nhl_ai_v{FILE_VERSION}_homeShots.joblib')
-# model_awayShotsPeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod1.joblib')
-# model_homeShotsPeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod1.joblib')
-# model_awayShotsPeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod2.joblib')
-# model_homeShotsPeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod2.joblib')
-# model_awayShotsPeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod3.joblib')
-# model_homeShotsPeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod3.joblib')
-# model_awayShotsPeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod4.joblib')
-# model_homeShotsPeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod4.joblib')
-# model_awayShotsPeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_awayShotsPeriod5.joblib')
-# model_homeShotsPeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_homeShotsPeriod5.joblib')
-# model_awayScorePeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod1.joblib')
-# model_homeScorePeriod1 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod1.joblib')
-# model_awayScorePeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod2.joblib')
-# model_homeScorePeriod2 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod2.joblib')
-# model_awayScorePeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod3.joblib')
-# model_homeScorePeriod3 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod3.joblib')
-# model_awayScorePeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod4.joblib')
-# model_homeScorePeriod4 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod4.joblib')
-# model_awayScorePeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_awayScorePeriod5.joblib')
-# model_homeScorePeriod5 = load(f'models/nhl_ai_v{FILE_VERSION}_homeScorePeriod5.joblib')
-# model_period1PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period1PuckLine.joblib')
-# model_period2PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period2PuckLine.joblib')
-# model_period3PuckLine = load(f'models/nhl_ai_v{FILE_VERSION}_period3PuckLine.joblib')
 models = MODELS
 
 app = Flask(__name__)
@@ -70,7 +37,8 @@ def nhl_test_model():
   endID = request.args.get('end', default=-1, type=int)
   show_data = request.args.get('data', default=-1, type=int)
   wager = request.args.get('wager', default=10, type=int)
-  return test_model(db, startID,endID,show_data,wager, models)
+  projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
+  return test_model(db, startID,endID,show_data,wager,projectedLineup, models)
 
 @app.route('/collect/boxscores', methods=['POST'])
 def nhl_collect_boxscores():
@@ -97,7 +65,8 @@ def nhl_predict():
 def nhl_predict_day():
   date = request.args.get('date', default='now', type=str)
   day = request.args.get('day', default=1, type=int)
-  prediction = predict_day(db, date, day, models)
+  projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
+  prediction = predict_day(db, date, day, projectedLineup, models)
   
   recommended_wagers(100,prediction,False)
   return jsonify(prediction)
@@ -106,7 +75,9 @@ def nhl_predict_day():
 def nhl_predict_day_simple():
   date = request.args.get('date', default='now', type=str)
   day = request.args.get('day', default=1, type=int)
-  return predict_day_simple(db, date, day, models)
+  game = request.args.get('game', default=-1, type=int)
+  projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
+  return predict_day_simple(db, date, day, game, projectedLineup, models)
 
 @app.route('/nhl/week', methods=['GET'])
 def nhl_predict_week():
@@ -131,7 +102,7 @@ def nhl_game_date(date):
 
 @app.route('/metadata', methods=['GET'])
 def nhl_metadata():
-  return metadata(db, models)
+  return metadata(db)
 
 @app.route('/db/update', methods=['GET'])
 def nhl_save_boxscores():

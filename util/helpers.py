@@ -551,6 +551,85 @@ def getPlayerStats(db,playerId,season,gameId,position):
       stats['shots'] = stats['shots'] + data['shots']
   
   return stats
+
+def projected_roster(gameId):
+  landing_url = f'https://api-web.nhle.com/v1_1/gamecenter/{gameId}/landing'
+  landing = requests.get(landing_url).json()
+  if false_chain(landing,'matchup'):
+    # print(landing)
+    awayId = landing['awayTeam']['id']
+    homeId = landing['homeTeam']['id']
+    af = []
+    ad = []
+    ag = []
+    hf = []
+    hd = []
+    hg = []
+
+    for skater in landing['matchup']['skaterSeasonStats']:
+      skater_data = {'playerId':skater['playerId'], 'gamesPlayed':safe_chain(skater,'gamesPlayed',default=0)}
+      if skater['teamId'] == awayId:
+        if skater['position'].lower() == 'd':
+          ad.append(skater_data)
+        else:
+          af.append(skater_data)
+      elif skater['teamId'] == homeId:
+        if skater['position'].lower() == 'd':
+          hd.append(skater_data)
+        else:
+          hf.append(skater_data)
+    
+    for goalie in landing['matchup']['goalieSeasonStats']:
+      goalie_data = {'playerId':goalie['playerId'], 'gamesPlayed':safe_chain(goalie,'gamesPlayed',default=0)}
+      if goalie['teamId'] == awayId:
+        ag.append(goalie_data)
+      elif goalie['teamId'] == homeId:
+        hg.append(goalie_data)
+    
+    af = sorted(af, key=lambda d: d['gamesPlayed'], reverse=True)
+    ad = sorted(ad, key=lambda d: d['gamesPlayed'], reverse=True)
+    ag = sorted(ag, key=lambda d: d['gamesPlayed'], reverse=True)
+    hf = sorted(hf, key=lambda d: d['gamesPlayed'], reverse=True)
+    hd = sorted(hd, key=lambda d: d['gamesPlayed'], reverse=True)
+    hg = sorted(hg, key=lambda d: d['gamesPlayed'], reverse=True)
+
+    af_final = []
+    ad_final = []
+    ag_final = []
+    hf_final = []
+    hd_final = []
+    hg_final = []
+    af_len = 13 if len(af) >= 13 else len(af)
+    ad_len = 6 if len(ad) >= 6 else len(ad)
+    ag_len = 2 if len(ag) >= 2 else len(ag)
+    hf_len = 13 if len(hf) >= 13 else len(hf)
+    hd_len = 6 if len(hd) >= 6 else len(hd)
+    hg_len = 2 if len(hf) >= 2 else len(hf)
+    for i in range(0,af_len):
+      af_final.append(af[i]['playerId'])
+    for i in range(0,hf_len):
+      hf_final.append(hf[i]['playerId'])
+    for i in range(0,ad_len):
+      ad_final.append(ad[i]['playerId'])
+    for i in range(0,hd_len):
+      hd_final.append(hd[i]['playerId'])
+    for i in range(0,ag_len):
+      ag_final.append(ag[i]['playerId'])
+    for i in range(0,hg_len):
+      hg_final.append(hg[i]['playerId'])
+    awayRoster = {
+      'forwards': af_final,
+      'defense': ad_final,
+      'goalies': ag_final,
+    }
+    homeRoster = {
+      'forwards': hf_final,
+      'defense': hd_final,
+      'goalies': hg_final,
+    }
+    return awayRoster, homeRoster
+  else:
+    return False, False
       
 
 

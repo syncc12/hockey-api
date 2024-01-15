@@ -9,7 +9,7 @@ import math
 from datetime import datetime
 import os
 from joblib import dump
-from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup
+from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup, projected_roster
 from inputs.inputs import master_inputs
 from util.query import get_last_game_team_stats
 from util.models import MODEL_NAMES
@@ -17,8 +17,8 @@ from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 
 REPLACE_VALUE = -1
 
-def nhl_data(db,game,message='',test=False):
-  isProjectedLineup = False
+def nhl_data(db,game,useProjectedLineup,message='',test=False):
+  isProjectedLineup = useProjectedLineup
   if not test:
     Odds = db['dev_odds']
     game_odds = Odds.find_one(
@@ -27,8 +27,9 @@ def nhl_data(db,game,message='',test=False):
     )
     boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
     check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
-    if not check_pbgs:
+    if not check_pbgs or useProjectedLineup:
       isProjectedLineup = True
+      # away_roster, home_roster = projected_roster(game['id'])
       away_last_game, away_home_away = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'])
       home_last_game, home_home_away = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'])
       away_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{away_last_game}/boxscore").json()
@@ -41,7 +42,11 @@ def nhl_data(db,game,message='',test=False):
         'gameInfo': {
           'awayTeam': away_last_boxscore['boxscore']['gameInfo'][away_home_away],
           'homeTeam': home_last_boxscore['boxscore']['gameInfo'][home_home_away],
-        }
+        },
+        # 'projectedRoster': {
+        #   'awayTeam': away_roster,
+        #   'homeTeam': home_roster,
+        # }
       }
       message = 'using projected lineup'
       # return {
@@ -77,27 +82,24 @@ def nhl_data(db,game,message='',test=False):
     
 
   inputs = master_inputs(db=db,game=boxscore,isProjectedLineup=isProjectedLineup)
-
+  
   if not test:
     input_data = {}
     if inputs:
       if safe_chain(inputs,'options','projectedLineup') and safe_chain(inputs,'options','projectedLineup') != -1:
         input_keys = list(inputs['data'].keys())
-        x = {
-          f'{input_keys[0]}': [[list(inputs['data'].values())[0][i] for i in X_INPUTS]],
-          f'{input_keys[1]}': [[list(inputs['data'].values())[1][i] for i in X_INPUTS]],
-          f'{input_keys[2]}': [[list(inputs['data'].values())[2][i] for i in X_INPUTS]],
-          f'{input_keys[3]}': [[list(inputs['data'].values())[3][i] for i in X_INPUTS]],
-        }
-        input_data[input_keys[0]] = {}
-        input_data[input_keys[1]] = {}
-        input_data[input_keys[2]] = {}
-        input_data[input_keys[3]] = {}
+        x = {}
+        
+        for i in range(0, len(input_keys)):
+          x[f'{input_keys[i]}'] = [[list(inputs['data'].values())[i][j] for j in X_INPUTS]]
+
+        for i in input_keys:
+          input_data[i] = {}
+
         for i in X_INPUTS:
-          input_data[input_keys[0]][i] = inputs['data'][input_keys[0]][i]
-          input_data[input_keys[1]][i] = inputs['data'][input_keys[1]][i]
-          input_data[input_keys[2]][i] = inputs['data'][input_keys[2]][i]
-          input_data[input_keys[3]][i] = inputs['data'][input_keys[3]][i]
+          for j in input_keys:
+            input_data[j][i] = inputs['data'][j][i]
+            
       else:
         x = [[inputs['data'][i] for i in X_INPUTS]]
         for i in X_INPUTS:
@@ -232,5 +234,5 @@ def nhl_data(db,game,message='',test=False):
 # data = nhl_data(game=game['gameWeek'][0]['games'][0])
 # print(data)
 
-def nhl_test(db,boxscore):
-  return nhl_data(db=db,game=boxscore,test=True)
+def nhl_test(db,boxscore,useProjectedLineup):
+  return nhl_data(db=db,game=boxscore,useProjectedLineup=useProjectedLineup,test=True)

@@ -18,57 +18,106 @@ import io
 from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE
 
-def ai_return_dict_projectedLineup(db, data, prediction, confidence=[-1,-1,-1,-1]):
+def ai_return_dict_projectedLineup(db, data, prediction, confidence):
   data_keys = list(data['data']['data'].keys())
+  confidence_data = {}
   predicted_data = {}
-  for d in range(0, len(data_keys)):
-    predicted_data[data_keys[d]] = {}
-    if confidence[d] != -1:
-      predicted_data[data_keys[d]]['winnerConfidence'] = int((np.max(confidence[d][2], axis=1) * 100)[0])
-      predicted_data[data_keys[d]]['homeScoreConfidence'] = int((np.max(confidence[d][0], axis=1) * 100)[0])
-      predicted_data[data_keys[d]]['awayScoreConfidence'] = int((np.max(confidence[d][1], axis=1) * 100)[0])
-      predicted_data[data_keys[d]]['totalGoalsConfidence'] = int((np.max(confidence[d][3], axis=1) * 100)[0])
-      predicted_data[data_keys[d]]['goalDifferentialConfidence'] = int((np.max(confidence[d][4], axis=1) * 100)[0])
-    else:
-      predicted_data[data_keys[d]]['winnerConfidence'] = -1
-      predicted_data[data_keys[d]]['homeScoreConfidence'] = -1
-      predicted_data[data_keys[d]]['awayScoreConfidence'] = -1
-      predicted_data[data_keys[d]]['totalGoalsConfidence'] = -1
-      predicted_data[data_keys[d]]['goalDifferentialConfidence'] = -1
+  confidence_data = {}
+  predicted_data = {}
+
+  for d in data_keys:
+    confidence_data[d] = {}
+    predicted_data[d] = {}
+    confidence_data[d]['confidence_winner'] = int((np.max(confidence[d]['confidence_winner'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_homeScore'] = int((np.max(confidence[d]['confidence_homeScore'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_awayScore'] = int((np.max(confidence[d]['confidence_awayScore'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_totalGoals'] = int((np.max(confidence[d]['confidence_totalGoals'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_goalDifferential'] = int((np.max(confidence[d]['confidence_goalDifferential'], axis=1) * 100)[0])
+
+
+  # for d in range(0, len(data_keys)):
+  #   confidence_data[data_keys[d]] = {}
+  #   predicted_data[data_keys[d]] = {}
+  #   if confidence[d] != -1:
+  #     confidence_data[data_keys[d]]['confidence_winner'] = int((np.max(confidence[d][2], axis=1) * 100)[0])
+  #     confidence_data[data_keys[d]]['confidence_homeScore'] = int((np.max(confidence[d][0], axis=1) * 100)[0])
+  #     confidence_data[data_keys[d]]['confidence_awayScore'] = int((np.max(confidence[d][1], axis=1) * 100)[0])
+  #     confidence_data[data_keys[d]]['confidence_totalGoals'] = int((np.max(confidence[d][3], axis=1) * 100)[0])
+  #     confidence_data[data_keys[d]]['confidence_goalDifferential'] = int((np.max(confidence[d][4], axis=1) * 100)[0])
+  #   else:
+  #     confidence_data[data_keys[d]]['confidence_winner'] = -1
+  #     confidence_data[data_keys[d]]['confidence_homeScore'] = -1
+  #     confidence_data[data_keys[d]]['confidence_awayScore'] = -1
+  #     confidence_data[data_keys[d]]['confidence_totalGoals'] = -1
+  #     confidence_data[data_keys[d]]['confidence_goalDifferential'] = -1
 
   homeId = data['data']['home_team']['id']
   awayId = data['data']['away_team']['id']
-  for d in range(0, len(data_keys)):
-    if len(data['data']['data'][data_keys[d]]) == 0 or len(prediction[d]) == 0:
-      predicted_data[data_keys[d]]['winnerId'] = -1
-      predicted_data[data_keys[d]]['homeScore'] = -1
-      predicted_data[data_keys[d]]['awayScore'] = -1
-      predicted_data[data_keys[d]]['totalGoals'] = -1
-      predicted_data[data_keys[d]]['goalDifferential'] = -1
+  for d in data_keys:
+    if len(data['data']['data'][d]) == 0 or len(prediction[d]) == 0:
+      predicted_data[d]['prediction_winnerId'] = -1
+      predicted_data[d]['prediction_homeScore'] = -1
+      predicted_data[d]['prediction_awayScore'] = -1
+      predicted_data[d]['prediction_totalGoals'] = -1
+      predicted_data[d]['prediction_goalDifferential'] = -1
       state = 'OFF'
       homeTeam = data['data']['home_team']['city']
       awayTeam = data['data']['away_team']['city']
-      predicted_data[data_keys[d]]['winningTeam'] = -1
-      predicted_data[data_keys[d]]['offset'] = -1
+      predicted_data[d]['winner'] = -1
+      predicted_data[d]['offset'] = -1
     else:
-      winnerId = int(prediction[d][2])
-      predicted_data[data_keys[d]]['winnerId'] = winnerId
-      predicted_data[data_keys[d]]['homeScore'] = int(prediction[d][0])
-      predicted_data[data_keys[d]]['awayScore'] = int(prediction[d][1])
-      predicted_data[data_keys[d]]['totalGoals'] = int(prediction[d][3])
-      predicted_data[data_keys[d]]['goalDifferential'] = int(prediction[d][4])
+      winnerId = int(prediction[d]['prediction_winner'])
+      predicted_data[d]['prediction_winnerId'] = winnerId
+      predicted_data[d]['prediction_homeScore'] = int(prediction[d]['prediction_homeScore'])
+      predicted_data[d]['prediction_awayScore'] = int(prediction[d]['prediction_awayScore'])
+      predicted_data[d]['prediction_totalGoals'] = int(prediction[d]['prediction_totalGoals'])
+      predicted_data[d]['prediction_goalDifferential'] = int(prediction[d]['prediction_goalDifferential'])
       state = data['data']['state']
       homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
       awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
       if abs(winnerId - homeId) < abs(winnerId - awayId):
-        predicted_data[data_keys[d]]['winningTeam'] = homeTeam
-        predicted_data[data_keys[d]]['offset'] = abs(winnerId - homeId)
+        predicted_data[d]['winner'] = homeTeam
+        predicted_data[d]['offset'] = abs(winnerId - homeId)
       elif abs(winnerId - homeId) > abs(winnerId - awayId):
-        predicted_data[data_keys[d]]['winningTeam'] = awayTeam
-        predicted_data[data_keys[d]]['offset'] = abs(winnerId - awayId)
+        predicted_data[d]['winner'] = awayTeam
+        predicted_data[d]['offset'] = abs(winnerId - awayId)
       else:
-        predicted_data[data_keys[d]]['winningTeam'] = 'Inconclusive'
-        predicted_data[data_keys[d]]['offset'] = -1
+        predicted_data[d]['winner'] = 'Inconclusive'
+        predicted_data[d]['offset'] = -1
+
+
+
+  # for d in range(0, len(data_keys)):
+  #   if len(data['data']['data'][data_keys[d]]) == 0 or len(prediction[d]) == 0:
+  #     predicted_data[data_keys[d]]['prediction_winnerId'] = -1
+  #     predicted_data[data_keys[d]]['prediction_homeScore'] = -1
+  #     predicted_data[data_keys[d]]['prediction_awayScore'] = -1
+  #     predicted_data[data_keys[d]]['prediction_totalGoals'] = -1
+  #     predicted_data[data_keys[d]]['prediction_goalDifferential'] = -1
+  #     state = 'OFF'
+  #     homeTeam = data['data']['home_team']['city']
+  #     awayTeam = data['data']['away_team']['city']
+  #     predicted_data[data_keys[d]]['winner'] = -1
+  #     predicted_data[data_keys[d]]['offset'] = -1
+  #   else:
+  #     winnerId = int(prediction[d][2])
+  #     predicted_data[data_keys[d]]['prediction_winnerId'] = winnerId
+  #     predicted_data[data_keys[d]]['prediction_homeScore'] = int(prediction[d][0])
+  #     predicted_data[data_keys[d]]['prediction_awayScore'] = int(prediction[d][1])
+  #     predicted_data[data_keys[d]]['prediction_totalGoals'] = int(prediction[d][3])
+  #     predicted_data[data_keys[d]]['prediction_goalDifferential'] = int(prediction[d][4])
+  #     state = data['data']['state']
+  #     homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
+  #     awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
+  #     if abs(winnerId - homeId) < abs(winnerId - awayId):
+  #       predicted_data[data_keys[d]]['winner'] = homeTeam
+  #       predicted_data[data_keys[d]]['offset'] = abs(winnerId - homeId)
+  #     elif abs(winnerId - homeId) > abs(winnerId - awayId):
+  #       predicted_data[data_keys[d]]['winner'] = awayTeam
+  #       predicted_data[data_keys[d]]['offset'] = abs(winnerId - awayId)
+  #     else:
+  #       predicted_data[data_keys[d]]['winner'] = 'Inconclusive'
+  #       predicted_data[data_keys[d]]['offset'] = -1
 
   live_data = {}
 
@@ -81,77 +130,12 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence=[-1,-1,-1,-1
     'homeTeam': homeTeam,
     'awayTeam': awayTeam,
     'prediction': predicted_data,
+    'confidence': confidence_data,
     'live': live_data,
     'message': data['message'],
   }
 
 def ai_return_dict(data, prediction, confidence=-1):
-  # if confidence != -1:
-  #   winnerConfidence = int((np.max(confidence[0][2], axis=1) * 100)[0])
-  #   homeScoreConfidence = int((np.max(confidence[0][0], axis=1) * 100)[0])
-  #   awayScoreConfidence = int((np.max(confidence[0][1], axis=1) * 100)[0])
-  #   totalGoalsConfidence = int((np.max(confidence[0][3], axis=1) * 100)[0])
-  #   goalDifferentialConfidence = int((np.max(confidence[0][4], axis=1) * 100)[0])
-  #   finalPeriodConfidence = int((np.max(confidence[0][5], axis=1) * 100)[0])
-  #   pastRegulationConfidence = int((np.max(confidence[0][6], axis=1) * 100)[0])
-  #   awayShotsConfidence = int((np.max(confidence[0][7], axis=1) * 100)[0])
-  #   homeShotsConfidence = int((np.max(confidence[0][8], axis=1) * 100)[0])
-  #   awayShotsPeriod1Confidence = int((np.max(confidence[0][9], axis=1) * 100)[0])
-  #   homeShotsPeriod1Confidence = int((np.max(confidence[0][10], axis=1) * 100)[0])
-  #   awayShotsPeriod2Confidence = int((np.max(confidence[0][11], axis=1) * 100)[0])
-  #   homeShotsPeriod2Confidence = int((np.max(confidence[0][12], axis=1) * 100)[0])
-  #   awayShotsPeriod3Confidence = int((np.max(confidence[0][13], axis=1) * 100)[0])
-  #   homeShotsPeriod3Confidence = int((np.max(confidence[0][14], axis=1) * 100)[0])
-  #   awayShotsPeriod4Confidence = int((np.max(confidence[0][15], axis=1) * 100)[0])
-  #   homeShotsPeriod4Confidence = int((np.max(confidence[0][16], axis=1) * 100)[0])
-  #   awayShotsPeriod5Confidence = int((np.max(confidence[0][17], axis=1) * 100)[0])
-  #   homeShotsPeriod5Confidence = int((np.max(confidence[0][18], axis=1) * 100)[0])
-  #   awayScorePeriod1Confidence = int((np.max(confidence[0][19], axis=1) * 100)[0])
-  #   homeScorePeriod1Confidence = int((np.max(confidence[0][20], axis=1) * 100)[0])
-  #   awayScorePeriod2Confidence = int((np.max(confidence[0][21], axis=1) * 100)[0])
-  #   homeScorePeriod2Confidence = int((np.max(confidence[0][22], axis=1) * 100)[0])
-  #   awayScorePeriod3Confidence = int((np.max(confidence[0][23], axis=1) * 100)[0])
-  #   homeScorePeriod3Confidence = int((np.max(confidence[0][24], axis=1) * 100)[0])
-  #   awayScorePeriod4Confidence = int((np.max(confidence[0][25], axis=1) * 100)[0])
-  #   homeScorePeriod4Confidence = int((np.max(confidence[0][26], axis=1) * 100)[0])
-  #   awayScorePeriod5Confidence = int((np.max(confidence[0][27], axis=1) * 100)[0])
-  #   homeScorePeriod5Confidence = int((np.max(confidence[0][28], axis=1) * 100)[0])
-  #   period1PuckLineConfidence = int((np.max(confidence[0][29], axis=1) * 100)[0])
-  #   period2PuckLineConfidence = int((np.max(confidence[0][30], axis=1) * 100)[0])
-  #   period3PuckLineConfidence = int((np.max(confidence[0][31], axis=1) * 100)[0])
-  # else:
-  #   winnerConfidence = -1
-  #   homeScoreConfidence = -1
-  #   awayScoreConfidence = -1
-  #   totalGoalsConfidence = -1
-  #   goalDifferentialConfidence = -1
-  #   finalPeriod = -1
-  #   pastRegulationConfidence = -1
-  #   awayShots = -1
-  #   homeShots = -1
-  #   awayShotsPeriod1 = -1
-  #   homeShotsPeriod1 = -1
-  #   awayShotsPeriod2 = -1
-  #   homeShotsPeriod2 = -1
-  #   awayShotsPeriod3 = -1
-  #   homeShotsPeriod3 = -1
-  #   awayShotsPeriod4 = -1
-  #   homeShotsPeriod4 = -1
-  #   awayShotsPeriod5 = -1
-  #   homeShotsPeriod5 = -1
-  #   awayScorePeriod1 = -1
-  #   homeScorePeriod1 = -1
-  #   awayScorePeriod2 = -1
-  #   homeScorePeriod2 = -1
-  #   awayScorePeriod3 = -1
-  #   homeScorePeriod3 = -1
-  #   awayScorePeriod4 = -1
-  #   homeScorePeriod4 = -1
-  #   awayScorePeriod5 = -1
-  #   homeScorePeriod5 = -1
-  #   period1PuckLine = -1
-  #   period2PuckLine = -1
-  #   period3PuckLine = -1
 
   homeId = data['data']['home_team']['id']
   awayId = data['data']['away_team']['id']
@@ -243,141 +227,35 @@ def ai_return_dict(data, prediction, confidence=-1):
   }
   return out_data
 
-def ai(db, game_data, models):
+def ai(db, game_data, useProjectedLineup, models):
   # data = nhl_ai(game_data)
-  data = nhl_data(db, game_data)
-  if not data['isProjectedLineup']:
+  data = nhl_data(db, game_data, useProjectedLineup)
+  if not data['isProjectedLineup'] and not useProjectedLineup:
     if len(data['data']['data'][0]) == 0:
       return ai_return_dict(data,[[]])
-    prediction_data = MODEL_PREDICT(models,data)
-    # prediction_winner = models['model_winner'].predict(data['data']['data'])
-    # prediction_homeScore = models['model_homeScore'].predict(data['data']['data'])
-    # prediction_awayScore = models['model_awayScore'].predict(data['data']['data'])
-    # prediction_totalGoals = models['model_totalGoals'].predict(data['data']['data'])
-    # prediction_goalDifferential = models['model_goalDifferential'].predict(data['data']['data'])
-    # prediction_finalPeriod = models['model_finalPeriod'].predict(data['data']['data'])
-    # prediction_pastRegulation = models['model_pastRegulation'].predict(data['data']['data'])
-    # prediction_awayShots = models['model_awayShots'].predict(data['data']['data'])
-    # prediction_homeShots = models['model_homeShots'].predict(data['data']['data'])
-    # prediction_awayShotsPeriod1 = models['model_awayShotsPeriod1'].predict(data['data']['data'])
-    # prediction_homeShotsPeriod1 = models['model_homeShotsPeriod1'].predict(data['data']['data'])
-    # prediction_awayShotsPeriod2 = models['model_awayShotsPeriod2'].predict(data['data']['data'])
-    # prediction_homeShotsPeriod2 = models['model_homeShotsPeriod2'].predict(data['data']['data'])
-    # prediction_awayShotsPeriod3 = models['model_awayShotsPeriod3'].predict(data['data']['data'])
-    # prediction_homeShotsPeriod3 = models['model_homeShotsPeriod3'].predict(data['data']['data'])
-    # prediction_awayShotsPeriod4 = models['model_awayShotsPeriod4'].predict(data['data']['data'])
-    # prediction_homeShotsPeriod4 = models['model_homeShotsPeriod4'].predict(data['data']['data'])
-    # prediction_awayShotsPeriod5 = models['model_awayShotsPeriod5'].predict(data['data']['data'])
-    # prediction_homeShotsPeriod5 = models['model_homeShotsPeriod5'].predict(data['data']['data'])
-    # prediction_awayScorePeriod1 = models['model_awayScorePeriod1'].predict(data['data']['data'])
-    # prediction_homeScorePeriod1 = models['model_homeScorePeriod1'].predict(data['data']['data'])
-    # prediction_awayScorePeriod2 = models['model_awayScorePeriod2'].predict(data['data']['data'])
-    # prediction_homeScorePeriod2 = models['model_homeScorePeriod2'].predict(data['data']['data'])
-    # prediction_awayScorePeriod3 = models['model_awayScorePeriod3'].predict(data['data']['data'])
-    # prediction_homeScorePeriod3 = models['model_homeScorePeriod3'].predict(data['data']['data'])
-    # prediction_awayScorePeriod4 = models['model_awayScorePeriod4'].predict(data['data']['data'])
-    # prediction_homeScorePeriod4 = models['model_homeScorePeriod4'].predict(data['data']['data'])
-    # prediction_awayScorePeriod5 = models['model_awayScorePeriod5'].predict(data['data']['data'])
-    # prediction_homeScorePeriod5 = models['model_homeScorePeriod5'].predict(data['data']['data'])
-    # prediction_period1PuckLine = models['model_period1PuckLine'].predict(data['data']['data'])
-    # prediction_period2PuckLine = models['model_period2PuckLine'].predict(data['data']['data'])
-    # prediction_period3PuckLine = models['model_period3PuckLine'].predict(data['data']['data'])
-    confidence_data = MODEL_CONFIDENCE(models,data)
-    # confidence_winner = models['model_winner'].predict_proba(data['data']['data'])
-    # confidence_homeScore = models['model_homeScore'].predict_proba(data['data']['data'])
-    # confidence_awayScore = models['model_awayScore'].predict_proba(data['data']['data'])
-    # confidence_totalGoals = models['model_totalGoals'].predict_proba(data['data']['data'])
-    # confidence_goalDifferential = models['model_goalDifferential'].predict_proba(data['data']['data'])
-    # confidence_finalPeriod = models['model_finalPeriod'].predict_proba(data['data']['data'])
-    # confidence_pastRegulation = models['model_pastRegulation'].predict_proba(data['data']['data'])
-    # confidence_awayShots = models['model_awayShots'].predict_proba(data['data']['data'])
-    # confidence_homeShots = models['model_homeShots'].predict_proba(data['data']['data'])
-    # confidence_awayShotsPeriod1 = models['model_awayShotsPeriod1'].predict_proba(data['data']['data'])
-    # confidence_homeShotsPeriod1 = models['model_homeShotsPeriod1'].predict_proba(data['data']['data'])
-    # confidence_awayShotsPeriod2 = models['model_awayShotsPeriod2'].predict_proba(data['data']['data'])
-    # confidence_homeShotsPeriod2 = models['model_homeShotsPeriod2'].predict_proba(data['data']['data'])
-    # confidence_awayShotsPeriod3 = models['model_awayShotsPeriod3'].predict_proba(data['data']['data'])
-    # confidence_homeShotsPeriod3 = models['model_homeShotsPeriod3'].predict_proba(data['data']['data'])
-    # confidence_awayShotsPeriod4 = models['model_awayShotsPeriod4'].predict_proba(data['data']['data'])
-    # confidence_homeShotsPeriod4 = models['model_homeShotsPeriod4'].predict_proba(data['data']['data'])
-    # confidence_awayShotsPeriod5 = models['model_awayShotsPeriod5'].predict_proba(data['data']['data'])
-    # confidence_homeShotsPeriod5 = models['model_homeShotsPeriod5'].predict_proba(data['data']['data'])
-    # confidence_awayScorePeriod1 = models['model_awayScorePeriod1'].predict_proba(data['data']['data'])
-    # confidence_homeScorePeriod1 = models['model_homeScorePeriod1'].predict_proba(data['data']['data'])
-    # confidence_awayScorePeriod2 = models['model_awayScorePeriod2'].predict_proba(data['data']['data'])
-    # confidence_homeScorePeriod2 = models['model_homeScorePeriod2'].predict_proba(data['data']['data'])
-    # confidence_awayScorePeriod3 = models['model_awayScorePeriod3'].predict_proba(data['data']['data'])
-    # confidence_homeScorePeriod3 = models['model_homeScorePeriod3'].predict_proba(data['data']['data'])
-    # confidence_awayScorePeriod4 = models['model_awayScorePeriod4'].predict_proba(data['data']['data'])
-    # confidence_homeScorePeriod4 = models['model_homeScorePeriod4'].predict_proba(data['data']['data'])
-    # confidence_awayScorePeriod5 = models['model_awayScorePeriod5'].predict_proba(data['data']['data'])
-    # confidence_homeScorePeriod5 = models['model_homeScorePeriod5'].predict_proba(data['data']['data'])
-    # confidence_period1PuckLine = models['model_period1PuckLine'].predict_proba(data['data']['data'])
-    # confidence_period2PuckLine = models['model_period2PuckLine'].predict_proba(data['data']['data'])
-    # confidence_period3PuckLine = models['model_period3PuckLine'].predict_proba(data['data']['data'])
-    
-    prediction = prediction_data
-    confidence = confidence_data
+    prediction = MODEL_PREDICT(models,data)
+    confidence = MODEL_CONFIDENCE(models,data)
 
     return ai_return_dict(data,prediction,confidence)
 
   else:
     data_keys = list(data['data']['data'].keys())
-    prediction_winner_0 = models['model_winner'].predict(data['data']['data'][data_keys[0]])
-    prediction_homeScore_0 = models['model_homeScore'].predict(data['data']['data'][data_keys[0]])
-    prediction_awayScore_0 = models['model_awayScore'].predict(data['data']['data'][data_keys[0]])
-    prediction_totalGoals_0 = models['model_totalGoals'].predict(data['data']['data'][data_keys[0]])
-    prediction_goalDifferential_0 = models['model_goalDifferential'].predict(data['data']['data'][data_keys[0]])
-    confidence_winner_0 = models['model_winner'].predict_proba(data['data']['data'][data_keys[0]])
-    confidence_homeScore_0 = models['model_homeScore'].predict_proba(data['data']['data'][data_keys[0]])
-    confidence_awayScore_0 = models['model_awayScore'].predict_proba(data['data']['data'][data_keys[0]])
-    confidence_totalGoals_0 = models['model_totalGoals'].predict_proba(data['data']['data'][data_keys[0]])
-    confidence_goalDifferential_0 = models['model_goalDifferential'].predict_proba(data['data']['data'][data_keys[0]])
+    predictions = {}
+    confidences = {}
+    # print(data['data']['data'])
+    for i in data_keys:
+      predictions[i] = {}
+      confidences[i] = {}
+      # print(i,data['data']['data'][i])
+      predictions[i][f'prediction_winner'] = models['model_winner'].predict(data['data']['data'][i])
+      predictions[i][f'prediction_homeScore'] = models['model_homeScore'].predict(data['data']['data'][i])
+      predictions[i][f'prediction_awayScore'] = models['model_awayScore'].predict(data['data']['data'][i])
+      predictions[i][f'prediction_totalGoals'] = models['model_totalGoals'].predict(data['data']['data'][i])
+      predictions[i][f'prediction_goalDifferential'] = models['model_goalDifferential'].predict(data['data']['data'][i])
+      confidences[i][f'confidence_winner'] = models['model_winner'].predict_proba(data['data']['data'][i])
+      confidences[i][f'confidence_homeScore'] = models['model_homeScore'].predict_proba(data['data']['data'][i])
+      confidences[i][f'confidence_awayScore'] = models['model_awayScore'].predict_proba(data['data']['data'][i])
+      confidences[i][f'confidence_totalGoals'] = models['model_totalGoals'].predict_proba(data['data']['data'][i])
+      confidences[i][f'confidence_goalDifferential'] = models['model_goalDifferential'].predict_proba(data['data']['data'][i])
     
-    prediction_winner_1 = models['model_winner'].predict(data['data']['data'][data_keys[1]])
-    prediction_homeScore_1 = models['model_homeScore'].predict(data['data']['data'][data_keys[1]])
-    prediction_awayScore_1 = models['model_awayScore'].predict(data['data']['data'][data_keys[1]])
-    prediction_totalGoals_1 = models['model_totalGoals'].predict(data['data']['data'][data_keys[1]])
-    prediction_goalDifferential_1 = models['model_goalDifferential'].predict(data['data']['data'][data_keys[1]])
-    confidence_winner_1 = models['model_winner'].predict_proba(data['data']['data'][data_keys[1]])
-    confidence_homeScore_1 = models['model_homeScore'].predict_proba(data['data']['data'][data_keys[1]])
-    confidence_awayScore_1 = models['model_awayScore'].predict_proba(data['data']['data'][data_keys[1]])
-    confidence_totalGoals_1 = models['model_totalGoals'].predict_proba(data['data']['data'][data_keys[1]])
-    confidence_goalDifferential_1 = models['model_goalDifferential'].predict_proba(data['data']['data'][data_keys[1]])
-
-    prediction_winner_2 = models['model_winner'].predict(data['data']['data'][data_keys[2]])
-    prediction_homeScore_2 = models['model_homeScore'].predict(data['data']['data'][data_keys[2]])
-    prediction_awayScore_2 = models['model_awayScore'].predict(data['data']['data'][data_keys[2]])
-    prediction_totalGoals_2 = models['model_totalGoals'].predict(data['data']['data'][data_keys[2]])
-    prediction_goalDifferential_2 = models['model_goalDifferential'].predict(data['data']['data'][data_keys[2]])
-    confidence_winner_2 = models['model_winner'].predict_proba(data['data']['data'][data_keys[2]])
-    confidence_homeScore_2 = models['model_homeScore'].predict_proba(data['data']['data'][data_keys[2]])
-    confidence_awayScore_2 = models['model_awayScore'].predict_proba(data['data']['data'][data_keys[2]])
-    confidence_totalGoals_2 = models['model_totalGoals'].predict_proba(data['data']['data'][data_keys[2]])
-    confidence_goalDifferential_2 = models['model_goalDifferential'].predict_proba(data['data']['data'][data_keys[2]])
-
-    prediction_winner_3 = models['model_winner'].predict(data['data']['data'][data_keys[3]])
-    prediction_homeScore_3 = models['model_homeScore'].predict(data['data']['data'][data_keys[3]])
-    prediction_awayScore_3 = models['model_awayScore'].predict(data['data']['data'][data_keys[3]])
-    prediction_totalGoals_3 = models['model_totalGoals'].predict(data['data']['data'][data_keys[3]])
-    prediction_goalDifferential_3 = models['model_goalDifferential'].predict(data['data']['data'][data_keys[3]])
-    confidence_winner_3 = models['model_winner'].predict_proba(data['data']['data'][data_keys[3]])
-    confidence_homeScore_3 = models['model_homeScore'].predict_proba(data['data']['data'][data_keys[3]])
-    confidence_awayScore_3 = models['model_awayScore'].predict_proba(data['data']['data'][data_keys[3]])
-    confidence_totalGoals_3 = models['model_totalGoals'].predict_proba(data['data']['data'][data_keys[3]])
-    confidence_goalDifferential_3 = models['model_goalDifferential'].predict_proba(data['data']['data'][data_keys[3]])
-
-    prediction = [
-      [prediction_homeScore_0,prediction_awayScore_0,prediction_winner_0,prediction_totalGoals_0,prediction_goalDifferential_0],
-      [prediction_homeScore_1,prediction_awayScore_1,prediction_winner_1,prediction_totalGoals_1,prediction_goalDifferential_1],
-      [prediction_homeScore_2,prediction_awayScore_2,prediction_winner_2,prediction_totalGoals_2,prediction_goalDifferential_2],
-      [prediction_homeScore_3,prediction_awayScore_3,prediction_winner_3,prediction_totalGoals_3,prediction_goalDifferential_3],
-    ]
-    confidence = [
-      [confidence_homeScore_0,confidence_awayScore_0,confidence_winner_0,confidence_totalGoals_0,confidence_goalDifferential_0],
-      [confidence_homeScore_1,confidence_awayScore_1,confidence_winner_1,confidence_totalGoals_1,confidence_goalDifferential_1],
-      [confidence_homeScore_2,confidence_awayScore_2,confidence_winner_2,confidence_totalGoals_2,confidence_goalDifferential_2],
-      [confidence_homeScore_3,confidence_awayScore_3,confidence_winner_3,confidence_totalGoals_3,confidence_goalDifferential_3],
-    ]
-    
-    return ai_return_dict_projectedLineup(db, data,prediction,confidence)
+    return ai_return_dict_projectedLineup(db, data,predictions,confidences)
