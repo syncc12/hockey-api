@@ -11,7 +11,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from util.helpers import adjusted_winner
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
-from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
+from constants.constants import VERSION, FILE_VERSION, H2O_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
+# import h2o
 
 # RANDOM_STATE = 12
 # FILE_VERSION = 7
@@ -19,7 +20,15 @@ from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASO
 MODEL_NAMES = Y_OUTPUTS
 
 MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')) for i in MODEL_NAMES])
-# MODELS = dict([(f'model_{i}',f'load(models/nhl_ai_v{FILE_VERSION}_{i}.joblib)') for i in MODEL_NAMES])
+# MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_gbc_{i}.joblib')) for i in MODEL_NAMES])
+MODELS = {}
+# for i in MODEL_NAMES:
+#   if i == 'winnerB':
+#     # f'C:/Users/syncc/code/Hockey API/hockey_api/models/nhl_ai_v{H2O_FILE_VERSION}_h2o_{i}/StackedEnsemble_BestOfFamily_1_AutoML_1_20240121_02310'
+#     MODELS[f'model_{i}'] = h2o.load_model(f'models/nhl_ai_v{H2O_FILE_VERSION}_h2o_winner/StackedEnsemble_BestOfFamily_1_AutoML_1_20240121_02310')
+#   else:
+#     MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')
+
 
 def MODEL_X_INPUTS(x):
   return dict([(f'x_{i}',x) for i in MODEL_NAMES])
@@ -59,13 +68,25 @@ def MODEL_DUMP(clf):
 
 def MODEL_PREDICT(models,data):
   out_dict = {}
+  # print(data)
   for i in MODEL_NAMES:
+    # if i == 'winnerB':
+    #   # print(data['data']['input_data'])
+    #   selected_data = {key: data['data']['input_data'][key] for key in X_INPUTS}
+    #   # print('selected_data',selected_data)
+    #   hf = h2o.H2OFrame([selected_data])
+    #   # print('hf',hf)
+    #   out_dict[f'prediction_{i}'] = models[f'model_{i}'].predict(hf)
+    # else:
     out_dict[f'prediction_{i}'] = models[f'model_{i}'].predict(data['data']['data'])
   return out_dict
 
 def MODEL_CONFIDENCE(models,data):
   out_dict = {}
   for i in MODEL_NAMES:
+    # if i == 'winnerB':
+    #   pass
+    # else:
     out_dict[f'confidence_{i}'] = int((np.max(models[f'model_{i}'].predict_proba(data['data']['data']), axis=1) * 100)[0])
   return out_dict
 

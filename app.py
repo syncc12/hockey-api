@@ -2,6 +2,9 @@ import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\pages\nhl')
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
+# import h2o
+# h2o.init()
+
 from flask import Flask, request, jsonify, Response
 from joblib import load
 from pymongo import MongoClient
@@ -20,6 +23,7 @@ CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
 models = MODELS
 
 app = Flask(__name__)
+
 
 # app.run(host="0.0.0.0")
 
@@ -108,6 +112,10 @@ def nhl_metadata():
 def nhl_save_boxscores():
   date = request.args.get('date', default='now', type=str)
   return save_boxscores(db, date, models)
+
+# @app.teardown_appcontext
+# def shutdown_h2o(exception=None):
+#   h2o.cluster().shutdown()
 
 if __name__ == '__main__':
   app.run()

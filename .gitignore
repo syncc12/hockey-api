@@ -6,3 +6,5 @@ training_data.joblib
 training_data*.joblib
 training_data.txt
 training_data*.txt
+training_data.csv
+training_data*.csv

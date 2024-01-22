@@ -97,23 +97,47 @@ X_V6_INPUTS = [
 Y_V6_OUTPUTS = ['homeScore','awayScore','winner','totalGoals','goalDifferential']
 
 BASE_INPUTS = [
-  'id','season','gameType','venue','neutralSite','homeTeam','awayTeam','startTime',
-  'date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman1'
+  'id','season','gameType','venue','neutralSite','homeTeam','awayTeam',#'startTime',
+  'date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman2'
+]
+ANN_BASE_INPUTS = [
+  'id','season','gameType','venueT','neutralSite','homeTeam','awayTeam','startTime',
+  'date','awayHeadCoachT','homeHeadCoachT','ref1T','ref2T','linesman1T','linesman2T'
 ]
 FORWARD_INPUTS = ['Age']
 DEFENSE_INPUTS = ['Age']
 GOALIE_INPUTS = ['Catches', 'Age']
+ANN_GOALIE_INPUTS = ['CatchesT', 'Age']
+
+AWAY_FORWARD_INPUTS = []
+AWAY_DEFENSE_INPUTS = []
+AWAY_GOALIE_INPUTS = []
+HOME_FORWARD_INPUTS = []
+HOME_DEFENSE_INPUTS = []
+HOME_GOALIE_INPUTS = []
+
+AWAY_FORWARD_AGE_INPUTS = []
+AWAY_DEFENSE_AGE_INPUTS = []
+AWAY_GOALIE_AGE_INPUTS = []
+HOME_FORWARD_AGE_INPUTS = []
+HOME_DEFENSE_AGE_INPUTS = []
+HOME_GOALIE_AGE_INPUTS = []
+
+AWAY_GOALIE_CATCHES_INPUTS = []
+HOME_GOALIE_CATCHES_INPUTS = []
 
 FORWARD_INPUTS_ZIP = [i for i in range(0,13)]
 DEFENSE_INPUTS_ZIP = [i for i in range(0,7)]
 
 X_INPUTS = BASE_INPUTS
+X_INPUTS_ANN = ANN_BASE_INPUTS
 Y_OUTPUTS = [
   'homeScore',
   'awayScore',
   'winner',
   'totalGoals',
   'goalDifferential',
+  'winnerB',
   # 'finalPeriod',
   # 'pastRegulation',
   # 'awayShots',
@@ -145,34 +169,88 @@ Y_OUTPUTS = [
 
 for i in FORWARD_INPUTS_ZIP:
   X_INPUTS.append(f'awayForward{i+1}')
+  X_INPUTS_ANN.append(f'awayForward{i+1}')
+  AWAY_FORWARD_INPUTS.append(f'awayForward{i+1}')
   for feature in FORWARD_INPUTS:
     X_INPUTS.append(f'awayForward{i+1}{feature}')
+    X_INPUTS_ANN.append(f'awayForward{i+1}{feature}')
+    if feature == 'Age':
+      AWAY_FORWARD_AGE_INPUTS.append(f'awayForward{i+1}Age')
 
 for i in DEFENSE_INPUTS_ZIP:
   X_INPUTS.append(f'awayDefenseman{i+1}')
+  X_INPUTS_ANN.append(f'awayDefenseman{i+1}')
+  AWAY_DEFENSE_INPUTS.append(f'awayDefenseman{i+1}')
   for feature in DEFENSE_INPUTS:
     X_INPUTS.append(f'awayDefenseman{i+1}{feature}')
+    X_INPUTS_ANN.append(f'awayDefenseman{i+1}{feature}')
+    if feature == 'Age':
+      AWAY_DEFENSE_AGE_INPUTS.append(f'awayDefenseman{i+1}Age')
 
 X_INPUTS.append(f'awayStartingGoalie')
+X_INPUTS_ANN.append(f'awayStartingGoalie')
+AWAY_GOALIE_INPUTS.append(f'awayStartingGoalie')
 for feature in GOALIE_INPUTS:
   X_INPUTS.append(f'awayStartingGoalie{feature}')
+  if feature == 'Age':
+    AWAY_GOALIE_AGE_INPUTS.append(f'awayStartingGoalieAge')
+    X_INPUTS_ANN.append(f'awayStartingGoalieAge')
+  if feature == 'Catches':
+    AWAY_GOALIE_CATCHES_INPUTS.append(f'awayStartingGoalieCatches')
+    X_INPUTS_ANN.append(f'awayStartingGoalieCatchesT')
+
 X_INPUTS.append(f'awayBackupGoalie')
+X_INPUTS_ANN.append(f'awayBackupGoalie')
+AWAY_GOALIE_INPUTS.append(f'awayBackupGoalie')
 for feature in GOALIE_INPUTS:
   X_INPUTS.append(f'awayBackupGoalie{feature}')
+  if feature == 'Age':
+    AWAY_GOALIE_AGE_INPUTS.append(f'awayBackupGoalieAge')
+    X_INPUTS_ANN.append(f'awayBackupGoalieAge')
+  if feature == 'Catches':
+    AWAY_GOALIE_CATCHES_INPUTS.append(f'awayBackupGoalieCatches')
+    X_INPUTS_ANN.append(f'awayBackupGoalieCatchesT')
 
 for i in FORWARD_INPUTS_ZIP:
   X_INPUTS.append(f'homeForward{i+1}')
+  X_INPUTS_ANN.append(f'homeForward{i+1}')
+  HOME_FORWARD_INPUTS.append(f'homeForward{i+1}')
   for feature in FORWARD_INPUTS:
     X_INPUTS.append(f'homeForward{i+1}{feature}')
+    X_INPUTS_ANN.append(f'homeForward{i+1}{feature}')
+    if feature == 'Age':
+      HOME_FORWARD_AGE_INPUTS.append(f'homeForward{i+1}Age')
 
 for i in DEFENSE_INPUTS_ZIP:
   X_INPUTS.append(f'homeDefenseman{i+1}')
+  X_INPUTS_ANN.append(f'homeDefenseman{i+1}')
+  HOME_DEFENSE_INPUTS.append(f'homeDefenseman{i+1}')
   for feature in DEFENSE_INPUTS:
     X_INPUTS.append(f'homeDefenseman{i+1}{feature}')
+    X_INPUTS_ANN.append(f'homeDefenseman{i+1}{feature}')
+    if feature == 'Age':
+      HOME_DEFENSE_AGE_INPUTS.append(f'homeDefenseman{i+1}Age')
 
 X_INPUTS.append(f'homeStartingGoalie')
+X_INPUTS_ANN.append(f'homeStartingGoalie')
+HOME_GOALIE_INPUTS.append(f'homeStartingGoalie')
 for feature in GOALIE_INPUTS:
   X_INPUTS.append(f'homeStartingGoalie{feature}')
+  if feature == 'Age':
+    HOME_GOALIE_AGE_INPUTS.append(f'homeStartingGoalieAge')
+    X_INPUTS_ANN.append(f'homeStartingGoalieAge')
+  if feature == 'Catches':
+    HOME_GOALIE_CATCHES_INPUTS.append(f'homeStartingGoalieCatches')
+    X_INPUTS_ANN.append(f'homeStartingGoalieCatchesT')
+
 X_INPUTS.append(f'homeBackupGoalie')
+X_INPUTS_ANN.append(f'homeBackupGoalie')
+HOME_GOALIE_INPUTS.append(f'homeBackupGoalie')
 for feature in GOALIE_INPUTS:
   X_INPUTS.append(f'homeBackupGoalie{feature}')
+  if feature == 'Age':
+    HOME_GOALIE_AGE_INPUTS.append(f'homeBackupGoalieAge')
+    X_INPUTS_ANN.append(f'homeBackupGoalieAge')
+  if feature == 'Catches':
+    HOME_GOALIE_CATCHES_INPUTS.append(f'homeBackupGoalieCatches')
+    X_INPUTS_ANN.append(f'homeBackupGoalieCatchesT')

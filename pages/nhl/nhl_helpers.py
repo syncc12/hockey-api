@@ -17,11 +17,10 @@ import boto3
 import io
 from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE
+# import h2o
 
 def ai_return_dict_projectedLineup(db, data, prediction, confidence):
   data_keys = list(data['data']['data'].keys())
-  confidence_data = {}
-  predicted_data = {}
   confidence_data = {}
   predicted_data = {}
 
@@ -29,6 +28,7 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence):
     confidence_data[d] = {}
     predicted_data[d] = {}
     confidence_data[d]['confidence_winner'] = int((np.max(confidence[d]['confidence_winner'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_winnerB'] = int((np.max(confidence[d]['confidence_winnerB'], axis=1) * 100)[0])
     confidence_data[d]['confidence_homeScore'] = int((np.max(confidence[d]['confidence_homeScore'], axis=1) * 100)[0])
     confidence_data[d]['confidence_awayScore'] = int((np.max(confidence[d]['confidence_awayScore'], axis=1) * 100)[0])
     confidence_data[d]['confidence_totalGoals'] = int((np.max(confidence[d]['confidence_totalGoals'], axis=1) * 100)[0])
@@ -56,6 +56,7 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence):
   for d in data_keys:
     if len(data['data']['data'][d]) == 0 or len(prediction[d]) == 0:
       predicted_data[d]['prediction_winnerId'] = -1
+      predicted_data[d]['prediction_winnerB'] = -1
       predicted_data[d]['prediction_homeScore'] = -1
       predicted_data[d]['prediction_awayScore'] = -1
       predicted_data[d]['prediction_totalGoals'] = -1
@@ -64,10 +65,13 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence):
       homeTeam = data['data']['home_team']['city']
       awayTeam = data['data']['away_team']['city']
       predicted_data[d]['winner'] = -1
+      predicted_data[d]['winnerB'] = -1
       predicted_data[d]['offset'] = -1
     else:
       winnerId = int(prediction[d]['prediction_winner'])
+      winnerB = int(prediction[d]['prediction_winnerB'])
       predicted_data[d]['prediction_winnerId'] = winnerId
+      predicted_data[d]['prediction_winnerB'] = winnerB
       predicted_data[d]['prediction_homeScore'] = int(prediction[d]['prediction_homeScore'])
       predicted_data[d]['prediction_awayScore'] = int(prediction[d]['prediction_awayScore'])
       predicted_data[d]['prediction_totalGoals'] = int(prediction[d]['prediction_totalGoals'])
@@ -84,6 +88,12 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence):
       else:
         predicted_data[d]['winner'] = 'Inconclusive'
         predicted_data[d]['offset'] = -1
+    if winnerB == 0:
+      predicted_data[d]['winnerB'] = homeTeam
+    elif winnerB == 1:
+      predicted_data[d]['winnerB'] = awayTeam
+    else:
+      predicted_data[d]['winnerB'] = 'Inconclusive'
 
 
 
@@ -141,6 +151,7 @@ def ai_return_dict(data, prediction, confidence=-1):
   awayId = data['data']['away_team']['id']
   if len(data['data']['data'][0]) == 0 or len(prediction['prediction_winner']) == 0:
     winnerId = -1
+    winnerB = -1
     homeScore = -1
     awayScore = -1
     totalGoals = -1
@@ -160,6 +171,7 @@ def ai_return_dict(data, prediction, confidence=-1):
     offset = -1
   else:
     winnerId = int(prediction['prediction_winner'])
+    winnerB = int(prediction['prediction_winnerB'])
     state = data['data']['state']
     homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
     awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
@@ -187,6 +199,12 @@ def ai_return_dict(data, prediction, confidence=-1):
     else:
       winningTeam = 'Inconclusive'
       offset = -1
+    if winnerB == 0:
+      winningTeamB = homeTeam
+    elif winnerB == 1:
+      winningTeamB = awayTeam
+    else:
+      winningTeamB = 'Inconclusive'
 
   if data['message'] == 'using projected lineup':
     live_data = {}
@@ -205,6 +223,7 @@ def ai_return_dict(data, prediction, confidence=-1):
   predicted_data = {
     **prediction,
     'winner': winningTeam,
+    'winnerB': winningTeamB,
     'offset': offset,
   }
 
@@ -242,17 +261,20 @@ def ai(db, game_data, useProjectedLineup, models):
     data_keys = list(data['data']['data'].keys())
     predictions = {}
     confidences = {}
-    # print(data['data']['data'])
+    # print(data['data'])
     for i in data_keys:
       predictions[i] = {}
       confidences[i] = {}
       # print(i,data['data']['data'][i])
       predictions[i][f'prediction_winner'] = models['model_winner'].predict(data['data']['data'][i])
+      predictions[i][f'prediction_winnerB'] = models['model_winnerB'].predict(data['data']['data'][i])
+      # predictions[i][f'prediction_winnerB'] = models['model_winnerB'].predict(h2o.H2OFrame(data['data']['data'][i]))
       predictions[i][f'prediction_homeScore'] = models['model_homeScore'].predict(data['data']['data'][i])
       predictions[i][f'prediction_awayScore'] = models['model_awayScore'].predict(data['data']['data'][i])
       predictions[i][f'prediction_totalGoals'] = models['model_totalGoals'].predict(data['data']['data'][i])
       predictions[i][f'prediction_goalDifferential'] = models['model_goalDifferential'].predict(data['data']['data'][i])
       confidences[i][f'confidence_winner'] = models['model_winner'].predict_proba(data['data']['data'][i])
+      confidences[i][f'confidence_winnerB'] = models['model_winnerB'].predict_proba(data['data']['data'][i])
       confidences[i][f'confidence_homeScore'] = models['model_homeScore'].predict_proba(data['data']['data'][i])
       confidences[i][f'confidence_awayScore'] = models['model_awayScore'].predict_proba(data['data']['data'][i])
       confidences[i][f'confidence_totalGoals'] = models['model_totalGoals'].predict_proba(data['data']['data'][i])

@@ -2,6 +2,7 @@ import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 from util.helpers import safe_chain, getPlayer, getAge, n2n, b2n
+from sklearn.preprocessing import LabelEncoder
 
 
 def base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date):
@@ -10,7 +11,9 @@ def base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date):
     'season': safe_chain(game,'season'),
     'gameType': safe_chain(game,'gameType'),
     'venue': n2n(safe_chain(game,'venue','default')),
+    'venueT': str(safe_chain(game,'venue','default',default=0)),
     'neutralSite': b2n(safe_chain(game,'neutralSite')),
+    'neutralSiteB': safe_chain(game,'neutralSite'),
     'homeTeam': homeTeam['id'],
     'awayTeam': awayTeam['id'],
     'homeScore': safe_chain(homeTeam,'score'),
@@ -18,14 +21,21 @@ def base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date):
     'totalGoals': safe_chain(homeTeam,'score') + safe_chain(awayTeam,'score'),
     'goalDifferential': safe_chain(homeTeam,'score') - safe_chain(awayTeam,'score') if safe_chain(homeTeam,'score') >= safe_chain(awayTeam,'score') else safe_chain(awayTeam,'score') - safe_chain(homeTeam,'score'),
     'winner': homeTeam['id'] if safe_chain(homeTeam,'score') > safe_chain(awayTeam,'score') else awayTeam['id'],
+    'winnerB': 0 if safe_chain(homeTeam,'score') > safe_chain(awayTeam,'score') else 1,
     'startTime': startTime,
     'date': date,
     'awayHeadCoach': n2n(safe_chain(gi,'awayTeam','headCoach','default')),
+    'awayHeadCoachT': str(safe_chain(gi,'awayTeam','headCoach','default',default=0)),
     'homeHeadCoach': n2n(safe_chain(gi,'homeTeam','headCoach','default')),
+    'homeHeadCoachT': str(safe_chain(gi,'homeTeam','headCoach','default',default=0)),
     'ref1': n2n(safe_chain(gi,'referees',0,'default')),
+    'ref1T': str(safe_chain(gi,'referees',0,'default',default=0)),
     'ref2': n2n(safe_chain(gi,'referees',1,'default')),
+    'ref2T': str(safe_chain(gi,'referees',1,'default',default=0)),
     'linesman1': n2n(safe_chain(gi,'linesmen',0,'default')),
+    'linesman1T': str(safe_chain(gi,'linesmen',0,'default',default=0)),
     'linesman2': n2n(safe_chain(gi,'linesmen',1,'default')),
+    'linesman2T': str(safe_chain(gi,'linesmen',1,'default',default=0)),
     'finalPeriod': safe_chain(game,'period'),
     'pastRegulation': 1 if safe_chain(game,'period') > 3 else 0,
     'awayShots': safe_chain(game,'awayTeam','sog'),

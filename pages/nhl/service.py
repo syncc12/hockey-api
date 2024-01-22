@@ -67,6 +67,7 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     test_results[boxscore['gameDate']] = {
     'game': [],
     'winnerPercent': 0,
+    'winnerBPercent': 0,
     'homeScorePercent': 0,
     'awayScorePercent': 0,
     }
@@ -196,6 +197,7 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
         },
       }
     test_results[boxscore['gameDate']]['winnerPercent'] = (line_total['winner_total'] / list_total) * 100
+    test_results[boxscore['gameDate']]['winnerBPercent'] = (line_total['winnerB_total'] / list_total) * 100
     test_results[boxscore['gameDate']]['homeScorePercent'] = (line_total['homeScore_total'] / list_total) * 100
     test_results[boxscore['gameDate']]['awayScorePercent'] = (line_total['awayScore_total'] / list_total) * 100
     # test_results[boxscore['gameDate']]['h2hScorePercent'] = (line_total['home_away_score_total'] / list_total) * 100
@@ -209,6 +211,7 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     test_recommended_wagers(100,odds=odds_dict[day],confidence=confidence_dict[day],winners=winners_dict[day])
 
   test_results['allWinnerPercent'] = (all_total['all_winner_total'] / all_list_total) * 100
+  test_results['allWinnerBPercent'] = (all_total['all_winnerB_total'] / all_list_total) * 100
   test_results['allHomeScorePercent'] = (all_total['all_homeScore_total'] / all_list_total) * 100
   test_results['allAwayScorePercent'] = (all_total['all_awayScore_total'] / all_list_total) * 100
   # test_results['allH2HScorePercent'] = (all_total['all_home_away_score_total'] / all_list_total) * 100
@@ -255,25 +258,6 @@ def collect_boxscores(db,startID,endID,models):
   Boxscores.insert_many(boxscores)
   return {'status':'done'}
 
-
-# def collect_training_data(db,startID,endID,id,models):
-#   training_data = []
-#   is_neutral_site = {}
-#   if startID != -1 and endID != -1 and id == -1:
-#     for id in range(startID, endID+1):
-#       loop_data = data_loop(id=id,is_neutral_site=is_neutral_site)
-#       is_neutral_site = loop_data['is_neutral_site']
-#       training_data.append(save_training_data(boxscores=loop_data['boxscore_data'],neutralSite=is_neutral_site[loop_data['boxscore_data']['id']]))
-#   else:
-#     if startID == -1 and endID == -1 and id != -1:
-#       loop_data = data_loop(id=id,is_neutral_site=is_neutral_site)
-#     elif startID != -1 and endID == -1 and id == -1:
-#       loop_data = data_loop(id=startID,is_neutral_site=is_neutral_site)
-#     elif startID == -1 and endID != -1 and id == -1:
-#       loop_data = data_loop(id=endID,is_neutral_site=is_neutral_site)
-#     training_data.append(save_training_data(boxscores=loop_data['boxscore_data'],neutralSite=is_neutral_site[loop_data['boxscore_data']['id']]))
-  
-#   return training_data
   
 def data_loop(id,is_neutral_site={}):
   boxscore_data = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore").json()
@@ -326,6 +310,7 @@ def predict_day_simple(db,date,day,gamePick,projectedLineup,models):
         simple_data['prediction'][combo]['awayTeam'] = f"{ai_data['awayTeam']} - {ai_data['prediction'][combo]['prediction_awayScore']} - {ai_data['confidence'][combo]['confidence_awayScore']}%"
         simple_data['prediction'][combo]['homeTeam'] = f"{ai_data['homeTeam']} - {ai_data['prediction'][combo]['prediction_homeScore']} - {ai_data['confidence'][combo]['confidence_homeScore']}%"
         simple_data['prediction'][combo]['winningTeam'] = f"{ai_data['prediction'][combo]['winner']} - {ai_data['confidence'][combo]['confidence_winner']}%"
+        simple_data['prediction'][combo]['winningTeamB'] = f"{ai_data['prediction'][combo]['winnerB']} - {ai_data['confidence'][combo]['confidence_winnerB']}%"
         simple_data['prediction'][combo]['offset'] = ai_data['prediction'][combo]['offset']
         simple_data['prediction'][combo]['totalGoals'] = f"{ai_data['prediction'][combo]['prediction_totalGoals']} - {ai_data['confidence'][combo]['confidence_totalGoals']}%"
         simple_data['prediction'][combo]['goalDifferential'] = f"{ai_data['prediction'][combo]['prediction_goalDifferential']} - {ai_data['confidence'][combo]['confidence_goalDifferential']}%"
@@ -341,6 +326,7 @@ def predict_day_simple(db,date,day,gamePick,projectedLineup,models):
         'homeTeam': f"{ai_data['homeTeam']} - {ai_data['prediction']['prediction_homeScore'][0]} - {ai_data['confidence']['confidence_homeScore']}%",
         'live': live_data,
         'winningTeam': f"{ai_data['prediction']['winner']} - {ai_data['confidence']['confidence_winner']}%",
+        'winningTeamB': f"{ai_data['prediction']['winnerB']} - {ai_data['confidence']['confidence_winnerB']}%",
         'message': ai_data['message'],
         'offset': ai_data['prediction']['offset'],
         'totalGoals': f"{ai_data['prediction']['prediction_totalGoals'][0]} - {ai_data['confidence']['confidence_totalGoals']}%",
