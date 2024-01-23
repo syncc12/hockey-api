@@ -19,9 +19,13 @@ N_ESTIMATORS=200
 LEARNING_RATE=0.1
 MAX_DEPTH=1
 
-WINNER_N_ESTIMATORS=600
+WINNER_N_ESTIMATORS=200
 WINNER_LEARNING_RATE=0.01
-WINNER_MAX_DEPTH=3
+WINNER_MAX_DEPTH=1
+
+WINNER_B_N_ESTIMATORS=1000
+WINNER_B_LEARNING_RATE=0.01
+WINNER_B_MAX_DEPTH=50
 
 HOME_SCORE_N_ESTIMATORS=150
 HOME_SCORE_LEARNING_RATE=0.2
@@ -48,6 +52,16 @@ def train_winner(x, y, n_estimators, learning_rate, max_depth):
   accuracy = accuracy_score(y_test, predictions)
   print("Winner Accuracy:", accuracy)
   dump(gbc, f'models/nhl_ai_v{FILE_VERSION}_gbc_winner.joblib')
+  return accuracy
+
+def train_winnerB(x, y, n_estimators, learning_rate, max_depth):
+  x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_STATE)
+  gbc = GradientBoostingClassifier(n_estimators=n_estimators, learning_rate=learning_rate, max_depth=max_depth, random_state=RANDOM_STATE, verbose=VERBOSE)
+  gbc.fit(x_train,y_train)
+  predictions = gbc.predict(x_test)
+  accuracy = accuracy_score(y_test, predictions)
+  print("WinnerB Accuracy:", accuracy)
+  dump(gbc, f'models/nhl_ai_v{FILE_VERSION}_gbc_winnerB.joblib')
   return accuracy
 
 def train_homeScore(x, y, n_estimators, learning_rate, max_depth):
@@ -95,20 +109,23 @@ def train(db, inData):
   data = pd.DataFrame(inData)
   x = data [X_INPUTS]
   
-  y_winner = data [['winner']].values.ravel()
+  # y_winner = data [['winner']].values.ravel()
+  y_winnerB = data [['winnerB']].values.ravel()
   # y_homeScore = data [['homeScore']].values.ravel()
   # y_awayScore = data [['awayScore']].values.ravel()
   # y_totalGoals = data [['totalGoals']].values.ravel()
   # y_goalDifferential = data [['goalDifferential']].values.ravel()
   imputer.fit(x)
   x = imputer.transform(x)
-  x_winner = x
+  # x_winner = x
+  x_winnerB = x
   # x_homeScore = x
   # x_awayScore = x
   # x_totalGoals = x
   # x_goalDifferential = x
 
-  winner_accuracy = train_winner(x_winner, y_winner, WINNER_N_ESTIMATORS, WINNER_LEARNING_RATE, WINNER_MAX_DEPTH)
+  # winner_accuracy = train_winner(x_winner, y_winner, WINNER_N_ESTIMATORS, WINNER_LEARNING_RATE, WINNER_MAX_DEPTH)
+  winnerB_accuracy = train_winner(x_winnerB, y_winnerB, WINNER_B_N_ESTIMATORS, WINNER_B_LEARNING_RATE, WINNER_B_MAX_DEPTH)
   # homeScore_accuracy = train_homeScore(x_homeScore, y_homeScore, HOME_SCORE_N_ESTIMATORS, HOME_SCORE_LEARNING_RATE, HOME_SCORE_MAX_DEPTH)
   # awayScore_accuracy = train_awayScore(x_awayScore, y_awayScore, AWAY_SCORE_N_ESTIMATORS, AWAY_SCORE_LEARNING_RATE, AWAY_SCORE_MAX_DEPTH)
   # totalGoals_accuracy = train_totalGoals(x_totalGoals, y_totalGoals, TOTAL_GOALS_N_ESTIMATORS, TOTAL_GOALS_LEARNING_RATE, TOTAL_GOALS_MAX_DEPTH)
@@ -128,10 +145,15 @@ def train(db, inData):
     'startingSeason': START_SEASON,
     'finalSeason': END_SEASON,
     'constants': {
-      'winner': {
-        'n_estimators': WINNER_N_ESTIMATORS,
-        'learning_rate': WINNER_LEARNING_RATE,
-        'max_depth': WINNER_MAX_DEPTH,
+      # 'winner': {
+      #   'n_estimators': WINNER_N_ESTIMATORS,
+      #   'learning_rate': WINNER_LEARNING_RATE,
+      #   'max_depth': WINNER_MAX_DEPTH,
+      # },
+      'winnerB': {
+        'n_estimators': WINNER_B_N_ESTIMATORS,
+        'learning_rate': WINNER_B_LEARNING_RATE,
+        'max_depth': WINNER_B_MAX_DEPTH,
       },
       # 'homeScore': {
       #   'n_estimators': HOME_SCORE_N_ESTIMATORS,
@@ -156,7 +178,8 @@ def train(db, inData):
     },
     'model': 'Gradient Boosted Random Forest Classifier',
     'accuracies': {
-      'winner': winner_accuracy,
+      # 'winner': winner_accuracy,
+      'winnerB': winnerB_accuracy,
       # 'homeScore': homeScore_accuracy,
       # 'awayScore': awayScore_accuracy,
       # 'totalGoals': totalGoals_accuracy,
