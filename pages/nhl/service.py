@@ -305,6 +305,14 @@ def predict_day_simple(db,date,day,gamePick,projectedLineup,models):
         'prediction': {},
         'message': ai_data['message'],
       }
+      simple_data['voteAverage'] = {}
+      simple_data['voteAverage']['awayTeam'] = f"{ai_data['awayTeam']} - {ai_data['voteAverage']['awayScore']}"
+      simple_data['voteAverage']['homeTeam'] = f"{ai_data['homeTeam']} - {ai_data['voteAverage']['homeScore']}"
+      simple_data['voteAverage']['winningTeam'] = f"{ai_data['voteAverage']['winner']}"
+      simple_data['voteAverage']['winningTeamB'] = f"{ai_data['voteAverage']['winnerB']}"
+      simple_data['voteAverage']['offset'] = ai_data['voteAverage']['offset']
+      simple_data['voteAverage']['totalGoals'] = f"{ai_data['voteAverage']['totalGoals']}"
+      simple_data['voteAverage']['goalDifferential'] = f"{ai_data['voteAverage']['goalDifferential']}"
       for combo in goalie_combos:
         simple_data['prediction'][combo] = {}
         simple_data['prediction'][combo]['awayTeam'] = f"{ai_data['awayTeam']} - {ai_data['prediction'][combo]['prediction_awayScore']} - {ai_data['confidence'][combo]['confidence_awayScore']}%"

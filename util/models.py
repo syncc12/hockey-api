@@ -21,7 +21,7 @@ MODEL_NAMES = Y_OUTPUTS
 
 MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')) for i in MODEL_NAMES])
 # MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_gbc_{i}.joblib')) for i in MODEL_NAMES])
-MODELS = {}
+# MODELS = {}
 # for i in MODEL_NAMES:
 #   if i == 'winnerB':
 #     # f'C:/Users/syncc/code/Hockey API/hockey_api/models/nhl_ai_v{H2O_FILE_VERSION}_h2o_{i}/StackedEnsemble_BestOfFamily_1_AutoML_1_20240121_02310'

@@ -17,7 +17,6 @@ import boto3
 import io
 from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE
-# import h2o
 
 def ai_return_dict_projectedLineup(db, data, prediction, confidence):
   data_keys = list(data['data']['data'].keys())
@@ -53,6 +52,18 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence):
 
   homeId = data['data']['home_team']['id']
   awayId = data['data']['away_team']['id']
+  winner_vote_home = 0
+  winner_vote_away = 0
+  winnerB_vote_0 = 0
+  winnerB_vote_1 = 0
+  homeScore_average = 0
+  awayScore_average = 0
+  totalGoals_average = 0
+  goalDifferential_average = 0
+  homeScore_list = []
+  awayScore_list = []
+  totalGoals_list = []
+  goalDifferential_list = []
   for d in data_keys:
     if len(data['data']['data'][d]) == 0 or len(prediction[d]) == 0:
       predicted_data[d]['prediction_winnerId'] = -1
@@ -70,20 +81,32 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence):
     else:
       winnerId = int(prediction[d]['prediction_winner'])
       winnerB = int(prediction[d]['prediction_winnerB'])
+      homeScore = int(prediction[d]['prediction_homeScore'])
+      awayScore = int(prediction[d]['prediction_awayScore'])
+      totalGoals = int(prediction[d]['prediction_totalGoals'])
+      goalDifferential = int(prediction[d]['prediction_goalDifferential'])
+      if winnerB == 0: winnerB_vote_0 += 1
+      if winnerB == 1: winnerB_vote_1 += 1
+      homeScore_list.append(homeScore)
+      awayScore_list.append(awayScore)
+      totalGoals_list.append(totalGoals)
+      goalDifferential_list.append(goalDifferential)
       predicted_data[d]['prediction_winnerId'] = winnerId
       predicted_data[d]['prediction_winnerB'] = winnerB
-      predicted_data[d]['prediction_homeScore'] = int(prediction[d]['prediction_homeScore'])
-      predicted_data[d]['prediction_awayScore'] = int(prediction[d]['prediction_awayScore'])
-      predicted_data[d]['prediction_totalGoals'] = int(prediction[d]['prediction_totalGoals'])
-      predicted_data[d]['prediction_goalDifferential'] = int(prediction[d]['prediction_goalDifferential'])
+      predicted_data[d]['prediction_homeScore'] = homeScore
+      predicted_data[d]['prediction_awayScore'] = awayScore
+      predicted_data[d]['prediction_totalGoals'] = totalGoals
+      predicted_data[d]['prediction_goalDifferential'] = goalDifferential
       state = data['data']['state']
       homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
       awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
       if abs(winnerId - homeId) < abs(winnerId - awayId):
         predicted_data[d]['winner'] = homeTeam
+        winner_vote_home += 1
         predicted_data[d]['offset'] = abs(winnerId - homeId)
       elif abs(winnerId - homeId) > abs(winnerId - awayId):
         predicted_data[d]['winner'] = awayTeam
+        winner_vote_away += 1
         predicted_data[d]['offset'] = abs(winnerId - awayId)
       else:
         predicted_data[d]['winner'] = 'Inconclusive'
@@ -94,7 +117,22 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence):
       predicted_data[d]['winnerB'] = awayTeam
     else:
       predicted_data[d]['winnerB'] = 'Inconclusive'
-
+  if winner_vote_away > winner_vote_home:
+    winner_vote_champ = awayTeam
+  elif winner_vote_away < winner_vote_home:
+    winner_vote_champ = homeTeam
+  else:
+    winner_vote_champ = 'Inconclusive'
+  if winnerB_vote_0 > winnerB_vote_1:
+    winnerB_vote_champ = homeTeam
+  elif winnerB_vote_0 < winnerB_vote_1:
+    winnerB_vote_champ = awayTeam
+  else:
+    winnerB_vote_champ = 'Inconclusive'
+  homeScore_average = sum(homeScore_list) / len(homeScore_list)
+  awayScore_average = sum(awayScore_list) / len(awayScore_list)
+  totalGoals_average = sum(totalGoals_list) / len(totalGoals_list)
+  goalDifferential_average = sum(goalDifferential_list) / len(goalDifferential_list)
 
 
   # for d in range(0, len(data_keys)):
@@ -139,6 +177,14 @@ def ai_return_dict_projectedLineup(db, data, prediction, confidence):
     'awayId': awayId,
     'homeTeam': homeTeam,
     'awayTeam': awayTeam,
+    'voteAverage': {
+      'winner': winner_vote_champ,
+      'winnerB': winnerB_vote_champ,
+      'homeScore': homeScore_average,
+      'awayScore': awayScore_average,
+      'totalGoals': totalGoals_average,
+      'goalDifferential': goalDifferential_average,
+    },
     'prediction': predicted_data,
     'confidence': confidence_data,
     'live': live_data,
