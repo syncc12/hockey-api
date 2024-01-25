@@ -167,55 +167,59 @@ def master_inputs(db, game, isProjectedLineup=False):
         **goalie(db,home_roster['goalies'][1],allPlayers,game,isStarting=True,isAway=False),
         **goalie(db,home_roster['goalies'][0],allPlayers,game,isStarting=False,isAway=False),
       }
-    all_inputs = {
-      f'projectedRoster1': projectedRoster1,
-      f'projectedRoster2': projectedRoster2,
-      f'projectedRoster3': projectedRoster3,
-      f'projectedRoster4': projectedRoster4,
-      f'{awayStartingGoalieName}-{awayStartingGoalieID}|{homeStartingGoalieName}-{homeStartingGoalieID}': {
-        **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
-        **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
-        **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
-        **goalie(db,awayStartingGoalieID,allPlayers,game,isStarting=True,isAway=True),
-        **goalie(db,awayBackupGoalieID,allPlayers,game,isStarting=False,isAway=True),
-        **forwards(db,homeForwardIds,allPlayers,game,isAway=False),
-        **defense(db,homeDefenseIds,allPlayers,game,isAway=False),
-        **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=True,isAway=False),
-        **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=False,isAway=False),
-      },
-      f'{awayStartingGoalieName}-{awayStartingGoalieID}|{homeBackupGoalieName}-{homeBackupGoalieID}': {
-        **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
-        **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
-        **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
-        **goalie(db,awayStartingGoalieID,allPlayers,game,isStarting=True,isAway=True),
-        **goalie(db,awayBackupGoalieID,allPlayers,game,isStarting=False,isAway=True),
-        **forwards(db,homeForwardIds,allPlayers,game,isAway=False),
-        **defense(db,homeDefenseIds,allPlayers,game,isAway=False),
-        **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=True,isAway=False),
-        **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=False,isAway=False),
-      },
-      f'{awayBackupGoalieName}-{awayBackupGoalieID}|{homeStartingGoalieName}-{homeStartingGoalieID}': {
-        **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
-        **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
-        **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
-        **goalie(db,awayBackupGoalieID,allPlayers,game,isStarting=True,isAway=True),
-        **goalie(db,awayStartingGoalieID,allPlayers,game,isStarting=False,isAway=True),
-        **forwards(db,homeForwardIds,allPlayers,game,isAway=False),
-        **defense(db,homeDefenseIds,allPlayers,game,isAway=False),
-        **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=True,isAway=False),
-        **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=False,isAway=False),
-      },
-      f'{awayBackupGoalieName}-{awayBackupGoalieID}|{homeBackupGoalieName}-{homeBackupGoalieID}': {
-        **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
-        **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
-        **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
-        **goalie(db,awayBackupGoalieID,allPlayers,game,isStarting=True,isAway=True),
-        **goalie(db,awayStartingGoalieID,allPlayers,game,isStarting=False,isAway=True),
-        **forwards(db,homeForwardIds,allPlayers,game,isAway=False),
-        **defense(db,homeDefenseIds,allPlayers,game,isAway=False),
-        **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=True,isAway=False),
-        **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=False,isAway=False),
-      },
+      
+    all_inputs = {}
+    if projectedRoster1:
+      all_inputs['projectedRoster1'] = projectedRoster1
+    if projectedRoster2:
+      all_inputs['projectedRoster2'] = projectedRoster2
+    if projectedRoster3:
+      all_inputs['projectedRoster3'] = projectedRoster3
+    if projectedRoster4:
+      all_inputs['projectedRoster4'] = projectedRoster4
+    all_inputs[f'{awayStartingGoalieName}-{awayStartingGoalieID}|{homeStartingGoalieName}-{homeStartingGoalieID}'] = {
+      **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
+      **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
+      **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
+      **goalie(db,awayStartingGoalieID,allPlayers,game,isStarting=True,isAway=True),
+      **goalie(db,awayBackupGoalieID,allPlayers,game,isStarting=False,isAway=True),
+      **forwards(db,homeForwardIds,allPlayers,game,isAway=False),
+      **defense(db,homeDefenseIds,allPlayers,game,isAway=False),
+      **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=True,isAway=False),
+      **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=False,isAway=False),
+    }
+    all_inputs[f'{awayStartingGoalieName}-{awayStartingGoalieID}|{homeBackupGoalieName}-{homeBackupGoalieID}'] = {
+      **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
+      **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
+      **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
+      **goalie(db,awayStartingGoalieID,allPlayers,game,isStarting=True,isAway=True),
+      **goalie(db,awayBackupGoalieID,allPlayers,game,isStarting=False,isAway=True),
+      **forwards(db,homeForwardIds,allPlayers,game,isAway=False),
+      **defense(db,homeDefenseIds,allPlayers,game,isAway=False),
+      **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=True,isAway=False),
+      **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=False,isAway=False),
+    }
+    all_inputs[f'{awayBackupGoalieName}-{awayBackupGoalieID}|{homeStartingGoalieName}-{homeStartingGoalieID}'] = {
+      **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
+      **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
+      **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
+      **goalie(db,awayBackupGoalieID,allPlayers,game,isStarting=True,isAway=True),
+      **goalie(db,awayStartingGoalieID,allPlayers,game,isStarting=False,isAway=True),
+      **forwards(db,homeForwardIds,allPlayers,game,isAway=False),
+      **defense(db,homeDefenseIds,allPlayers,game,isAway=False),
+      **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=True,isAway=False),
+      **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=False,isAway=False),
+    }
+    all_inputs[f'{awayBackupGoalieName}-{awayBackupGoalieID}|{homeBackupGoalieName}-{homeBackupGoalieID}'] = {
+      **base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date),
+      **forwards(db,awayForwardIds,allPlayers,game,isAway=True),
+      **defense(db,awayDefenseIds,allPlayers,game,isAway=True),
+      **goalie(db,awayBackupGoalieID,allPlayers,game,isStarting=True,isAway=True),
+      **goalie(db,awayStartingGoalieID,allPlayers,game,isStarting=False,isAway=True),
+      **forwards(db,homeForwardIds,allPlayers,game,isAway=False),
+      **defense(db,homeDefenseIds,allPlayers,game,isAway=False),
+      **goalie(db,homeBackupGoalieID,allPlayers,game,isStarting=True,isAway=False),
+      **goalie(db,homeStartingGoalieID,allPlayers,game,isStarting=False,isAway=False),
     }
   else:
     all_inputs = {

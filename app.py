@@ -72,7 +72,7 @@ def nhl_predict_day():
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   prediction = predict_day(db, date, day, projectedLineup, models)
   
-  recommended_wagers(100,prediction,False)
+  # recommended_wagers(100,prediction,False)
   return jsonify(prediction)
 
 @app.route('/nhl/day/simple', methods=['GET'])

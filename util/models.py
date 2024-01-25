@@ -1,6 +1,7 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\inputs')
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 from joblib import dump, load
 import pandas as pd
@@ -10,6 +11,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from util.helpers import adjusted_winner
+from inputs.inputs import master_inputs
+from util.returns import ai_return_dict_projectedLineup
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from constants.constants import VERSION, FILE_VERSION, H2O_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 # import h2o
@@ -99,21 +102,34 @@ def TEST_LINE_UPDATE(testLine,r):
 def TEST_ALL_UPDATE(testAll,testLines):
   return dict([(f'all_{i}_total', testAll[f'all_{i}_total'] + testLines[f'{i}_total']) for i in MODEL_NAMES])
 
-def TEST_PREDICTION(models,test_data):
+def TEST_PREDICTION(models,test_data,boxscore,useProjectedLineup=False):
   out_dict = {}
-  for i in MODEL_NAMES:
-    model = models[f'model_{i}']
-    out_dict[f'test_prediction_{i}'] = model.predict([test_data['data'][i]])
-  return out_dict
+  if useProjectedLineup:
+    for lineup in test_data['data'].keys():
+      out_dict[lineup] = {}
+      for i in MODEL_NAMES:
+        model = models[f'model_{i}']
+        out_dict[lineup][f'test_prediction_{i}'] = model.predict([test_data['data'][lineup][i]])
+    return_dict = ai_return_dict_projectedLineup(boxscore,out_dict,-1,True)
+    # print('return_dict',return_dict)
+    return return_dict
+  else:
+    for i in MODEL_NAMES:
+      model = models[f'model_{i}']
+      out_dict[f'test_prediction_{i}'] = model.predict([test_data['data'][i]])
+    return out_dict
 
-def TEST_CONFIDENCE(models,test_data):
+def TEST_CONFIDENCE(models,test_data,useProjectedLineup=False):
   out_dict = {}
-  for i in MODEL_NAMES:
-    model = models[f'model_{i}']
-    out_dict[f'test_confidence_{i}'] = model.predict_proba([test_data['data'][i]])
-  return out_dict
+  if useProjectedLineup:
+    pass
+  else:
+    for i in MODEL_NAMES:
+      model = models[f'model_{i}']
+      out_dict[f'test_confidence_{i}'] = model.predict_proba([test_data['data'][i]])
+    return out_dict
 
-def TEST_COMPARE(prediction,awayId,homeId):
+def TEST_COMPARE(prediction,awayId,homeId,useProjectedLineup=False):
   out_dict = {}
   for i in MODEL_NAMES:
     if i == 'winner':
@@ -123,7 +139,7 @@ def TEST_COMPARE(prediction,awayId,homeId):
     out_dict[f'predicted_{i}'] = test_prediction_data
   return out_dict
 
-def TEST_DATA(test_data,awayId,homeId):
+def TEST_DATA(test_data,awayId,homeId,useProjectedLineup=False):
   out_dict = {}
   for i in MODEL_NAMES:
     # test_prediction_data = []
@@ -135,7 +151,7 @@ def TEST_DATA(test_data,awayId,homeId):
     out_dict[f'test_{i}'] = test_prediction_data
   return out_dict
 
-def TEST_RESULTS(prediction,test):
+def TEST_RESULTS(prediction,test,useProjectedLineup=False):
   out_dict = {}
   for i in MODEL_NAMES:
     out_dict[i] = 1 if prediction[f'predicted_{i}']==test[f'test_{i}'] else 0

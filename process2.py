@@ -91,7 +91,8 @@ def nhl_data(db,game,useProjectedLineup,message='',test=False):
         x = {}
         
         for i in range(0, len(input_keys)):
-          x[f'{input_keys[i]}'] = [[list(inputs['data'].values())[i][j] for j in X_INPUTS]]
+          input_list = list(inputs['data'].values())[i]
+          x[f'{input_keys[i]}'] = [[input_list[j] for j in X_INPUTS]]
 
         for i in input_keys:
           input_data[i] = {}
@@ -199,35 +200,72 @@ def nhl_data(db,game,useProjectedLineup,message='',test=False):
       'period2PuckLine':abs(safe_chain(boxscore,'boxscore','linescore','byPeriod',1,'away') - safe_chain(boxscore,'boxscore','linescore','byPeriod',1,'home')),
       'period3PuckLine':abs(safe_chain(boxscore,'boxscore','linescore','byPeriod',2,'away') - safe_chain(boxscore,'boxscore','linescore','byPeriod',2,'home')),
     }
-    x_data = {}
-    y_data = {}
-    for i in MODEL_NAMES:
-      x_data[i] = []
-      y_data[i] = 0
 
-    input_data = {}
-    for i in X_INPUTS:
-      input_data[i] = inputs['data'][i]
-    for j in MODEL_NAMES:
+    if isProjectedLineup:
+      x_data = {}
+      y_data = {}
+      
+      input_data = {}
+      for data_input in inputs['data'].keys():
+        x_data[data_input] = {}
+        y_data[data_input] = {}
+        for i in MODEL_NAMES:
+          x_data[data_input][i] = []
+          y_data[data_input][i] = 0
+
+        input_data[data_input] = {}
+        for i in X_INPUTS:
+          input_data[data_input][i] = inputs['data'][data_input][i]
+        for j in MODEL_NAMES:
+          for i in X_INPUTS:
+            if i in suplement_data.keys():
+              x_data[data_input][j].append(suplement_data[i])
+            else:
+              x_data[data_input][j].append(inputs['data'][data_input][i])
+        for i in Y_OUTPUTS:
+          if i in suplement_data.keys():
+            y_data[data_input][i] = suplement_data[i]
+          elif i in inputs:
+            y_data[data_input][i] = inputs['data'][data_input][i]
+
+      test_data = x_data
+      test_result = y_data
+
+      return {
+        'data':test_data,
+        'result':test_result,
+        'input_data': input_data,
+      }
+    else:
+      x_data = {}
+      y_data = {}
+      for i in MODEL_NAMES:
+        x_data[i] = []
+        y_data[i] = 0
+
+      input_data = {}
       for i in X_INPUTS:
+        input_data[i] = inputs['data'][i]
+      for j in MODEL_NAMES:
+        for i in X_INPUTS:
+          if i in suplement_data.keys():
+            x_data[j].append(suplement_data[i])
+          else:
+            x_data[j].append(inputs['data'][i])
+      for i in Y_OUTPUTS:
         if i in suplement_data.keys():
-          x_data[j].append(suplement_data[i])
-        else:
-          x_data[j].append(inputs['data'][i])
-    for i in Y_OUTPUTS:
-      if i in suplement_data.keys():
-        y_data[i] = suplement_data[i]
-      elif i in inputs:
-        y_data[i] = inputs['data'][i]
+          y_data[i] = suplement_data[i]
+        elif i in inputs:
+          y_data[i] = inputs['data'][i]
 
-    test_data = x_data
-    test_result = y_data
+      test_data = x_data
+      test_result = y_data
 
-    return {
-      'data':test_data,
-      'result':test_result,
-      'input_data': input_data,
-    }
+      return {
+        'data':test_data,
+        'result':test_result,
+        'input_data': input_data,
+      }
 
 
 # game = requests.get(f"https://api-web.nhle.com/v1/schedule/now").json()

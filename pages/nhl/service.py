@@ -77,19 +77,29 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     awayId = boxscore['awayTeam']['id']
     homeId = boxscore['homeTeam']['id']
     test_data = nhl_test(db=db,boxscore=boxscore,useProjectedLineup=useProjectedLineup)
-    test_prediction = TEST_PREDICTION(models,test_data)
     
-    test_confidence = TEST_CONFIDENCE(models,test_data)
+    test_prediction = TEST_PREDICTION(models,test_data,boxscore,useProjectedLineup)
+    # print('test_prediction',test_prediction)
+
+    if not useProjectedLineup:
+      test_confidence = TEST_CONFIDENCE(models,test_data,useProjectedLineup)
     
-    predicted = TEST_COMPARE(test_prediction,awayId,homeId)
+    predicted = TEST_COMPARE(test_prediction,awayId,homeId,useProjectedLineup)
 
-    test_data_result = TEST_DATA(test_data,awayId,homeId)
+    test_data_result = TEST_DATA(test_data,awayId,homeId,useProjectedLineup)
 
-    test_results[boxscore['gameDate']]['game'].append({
-      'id': boxscore['id'],
-      'results': TEST_RESULTS(predicted,test_data_result),
-      'confidence': TEST_CONFIDENCE_RESULTS(test_confidence),
-    })
+    if not useProjectedLineup:
+      test_results[boxscore['gameDate']]['game'].append({
+        'id': boxscore['id'],
+        'results': TEST_RESULTS(predicted,test_data_result),
+        'confidence': TEST_CONFIDENCE_RESULTS(test_confidence),
+      })
+    else:
+      test_results[boxscore['gameDate']]['game'].append({
+        'id': boxscore['id'],
+        'results': TEST_RESULTS(predicted,test_data_result),
+      })
+
     test_results_len = len(test_results[boxscore['gameDate']]['game']) - 1
     if show_data != -1:
       test_results[boxscore['gameDate']]['game'][test_results_len]['data'] = test_data['input_data']
@@ -205,10 +215,10 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     test_results[boxscore['gameDate']]['goalDifferentialPercent'] = (line_total['goalDifferential_total'] / list_total) * 100
     test_results[boxscore['gameDate']]['totalGames'] = list_total
   
-  for day in list(odds_dict.keys()):
-    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-    print(day)
-    test_recommended_wagers(100,odds=odds_dict[day],confidence=confidence_dict[day],winners=winners_dict[day])
+  # for day in list(odds_dict.keys()):
+  #   print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+  #   print(day)
+  #   test_recommended_wagers(100,odds=odds_dict[day],confidence=confidence_dict[day],winners=winners_dict[day])
 
   test_results['allWinnerPercent'] = (all_total['all_winner_total'] / all_list_total) * 100
   test_results['allWinnerBPercent'] = (all_total['all_winnerB_total'] / all_list_total) * 100
