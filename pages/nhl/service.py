@@ -19,7 +19,8 @@ from util.helpers import false_chain, latestIDs, adjusted_winner, test_recommend
 from inputs.inputs import master_inputs
 from pages.nhl.nhl_helpers import ai, ai_return_dict
 from constants.constants import VERSION, FILE_VERSION
-from util.models import TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS
+from util.models import TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP
+from inputs.projectedLineup import testProjectedLineup
 
 def debug():
   res = requests.get("https://api-web.nhle.com/v1/schedule/2023-11-22").json()
@@ -33,6 +34,7 @@ def debug():
 def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
   Boxscores = db['dev_boxscores']
   Odds = db['dev_odds']
+
 
   if startID == -1 or endID == -1:
     md = metadata(db)
@@ -78,15 +80,17 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     homeId = boxscore['homeTeam']['id']
     test_data = nhl_test(db=db,boxscore=boxscore,useProjectedLineup=useProjectedLineup)
     
-    test_prediction = TEST_PREDICTION(models,test_data,boxscore,useProjectedLineup)
-    # print('test_prediction',test_prediction)
-
     if not useProjectedLineup:
-      test_confidence = TEST_CONFIDENCE(models,test_data,useProjectedLineup)
-    
-    predicted = TEST_COMPARE(test_prediction,awayId,homeId,useProjectedLineup)
-
-    test_data_result = TEST_DATA(test_data,awayId,homeId,useProjectedLineup)
+      test_prediction = TEST_PREDICTION(models,test_data)
+      test_confidence = TEST_CONFIDENCE(models,test_data)
+      predicted = TEST_COMPARE(test_prediction,awayId,homeId)
+      test_data_result = TEST_DATA(test_data,awayId,homeId)
+    else:
+      projected_test_data = testProjectedLineup(db,boxscore)
+      test_prediction = TEST_PREDICTION_PROJECTED_LINEUP(models,projected_test_data,awayId,homeId)
+      predicted = TEST_COMPARE(test_prediction,awayId,homeId)
+      print('predicted',predicted)
+      test_data_result = TEST_DATA_PROJECTED_LINEUP(test_data,awayId,homeId)
 
     if not useProjectedLineup:
       test_results[boxscore['gameDate']]['game'].append({
@@ -118,9 +122,10 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
       if not boxscore['gameDate'] in odds_dict:
         odds_dict[boxscore['gameDate']] = []
       odds_dict[boxscore['gameDate']].append(winning_odds)
-      if not boxscore['gameDate'] in confidence_dict:
-        confidence_dict[boxscore['gameDate']] = []
-      confidence_dict[boxscore['gameDate']].append(int((np.max(test_confidence['test_confidence_winner'], axis=1) * 100)[0]))
+      if not useProjectedLineup:
+        if not boxscore['gameDate'] in confidence_dict:
+          confidence_dict[boxscore['gameDate']] = []
+        confidence_dict[boxscore['gameDate']].append(int((np.max(test_confidence['test_confidence_winner'], axis=1) * 100)[0]))
       
       if not boxscore['gameDate'] in winners_dict:
         winners_dict[boxscore['gameDate']] = []

@@ -22,39 +22,26 @@ def winnerOffset(winnerId, homeId, awayId, homeTeam, awayTeam):
   else:
     return 'Inconclusive', -1
 
-def ai_return_dict_projectedLineup(inData, prediction, confidence, test=False):
-  if not test:
-    data = inData['data']['data']
-    data_keys = list(data.keys())
-  else:
-    data = inData
-    data_keys = list(prediction.keys())
+def ai_return_dict_projectedLineup(data, prediction, confidence):
+  data_keys = list(data['data']['data'].keys())
   # print('data',data)
   # print('prediction',prediction)
   # print('data_keys',data_keys)
   confidence_data = {}
   predicted_data = {}
 
-  if not test:
-    for d in data_keys:
-      confidence_data[d] = {}
-      predicted_data[d] = {}
-      confidence_data[d]['confidence_winner'] = int((np.max(confidence[d]['confidence_winner'], axis=1) * 100)[0])
-      confidence_data[d]['confidence_winnerB'] = int((np.max(confidence[d]['confidence_winnerB'], axis=1) * 100)[0])
-      confidence_data[d]['confidence_homeScore'] = int((np.max(confidence[d]['confidence_homeScore'], axis=1) * 100)[0])
-      confidence_data[d]['confidence_awayScore'] = int((np.max(confidence[d]['confidence_awayScore'], axis=1) * 100)[0])
-      confidence_data[d]['confidence_totalGoals'] = int((np.max(confidence[d]['confidence_totalGoals'], axis=1) * 100)[0])
-      confidence_data[d]['confidence_goalDifferential'] = int((np.max(confidence[d]['confidence_goalDifferential'], axis=1) * 100)[0])
-  else:
-    for d in data_keys:
-      predicted_data[d] = {}
+  for d in data_keys:
+    confidence_data[d] = {}
+    predicted_data[d] = {}
+    confidence_data[d]['confidence_winner'] = int((np.max(confidence[d]['confidence_winner'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_winnerB'] = int((np.max(confidence[d]['confidence_winnerB'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_homeScore'] = int((np.max(confidence[d]['confidence_homeScore'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_awayScore'] = int((np.max(confidence[d]['confidence_awayScore'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_totalGoals'] = int((np.max(confidence[d]['confidence_totalGoals'], axis=1) * 100)[0])
+    confidence_data[d]['confidence_goalDifferential'] = int((np.max(confidence[d]['confidence_goalDifferential'], axis=1) * 100)[0])
 
-  if not test:
-    homeId = data['home_team']['id']
-    awayId = data['away_team']['id']
-  else:
-    homeId = data['homeTeam']['id']
-    awayId = data['awayTeam']['id']
+  homeId = data['data']['home_team']['id']
+  awayId = data['data']['away_team']['id']
   winner_vote_home = 0
   winner_list = []
   winner_average = 0
@@ -70,7 +57,7 @@ def ai_return_dict_projectedLineup(inData, prediction, confidence, test=False):
   totalGoals_list = []
   goalDifferential_list = []
   for d in data_keys:
-    if safe_len(safe_chain(data,d)) == 0 or safe_len(safe_chain(prediction,d)) == 0:
+    if safe_len(safe_chain(data,'data',d)) == 0 or safe_len(safe_chain(prediction,d)) == 0:
       predicted_data[d]['prediction_winnerId'] = -1
       predicted_data[d]['prediction_winnerB'] = -1
       predicted_data[d]['prediction_homeScore'] = -1
@@ -78,28 +65,18 @@ def ai_return_dict_projectedLineup(inData, prediction, confidence, test=False):
       predicted_data[d]['prediction_totalGoals'] = -1
       predicted_data[d]['prediction_goalDifferential'] = -1
       state = 'OFF'
-      if not test:
-        homeTeam = data['data']['home_team']['city']
-        awayTeam = data['data']['away_team']['city']
+      homeTeam = data['data']['home_team']['city']
+      awayTeam = data['data']['away_team']['city']
       predicted_data[d]['winner'] = -1
       predicted_data[d]['winnerB'] = -1
       predicted_data[d]['offset'] = -1
     else:
-      print('prediction[d]',prediction[d])
-      if not test:
-        winnerId = int(prediction[d]['prediction_winner'])
-        winnerB = int(prediction[d]['prediction_winnerB'])
-        homeScore = int(prediction[d]['prediction_homeScore'])
-        awayScore = int(prediction[d]['prediction_awayScore'])
-        totalGoals = int(prediction[d]['prediction_totalGoals'])
-        goalDifferential = int(prediction[d]['prediction_goalDifferential'])
-      else:
-        winnerId = int(prediction[d]['test_prediction_winner'])
-        winnerB = int(prediction[d]['test_prediction_winnerB'])
-        homeScore = int(prediction[d]['test_prediction_homeScore'])
-        awayScore = int(prediction[d]['test_prediction_awayScore'])
-        totalGoals = int(prediction[d]['test_prediction_totalGoals'])
-        goalDifferential = int(prediction[d]['test_prediction_goalDifferential'])
+      winnerId = int(prediction[d]['prediction_winner'])
+      winnerB = int(prediction[d]['prediction_winnerB'])
+      homeScore = int(prediction[d]['prediction_homeScore'])
+      awayScore = int(prediction[d]['prediction_awayScore'])
+      totalGoals = int(prediction[d]['prediction_totalGoals'])
+      goalDifferential = int(prediction[d]['prediction_goalDifferential'])
       if winnerB == 0: winnerB_vote_0 += 1
       if winnerB == 1: winnerB_vote_1 += 1
       homeScore_list.append(homeScore)
@@ -113,10 +90,9 @@ def ai_return_dict_projectedLineup(inData, prediction, confidence, test=False):
       predicted_data[d]['prediction_awayScore'] = awayScore
       predicted_data[d]['prediction_totalGoals'] = totalGoals
       predicted_data[d]['prediction_goalDifferential'] = goalDifferential
-      if not test:
-        state = data['data']['state']
-        homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
-        awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
+      state = data['data']['state']
+      homeTeam = f"{data['data']['home_team']['city']} {data['data']['home_team']['name']}"
+      awayTeam = f"{data['data']['away_team']['city']} {data['data']['away_team']['name']}"
       if abs(winnerId - homeId) < abs(winnerId - awayId):
         predicted_data[d]['winner'] = homeTeam
         winner_vote_home += 1
@@ -128,7 +104,6 @@ def ai_return_dict_projectedLineup(inData, prediction, confidence, test=False):
       else:
         predicted_data[d]['winner'] = 'Inconclusive'
         predicted_data[d]['offset'] = -1
-    if not test:
       if winnerB == 0:
         predicted_data[d]['winnerB'] = homeTeam
       elif winnerB == 1:
@@ -156,48 +131,29 @@ def ai_return_dict_projectedLineup(inData, prediction, confidence, test=False):
 
   live_data = {}
 
-  if test:
-    return {
-      'gameId': data['id'],
-      'date': data['gameDate'],
-      'homeId': homeId,
-      'awayId': awayId,
-      'voteAverage': {
-        'winner': winnerA,
-        'offset': offsetA,
-        'winnerVote': winner_vote_champ,
-        'winnerB': winnerB_vote_champ,
-        'homeScore': homeScore_average,
-        'awayScore': awayScore_average,
-        'totalGoals': totalGoals_average,
-        'goalDifferential': goalDifferential_average,
-      },
-      'prediction': predicted_data,
-    }
-  else:
-    return {
-      'gameId': data['data']['game_id'],
-      'date': data['data']['date'],
-      'state': state,
-      'homeId': homeId,
-      'awayId': awayId,
-      'homeTeam': homeTeam,
-      'awayTeam': awayTeam,
-      'voteAverage': {
-        'winner': winnerA,
-        'offset': offsetA,
-        'winnerVote': winner_vote_champ,
-        'winnerB': winnerB_vote_champ,
-        'homeScore': homeScore_average,
-        'awayScore': awayScore_average,
-        'totalGoals': totalGoals_average,
-        'goalDifferential': goalDifferential_average,
-      },
-      'prediction': predicted_data,
-      'confidence': confidence_data,
-      'live': live_data,
-      'message': data['message'],
-    }
+  return {
+    'gameId': data['data']['game_id'],
+    'date': data['data']['date'],
+    'state': state,
+    'homeId': homeId,
+    'awayId': awayId,
+    'homeTeam': homeTeam,
+    'awayTeam': awayTeam,
+    'voteAverage': {
+      'winner': winnerA,
+      'offset': offsetA,
+      'winnerVote': winner_vote_champ,
+      'winnerB': winnerB_vote_champ,
+      'homeScore': homeScore_average,
+      'awayScore': awayScore_average,
+      'totalGoals': totalGoals_average,
+      'goalDifferential': goalDifferential_average,
+    },
+    'prediction': predicted_data,
+    'confidence': confidence_data,
+    'live': live_data,
+    'message': data['message'],
+  }
 
 def ai_return_dict(data, prediction, confidence=-1):
 

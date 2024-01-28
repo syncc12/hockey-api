@@ -1,5 +1,7 @@
 nhl_ai.joblib
 nhl_ai*.joblib
+nhl_ai.pt
+nhl_ai*.pt
 __pycache__
 .env
 training_data.joblib

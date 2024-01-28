@@ -15,12 +15,21 @@ from inputs.inputs import master_inputs
 from util.returns import ai_return_dict_projectedLineup
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from constants.constants import VERSION, FILE_VERSION, H2O_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
-# import h2o
+from inputs.projectedLineup import testProjectedLineup
 
 # RANDOM_STATE = 12
 # FILE_VERSION = 7
 
 MODEL_NAMES = Y_OUTPUTS
+
+
+def winnerOffset(winnerId, homeId, awayId):
+  if abs(winnerId - homeId) < abs(winnerId - awayId):
+    return homeId, abs(winnerId - homeId)
+  elif abs(winnerId - homeId) > abs(winnerId - awayId):
+    return awayId, abs(winnerId - awayId)
+  else:
+    return -1, -1
 
 MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')) for i in MODEL_NAMES])
 # MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_gbc_{i}.joblib')) for i in MODEL_NAMES])
@@ -102,34 +111,21 @@ def TEST_LINE_UPDATE(testLine,r):
 def TEST_ALL_UPDATE(testAll,testLines):
   return dict([(f'all_{i}_total', testAll[f'all_{i}_total'] + testLines[f'{i}_total']) for i in MODEL_NAMES])
 
-def TEST_PREDICTION(models,test_data,boxscore,useProjectedLineup=False):
+def TEST_PREDICTION(models,test_data):
   out_dict = {}
-  if useProjectedLineup:
-    for lineup in test_data['data'].keys():
-      out_dict[lineup] = {}
-      for i in MODEL_NAMES:
-        model = models[f'model_{i}']
-        out_dict[lineup][f'test_prediction_{i}'] = model.predict([test_data['data'][lineup][i]])
-    return_dict = ai_return_dict_projectedLineup(boxscore,out_dict,-1,True)
-    # print('return_dict',return_dict)
-    return return_dict
-  else:
-    for i in MODEL_NAMES:
-      model = models[f'model_{i}']
-      out_dict[f'test_prediction_{i}'] = model.predict([test_data['data'][i]])
-    return out_dict
+  for i in MODEL_NAMES:
+    model = models[f'model_{i}']
+    out_dict[f'test_prediction_{i}'] = model.predict([test_data['data'][i]])
+  return out_dict
 
-def TEST_CONFIDENCE(models,test_data,useProjectedLineup=False):
+def TEST_CONFIDENCE(models,test_data):
   out_dict = {}
-  if useProjectedLineup:
-    pass
-  else:
-    for i in MODEL_NAMES:
-      model = models[f'model_{i}']
-      out_dict[f'test_confidence_{i}'] = model.predict_proba([test_data['data'][i]])
-    return out_dict
+  for i in MODEL_NAMES:
+    model = models[f'model_{i}']
+    out_dict[f'test_confidence_{i}'] = model.predict_proba([test_data['data'][i]])
+  return out_dict
 
-def TEST_COMPARE(prediction,awayId,homeId,useProjectedLineup=False):
+def TEST_COMPARE(prediction,awayId,homeId):
   out_dict = {}
   for i in MODEL_NAMES:
     if i == 'winner':
@@ -139,7 +135,7 @@ def TEST_COMPARE(prediction,awayId,homeId,useProjectedLineup=False):
     out_dict[f'predicted_{i}'] = test_prediction_data
   return out_dict
 
-def TEST_DATA(test_data,awayId,homeId,useProjectedLineup=False):
+def TEST_DATA(test_data,awayId,homeId):
   out_dict = {}
   for i in MODEL_NAMES:
     # test_prediction_data = []
@@ -151,7 +147,7 @@ def TEST_DATA(test_data,awayId,homeId,useProjectedLineup=False):
     out_dict[f'test_{i}'] = test_prediction_data
   return out_dict
 
-def TEST_RESULTS(prediction,test,useProjectedLineup=False):
+def TEST_RESULTS(prediction,test):
   out_dict = {}
   for i in MODEL_NAMES:
     out_dict[i] = 1 if prediction[f'predicted_{i}']==test[f'test_{i}'] else 0
@@ -162,3 +158,71 @@ def TEST_CONFIDENCE_RESULTS(test_confidence):
   for i in MODEL_NAMES:
     out_dict[i] = int((np.max(test_confidence[f'test_confidence_{i}'], axis=1) * 100)[0])
   return out_dict
+
+def TEST_PREDICTION_PROJECTED_LINEUP(models,test_data,awayId,homeId):
+  test_dict = {}
+  winner_list = []
+  winnerB_vote_0 = 0
+  winnerB_vote_1 = 0
+  homeScore_list = []
+  awayScore_list = []
+  totalGoals_list = []
+  goalDifferential_list = []
+  for j in range(0,len(test_data)):
+    lineup = test_data[j]
+    line_dict = {}
+    for i in MODEL_NAMES:
+      model = models[f'model_{i}']
+      prediction = model.predict([lineup])
+      line_dict[f'test_prediction_{i}'] = prediction
+      if i == 'winner':
+        winner_list.append(prediction[0])
+      elif i == 'winnerB':
+        if prediction[0] == 0: winnerB_vote_0 += 1
+        if prediction[0] == 1: winnerB_vote_1 += 1
+      elif i == 'homeScore':
+        homeScore_list.append(prediction[0])
+      elif i == 'awayScore':
+        awayScore_list.append(prediction[0])
+      elif i == 'totalGoals':
+        totalGoals_list.append(prediction[0])
+      elif i == 'goalDifferential':
+        goalDifferential_list.append(prediction[0])
+    test_dict[j] = line_dict
+  
+  if winnerB_vote_0 > winnerB_vote_1:
+    winnerB_vote_champ = 0
+  elif winnerB_vote_0 < winnerB_vote_1:
+    winnerB_vote_champ = 1
+  else:
+    winnerB_vote_champ = -1
+  winner_average = 0 if len(winner_list) <= 0 else sum(winner_list) / len(winner_list)
+  awayScore_average = 0 if len(awayScore_list) <= 0 else sum(awayScore_list) / len(awayScore_list)
+  homeScore_average = 0 if len(homeScore_list) <= 0 else sum(homeScore_list) / len(homeScore_list)
+  totalGoals_average = 0 if len(totalGoals_list) <= 0 else sum(totalGoals_list) / len(totalGoals_list)
+  goalDifferential_average = 0 if len(goalDifferential_list) <= 0 else sum(goalDifferential_list) / len(goalDifferential_list)
+  winnerA, offsetA = winnerOffset(winner_average,homeId,awayId)
+
+  return {
+    'test_prediction_winner': [winnerA],
+    'test_prediction_winnerB': [winnerB_vote_champ],
+    'test_prediction_awayScore': [awayScore_average],
+    'test_prediction_homeScore': [homeScore_average],
+    'test_prediction_totalGoals': [totalGoals_average],
+    'test_prediction_goalDifferential': [goalDifferential_average],
+  }
+
+def TEST_COMPARE_PROJECTED_LINEUP():
+  pass
+
+def TEST_DATA_PROJECTED_LINEUP(test_data,awayId,homeId):
+  test_data = list(test_data['result'].values())[0]
+  print(test_data)
+  return {
+    'test_winner': round(test_data['winner']),
+    'test_winnerB': round(test_data['winnerB']),
+    'test_awayScore': round(test_data['awayScore']),
+    'test_homeScore': round(test_data['homeScore']),
+    'test_totalGoals': round(test_data['totalGoals']),
+    'test_goalDifferential': round(test_data['goalDifferential']),
+  }

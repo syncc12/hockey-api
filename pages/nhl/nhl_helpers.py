@@ -19,7 +19,6 @@ from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE
 from util.returns import ai_return_dict_projectedLineup, ai_return_dict
 
-
 def ai(db, game_data, useProjectedLineup, models):
   # data = nhl_ai(game_data)
   data = nhl_data(db, game_data, useProjectedLineup)
@@ -54,4 +53,4 @@ def ai(db, game_data, useProjectedLineup, models):
       confidences[i][f'confidence_totalGoals'] = models['model_totalGoals'].predict_proba(data['data']['data'][i])
       confidences[i][f'confidence_goalDifferential'] = models['model_goalDifferential'].predict_proba(data['data']['data'][i])
     
-    return ai_return_dict_projectedLineup(db, data,predictions,confidences)
+    return ai_return_dict_projectedLineup(data,predictions,confidences)

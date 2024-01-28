@@ -630,11 +630,40 @@ def projected_roster(gameId):
     return awayRoster, homeRoster
   else:
     return False, False
-      
 
+def getLastTeamLineups(db,gameId):
+  try:
+    Boxscores = db['dev_boxscores']
+    boxscore = Boxscores.find_one({'id':gameId})
+    awayId = boxscore['awayTeam']['id']
+    homeId = boxscore['homeTeam']['id']
+    awayQuery = {
+      'id': {'$lt': gameId},
+      'awayTeam.id': awayId,
+    }
+    homeQuery = {
+      'id': {'$lt': gameId},
+      'homeTeam.id': homeId,
+    }
+    projection = {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1, 'period': 1}
+    awayTeamLastGame = list(Boxscores.find(awayQuery,projection).sort('id',-1).limit(1))
+    homeTeamLastGame = list(Boxscores.find(homeQuery,projection).sort('id',-1).limit(1))
+    if len(awayTeamLastGame) == 0 or len(homeTeamLastGame) == 0:
+      return {}
+    else:
+      awayTeamLastGame = awayTeamLastGame[0]
+      homeTeamLastGame = homeTeamLastGame[0]
+      away_home_away = 'awayTeam' if awayTeamLastGame['awayTeam']['id'] == awayId else 'homeTeam'
+      home_home_away = 'awayTeam' if homeTeamLastGame['awayTeam']['id'] == homeId else 'homeTeam'
 
+      awayTeamLastLineup = awayTeamLastGame['boxscore']['playerByGameStats'][away_home_away]
+      homeTeamLastLineup = homeTeamLastGame['boxscore']['playerByGameStats'][home_home_away]
 
-
-
-  
-
+      return {
+        'playerByGameStats': {
+          'awayTeam': awayTeamLastLineup, 
+          'homeTeam': homeTeamLastLineup,
+        }
+      }
+  except:
+    return {}

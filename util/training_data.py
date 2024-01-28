@@ -3,7 +3,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
 
 from pymongo import MongoClient
 from datetime import datetime
-from util.helpers import safe_chain, false_chain
+from util.helpers import safe_chain, false_chain, getLastTeamLineups
 from inputs.inputs import master_inputs
 import os
 from joblib import dump
@@ -154,4 +154,57 @@ def update_training_data(gameId):
   training_data = master_inputs(db=db, game=game_data)
 
   print('DONE ', gameId['id'])
+  return training_data
+
+
+def season_training_data_projectedLineup(season):
+  print('fired',season)
+
+  training_data = []
+  boxscores = list(Boxscores.find(
+    {'season': int(season)},
+    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1, 'period': 1}
+  ))
+  games = list(Games.find(
+    {'season': int(season)},
+    {'id': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1}
+  ))
+  for i in range(0,len(games)):
+    if false_chain(boxscores,i,'id'):
+      id = safe_chain(boxscores,i,'id')
+    else:
+      id = safe_chain(games,i,'id')
+    if false_chain(boxscores,i,'homeTeam'):
+      homeTeam = safe_chain(boxscores,i,'homeTeam')
+    else:
+      homeTeam = safe_chain(games,i,'homeTeam')
+    if false_chain(boxscores,i,'awayTeam'):
+      awayTeam = safe_chain(boxscores,i,'awayTeam')
+    else:
+      awayTeam = safe_chain(games,i,'awayTeam')
+    last_boxscore = getLastTeamLineups(db,id)
+    if last_boxscore:
+      game_data = {
+        'id': id,
+        'season': safe_chain(boxscores,i,'season'),
+        'gameType': safe_chain(boxscores,i,'gameType'),
+        'gameDate': safe_chain(boxscores,i,'gameDate'),
+        'venue': safe_chain(boxscores,i,'venue'),
+        'period': safe_chain(boxscores,i,'period'),
+        'homeTeam': homeTeam,
+        'awayTeam': awayTeam,
+        'boxscore': last_boxscore,
+        'neutralSite': safe_chain(games,i,'neutralSite'),
+        # 'homeSplitSquad': safe_chain(games,i,'homeTeam','homeSplitSquad'),
+        # 'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
+      }
+
+      boxscore_data = master_inputs(db=db, game=game_data,isProjectedLineup=True,training=True)['data']
+      if boxscore_data:
+        training_data.append(boxscore_data)
+      print(season,f'{i+1}/{len(games)}')
+    else:
+      print(season,f'{i+1}/{len(games)} - skip')
+  print('DONE ',season)
+  dump(training_data,f"training_data/v{VERSION}/projected_lineup/training_data_v{FILE_VERSION}_{season}_projectedLineup.joblib")
   return training_data
