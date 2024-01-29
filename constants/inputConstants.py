@@ -97,8 +97,21 @@ X_V6_INPUTS = [
 Y_V6_OUTPUTS = ['homeScore','awayScore','winner','totalGoals','goalDifferential']
 
 BASE_INPUTS = [
-  'id','season','gameType','venue','neutralSite','homeTeam','awayTeam',#'startTime',
-  'date','awayHeadCoach','homeHeadCoach','ref1','ref2','linesman1','linesman2'
+  'id',
+  'season',
+  'gameType',
+  'venue',
+  'neutralSite',
+  'homeTeam',
+  'awayTeam',
+  #'startTime',
+  'date',
+  'awayHeadCoach',
+  'homeHeadCoach',
+  'ref1',
+  'ref2',
+  'linesman1',
+  'linesman2',
 ]
 ANN_BASE_INPUTS = [
   'id','season','gameType','venueT','neutralSite','homeTeam','awayTeam','startTime',

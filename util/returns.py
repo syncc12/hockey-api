@@ -57,20 +57,21 @@ def ai_return_dict_projectedLineup(data, prediction, confidence):
   totalGoals_list = []
   goalDifferential_list = []
   for d in data_keys:
-    if safe_len(safe_chain(data,'data',d)) == 0 or safe_len(safe_chain(prediction,d)) == 0:
-      predicted_data[d]['prediction_winnerId'] = -1
-      predicted_data[d]['prediction_winnerB'] = -1
-      predicted_data[d]['prediction_homeScore'] = -1
-      predicted_data[d]['prediction_awayScore'] = -1
-      predicted_data[d]['prediction_totalGoals'] = -1
-      predicted_data[d]['prediction_goalDifferential'] = -1
-      state = 'OFF'
-      homeTeam = data['data']['home_team']['city']
-      awayTeam = data['data']['away_team']['city']
-      predicted_data[d]['winner'] = -1
-      predicted_data[d]['winnerB'] = -1
-      predicted_data[d]['offset'] = -1
-    else:
+    # print(safe_len(safe_chain(data,'data',d)) == 0 or safe_len(safe_chain(prediction,d)) == 0, safe_len(safe_chain(data,'data',d)),safe_len(safe_chain(prediction,d)))
+    # if safe_len(safe_chain(data,'data',d)) == 0 or safe_len(safe_chain(prediction,d)) == 0:
+    #   predicted_data[d]['prediction_winnerId'] = -1
+    #   predicted_data[d]['prediction_winnerB'] = -1
+    #   predicted_data[d]['prediction_homeScore'] = -1
+    #   predicted_data[d]['prediction_awayScore'] = -1
+    #   predicted_data[d]['prediction_totalGoals'] = -1
+    #   predicted_data[d]['prediction_goalDifferential'] = -1
+    #   state = 'OFF'
+    #   homeTeam = data['data']['home_team']['city']
+    #   awayTeam = data['data']['away_team']['city']
+    #   predicted_data[d]['winner'] = -1
+    #   predicted_data[d]['winnerB'] = -1
+    #   predicted_data[d]['offset'] = -1
+    # else:
       winnerId = int(prediction[d]['prediction_winner'])
       winnerB = int(prediction[d]['prediction_winnerB'])
       homeScore = int(prediction[d]['prediction_homeScore'])

@@ -1,5 +1,8 @@
 import torch
 import torch.nn.functional as F
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 
@@ -39,3 +42,28 @@ def binary_accuracy(y_pred, y_true):
   correct_results = (y_pred_tag == y_true).float()
   accuracy = correct_results.sum() / len(correct_results)
   return accuracy.item() * 100
+
+def errorAnalysis(model,validation_loader,device):
+  # Assume model, validation_loader are defined
+  # Forward pass over the validation set
+  all_preds = []
+  all_labels = []
+  model.eval()
+  with torch.no_grad():
+    for data in validation_loader:
+      inputs, labels = data
+      inputs, labels = inputs.to(device), labels.to(device)
+      outputs = model(inputs)
+      _, preds = torch.max(outputs, 1)
+      all_preds.extend(preds.cpu().numpy())
+      all_labels.extend(labels.cpu().numpy())
+
+  # Analyze misclassifications
+  misclassified = [(pred, label) for pred, label in zip(all_preds, all_labels) if pred != label]
+  print(misclassified)
+
+  # Error analysis
+  # Example: Confusion Matrix
+  cm = confusion_matrix(all_labels, all_preds)
+  sns.heatmap(cm, annot=True)
+  plt.show()

@@ -14,8 +14,9 @@ from util.helpers import adjusted_winner
 from inputs.inputs import master_inputs
 from util.returns import ai_return_dict_projectedLineup
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
-from constants.constants import VERSION, FILE_VERSION, H2O_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
+from constants.constants import VERSION, FILE_VERSION, TORCH_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 from inputs.projectedLineup import testProjectedLineup
+from train_torch import predict_model
 
 # RANDOM_STATE = 12
 # FILE_VERSION = 7
@@ -37,7 +38,7 @@ MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')) 
 # for i in MODEL_NAMES:
 #   if i == 'winnerB':
 #     # f'C:/Users/syncc/code/Hockey API/hockey_api/models/nhl_ai_v{H2O_FILE_VERSION}_h2o_{i}/StackedEnsemble_BestOfFamily_1_AutoML_1_20240121_02310'
-#     MODELS[f'model_{i}'] = h2o.load_model(f'models/nhl_ai_v{H2O_FILE_VERSION}_h2o_winner/StackedEnsemble_BestOfFamily_1_AutoML_1_20240121_02310')
+#     MODELS[f'model_{i}'] = h2o.load_model(f'models/nhl_ai_v{TORCH_FILE_VERSION}_h2o_winner/StackedEnsemble_BestOfFamily_1_AutoML_1_20240121_02310')
 #   else:
 #     MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')
 
@@ -83,12 +84,9 @@ def MODEL_PREDICT(models,data):
   # print(data)
   for i in MODEL_NAMES:
     # if i == 'winnerB':
-    #   # print(data['data']['input_data'])
-    #   selected_data = {key: data['data']['input_data'][key] for key in X_INPUTS}
-    #   # print('selected_data',selected_data)
-    #   hf = h2o.H2OFrame([selected_data])
-    #   # print('hf',hf)
-    #   out_dict[f'prediction_{i}'] = models[f'model_{i}'].predict(hf)
+    #   prediction = predict_model(data['data']['data'])
+    #   print(prediction)
+    #   out_dict[f'prediction_{i}'] = prediction
     # else:
     out_dict[f'prediction_{i}'] = models[f'model_{i}'].predict(data['data']['data'])
   return out_dict
@@ -114,6 +112,9 @@ def TEST_ALL_UPDATE(testAll,testLines):
 def TEST_PREDICTION(models,test_data):
   out_dict = {}
   for i in MODEL_NAMES:
+    # if i == 'winnerB':
+    #   out_dict[f'test_prediction_{i}'] = predict_model([test_data['data'][i]])
+    # else:
     model = models[f'model_{i}']
     out_dict[f'test_prediction_{i}'] = model.predict([test_data['data'][i]])
   return out_dict

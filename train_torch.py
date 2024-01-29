@@ -10,16 +10,14 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from sklearn.model_selection import train_test_split
 from joblib import load
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
-from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON, VERBOSE
+from constants.constants import TORCH_VERSION, TORCH_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 import pandas as pd
 import numpy as np
-from util.torch_helpers import HingeLoss, FocalLoss, binary_accuracy
+from util.torch_helpers import HingeLoss, FocalLoss, binary_accuracy, errorAnalysis
 import time
 
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
-db = client["hockey"]
 
-NUM_EPOCHS = 100
+NUM_EPOCHS = 50
 BATCH_SIZE = 16
 NUM_WORKERS = 4
 LR=0.001
@@ -27,12 +25,24 @@ L2=1e-4
 INPUT_DIM = len(X_INPUTS)
 OUTPUT_DIM = 1
 
-training_data = load(f'training_data/training_data_v{FILE_VERSION}.joblib')
-data = pd.DataFrame(training_data)
-x = data [X_INPUTS].to_numpy()
-y = data [['winnerB']].to_numpy()
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_STATE)
-  
+USE_PARTIAL_SEASONS = False
+
+class PredictionDataset(Dataset):
+  def __init__(self, x):
+    # print(x)
+    x = np.array(x)
+    # print(x)
+    # self.x = torch.from_numpy(x.astype(np.float32))
+    self.x = x.astype(np.float32)
+    # print(self.x)
+    self.len = self.x.shape[0]
+
+  def __len__(self):
+    return self.len
+
+  def __getitem__(self, index):
+    return self.x[index]
+
 class CustomDataset(Dataset):
   def __init__(self, x_train, y_train):
     self.x = torch.from_numpy(x_train.astype(np.float32))
@@ -71,7 +81,33 @@ class Net(nn.Module):
     return x
 
 def train():
+  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+  db = client["hockey"]
+
+  if USE_PARTIAL_SEASONS:
+    seasons = [
+      20172018,
+      20182019,
+      20192020,
+      20202021,
+      20212022,
+      20222023,
+    ]
+    result = []
+    for i in seasons:
+      result.append(load(f'training_data/v{TORCH_VERSION}/training_data_v{TORCH_FILE_VERSION}_{i}.joblib'))
+    training_data = np.concatenate(result).tolist()
+  else:
+    training_data = load(f'training_data/training_data_v{TORCH_FILE_VERSION}.joblib')
+  
+  data = pd.DataFrame(training_data)
+  x = data [X_INPUTS].to_numpy()
+  y = data [['winnerB']].to_numpy()
+  x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_STATE)
+  x_train, x_validation, y_train, y_validation = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
+  
   train_dataset = CustomDataset(x_train, y_train)
+  validation_dataset = CustomDataset(x_validation, y_validation)
   test_dataset = CustomDataset(x_test, y_test)
 
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -79,6 +115,7 @@ def train():
 
 
   train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+  validation_loader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
   test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
   # Loss function and optimizer
@@ -86,7 +123,8 @@ def train():
   # criterion = nn.MSELoss ()
   # criterion = HingeLoss ()
   criterion = FocalLoss ()
-  optimizer = torch.optim.SGD(model.parameters(),lr=LR,weight_decay=L2)
+  # optimizer = torch.optim.SGD(model.parameters(),lr=LR,weight_decay=L2)
+  optimizer = torch.optim.Adam(model.parameters(),lr=LR,weight_decay=L2)
 
   # Training loop
   for epoch in range(NUM_EPOCHS):
@@ -135,12 +173,15 @@ def train():
   print(f'Average Accuracy: {average_accuracy}')
   # print(f'Accuracy of the model on the test set: {100 * correct / total}%')
 
+  # Error Analysis
+  errorAnalysis(model,validation_loader,device)
+
   TrainingRecords = db['dev_training_records']
 
   timestamp = time.time()
   TrainingRecords.insert_one({
     'savedAt': timestamp,
-    'version': VERSION,
+    'version': TORCH_VERSION,
     'inputs': X_INPUTS,
     'outputs': 'winnerB',
     'randomState': RANDOM_STATE,
@@ -164,7 +205,56 @@ def train():
   })
 
   # Save/Load the model
-  torch.save(model.state_dict(), f'./models/nhl_ai_v{FILE_VERSION}_torch_winnerB.pt')
+  torch.save(model.state_dict(), f'./models/nhl_ai_v{TORCH_FILE_VERSION}_torch_winnerB.pt')
+
+
+
+def predict_model(input_data=[],threshold=0.489,include_confidence=False):
+  # Instantiate the model
+  model = Net()
+
+  # Load the trained model weights
+  model.load_state_dict(torch.load(f'./models/nhl_ai_v{TORCH_FILE_VERSION}_torch_winnerB.pt'))
+
+  # Set the model to evaluation mode
+  model.eval()
+
+  # Assume you have a function to preprocess your input data
+  def preprocess_data(raw_data):
+    # Implement preprocessing here (e.g., scaling, normalization)
+    return PredictionDataset(raw_data)
+    # return raw_data
+
+  # Load and preprocess your input data
+  # raw_data = ... (load your data here)
+  processed_data = preprocess_data(input_data)
+
+  # Convert your processed data to a PyTorch tensor
+  input_tensor = torch.tensor(processed_data)
+
+  # If you're using a GPU, move your data to the GPU
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  input_tensor = input_tensor.to(device)
+  model = model.to(device)
+
+  # Make predictions
+  with torch.no_grad():
+    predictions = model(input_tensor)
+
+  # Convert predictions to numpy array (if needed)
+  # predictions = predictions.cpu().numpy()
+
+  confidence = torch.sigmoid(predictions)
+  print('confidence',confidence[0][0])
+  prediction = (confidence >= threshold).int()
+
+  if not include_confidence:
+    return prediction
+  else:
+    return prediction, confidence
+
+
+
 
 if __name__ == '__main__':
   train()

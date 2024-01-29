@@ -18,6 +18,7 @@ import io
 from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE
 from util.returns import ai_return_dict_projectedLineup, ai_return_dict
+from train_torch import predict_model
 
 def ai(db, game_data, useProjectedLineup, models):
   # data = nhl_ai(game_data)
@@ -40,7 +41,8 @@ def ai(db, game_data, useProjectedLineup, models):
       confidences[i] = {}
       # print(i,data['data']['data'][i])
       predictions[i][f'prediction_winner'] = models['model_winner'].predict(data['data']['data'][i])
-      predictions[i][f'prediction_winnerB'] = models['model_winnerB'].predict(data['data']['data'][i])
+      # predictions[i][f'prediction_winnerB'] = models['model_winnerB'].predict(data['data']['data'][i])
+      predictions[i][f'prediction_winnerB'] = predict_model(data['data']['data'][i])
       # predictions[i][f'prediction_winnerB'] = models['model_winnerB'].predict(h2o.H2OFrame(data['data']['data'][i]))
       predictions[i][f'prediction_homeScore'] = models['model_homeScore'].predict(data['data']['data'][i])
       predictions[i][f'prediction_awayScore'] = models['model_awayScore'].predict(data['data']['data'][i])
