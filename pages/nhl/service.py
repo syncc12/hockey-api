@@ -19,8 +19,13 @@ from util.helpers import false_chain, latestIDs, adjusted_winner, test_recommend
 from inputs.inputs import master_inputs
 from pages.nhl.nhl_helpers import ai, ai_return_dict
 from constants.constants import VERSION, FILE_VERSION
-from util.models import TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP
+from util.models import TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP, winnersAgree
 from inputs.projectedLineup import testProjectedLineup
+import warnings
+
+# Suppress specific UserWarning from sklearn
+warnings.filterwarnings("ignore", message="X does not have valid feature names")
+
 
 def debug():
   res = requests.get("https://api-web.nhle.com/v1/schedule/2023-11-22").json()
@@ -50,6 +55,11 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
 
   test_results = {}
   all_total = TEST_ALL_INIT
+  all_winnersAgree_total = 0
+  all_winnersAgree_count = 0
+  all_winnerBDisagrees_total = 0
+  all_winnerRDisagrees_total = 0
+  all_winnersDisagree_count = 0
   all_winnings_total = 0
   all_winnings10_total = 0
   all_winnings100_total = 0
@@ -70,6 +80,7 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     'game': [],
     'winnerPercent': 0,
     'winnerBPercent': 0,
+    'winnerRPercent': 0,
     'homeScorePercent': 0,
     'awayScorePercent': 0,
     }
@@ -82,7 +93,7 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     
     if not useProjectedLineup:
       test_prediction = TEST_PREDICTION(models,test_data)
-      test_confidence = TEST_CONFIDENCE(models,test_data)
+      # test_confidence = TEST_CONFIDENCE(models,test_data)
       predicted = TEST_COMPARE(test_prediction,awayId,homeId)
       test_data_result = TEST_DATA(test_data,awayId,homeId)
     else:
@@ -96,7 +107,7 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
       test_results[boxscore['gameDate']]['game'].append({
         'id': boxscore['id'],
         'results': TEST_RESULTS(predicted,test_data_result),
-        'confidence': TEST_CONFIDENCE_RESULTS(test_confidence),
+        # 'confidence': TEST_CONFIDENCE_RESULTS(test_confidence),
       })
     else:
       test_results[boxscore['gameDate']]['game'].append({
@@ -122,10 +133,10 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
       if not boxscore['gameDate'] in odds_dict:
         odds_dict[boxscore['gameDate']] = []
       odds_dict[boxscore['gameDate']].append(winning_odds)
-      if not useProjectedLineup:
-        if not boxscore['gameDate'] in confidence_dict:
-          confidence_dict[boxscore['gameDate']] = []
-        confidence_dict[boxscore['gameDate']].append(int((np.max(test_confidence['test_confidence_winner'], axis=1) * 100)[0]))
+      # if not useProjectedLineup:
+      #   if not boxscore['gameDate'] in confidence_dict:
+      #     confidence_dict[boxscore['gameDate']] = []
+      #   confidence_dict[boxscore['gameDate']].append(int((np.max(test_confidence['test_confidence_winner'], axis=1) * 100)[0]))
       
       if not boxscore['gameDate'] in winners_dict:
         winners_dict[boxscore['gameDate']] = []
@@ -158,6 +169,11 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     
     ## All Totals
     line_total = TEST_LINE_INIT
+    winnersAgree_total = 0
+    winnersAgree_count = 0
+    winnerBDisagrees_total = 0
+    winnerRDisagrees_total = 0
+    winnersDisagree_count = 0
     winnings_total = 0
     winnings10_total = 0
     winnings100_total = 0
@@ -168,6 +184,14 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     all_list_total += list_total
     for r in test_results[boxscore['gameDate']]['game']:
       line_total = TEST_LINE_UPDATE(line_total,r)
+      if r['results']['winnerR'] == r['results']['winnerB']:
+        winnersAgree_count += 1
+        winnersAgree_total += r['results']['winnerB']
+      else:
+        winnersDisagree_count += 1
+        winnerBDisagrees_total += r['results']['winnerB']
+        winnerRDisagrees_total += r['results']['winnerR']
+
       # if game_odds:
       #   winnings_total += r['betting']['winnings']['wager']
       #   winnings10_total += r['betting']['winnings']['10']
@@ -179,6 +203,11 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
       #   home_away_score_total += 1
 
     all_total = TEST_ALL_UPDATE(all_total,line_total)
+    all_winnersAgree_count += winnersAgree_count
+    all_winnersAgree_total += winnersAgree_total
+    all_winnersDisagree_count += winnersDisagree_count
+    all_winnerBDisagrees_total += winnerBDisagrees_total
+    all_winnerRDisagrees_total += winnerRDisagrees_total
     if game_odds:
       all_winnings_total += winnings_total 
       all_winnings10_total += winnings10_total 
@@ -213,6 +242,12 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
       }
     test_results[boxscore['gameDate']]['winnerPercent'] = (line_total['winner_total'] / list_total) * 100
     test_results[boxscore['gameDate']]['winnerBPercent'] = (line_total['winnerB_total'] / list_total) * 100
+    test_results[boxscore['gameDate']]['winnerRPercent'] = (line_total['winnerR_total'] / list_total) * 100
+    test_results[boxscore['gameDate']]['winnersAgreePercent'] = 0 if winnersAgree_count == 0 else (winnersAgree_total / winnersAgree_count) * 100
+    test_results[boxscore['gameDate']]['winnerBDisagreesPercent'] = 0 if winnersDisagree_count == 0 else (winnerBDisagrees_total / winnersDisagree_count) * 100
+    test_results[boxscore['gameDate']]['winnerRDisagreesPercent'] = 0 if winnersDisagree_count == 0 else (winnerRDisagrees_total / winnersDisagree_count) * 100
+    test_results[boxscore['gameDate']]['winnersAgreeCount'] = winnersAgree_count
+    test_results[boxscore['gameDate']]['winnersDisagreeCount'] = winnersDisagree_count
     test_results[boxscore['gameDate']]['homeScorePercent'] = (line_total['homeScore_total'] / list_total) * 100
     test_results[boxscore['gameDate']]['awayScorePercent'] = (line_total['awayScore_total'] / list_total) * 100
     # test_results[boxscore['gameDate']]['h2hScorePercent'] = (line_total['home_away_score_total'] / list_total) * 100
@@ -227,6 +262,12 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
 
   test_results['allWinnerPercent'] = (all_total['all_winner_total'] / all_list_total) * 100
   test_results['allWinnerBPercent'] = (all_total['all_winnerB_total'] / all_list_total) * 100
+  test_results['allWinnerRPercent'] = (all_total['all_winnerR_total'] / all_list_total) * 100
+  test_results['allWinnersAgreePercent'] = 0 if all_winnersAgree_count == 0 else (all_winnersAgree_total / all_winnersAgree_count) * 100
+  test_results['allWinnerBDisagreesPercent'] = 0 if all_winnersDisagree_count == 0 else (all_winnerBDisagrees_total / all_winnersDisagree_count) * 100
+  test_results['allWinnerRDisagreesPercent'] = 0 if all_winnersDisagree_count == 0 else (all_winnerRDisagrees_total / all_winnersDisagree_count) * 100
+  test_results['allWinnersAgreeCount'] = all_winnersAgree_count
+  test_results['allWinnersDisagreeCount'] = all_winnersDisagree_count
   test_results['allHomeScorePercent'] = (all_total['all_homeScore_total'] / all_list_total) * 100
   test_results['allAwayScorePercent'] = (all_total['all_awayScore_total'] / all_list_total) * 100
   # test_results['allH2HScorePercent'] = (all_total['all_home_away_score_total'] / all_list_total) * 100
@@ -334,6 +375,7 @@ def predict_day_simple(db,date,day,gamePick,projectedLineup,models):
         simple_data['prediction'][combo]['homeTeam'] = f"{ai_data['homeTeam']} - {ai_data['prediction'][combo]['prediction_homeScore']} - {ai_data['confidence'][combo]['confidence_homeScore']}%"
         simple_data['prediction'][combo]['winningTeam'] = f"{ai_data['prediction'][combo]['winner']} - {ai_data['confidence'][combo]['confidence_winner']}%"
         simple_data['prediction'][combo]['winningTeamB'] = f"{ai_data['prediction'][combo]['winnerB']} - {ai_data['confidence'][combo]['confidence_winnerB']}%"
+        simple_data['prediction'][combo]['winningTeamR'] = f"{ai_data['prediction'][combo]['winnerR']} - {ai_data['confidence'][combo]['confidence_winnerR']}%"
         simple_data['prediction'][combo]['offset'] = ai_data['prediction'][combo]['offset']
         simple_data['prediction'][combo]['totalGoals'] = f"{ai_data['prediction'][combo]['prediction_totalGoals']} - {ai_data['confidence'][combo]['confidence_totalGoals']}%"
         simple_data['prediction'][combo]['goalDifferential'] = f"{ai_data['prediction'][combo]['prediction_goalDifferential']} - {ai_data['confidence'][combo]['confidence_goalDifferential']}%"
@@ -350,6 +392,7 @@ def predict_day_simple(db,date,day,gamePick,projectedLineup,models):
         'live': live_data,
         'winningTeam': f"{ai_data['prediction']['winner']} - {ai_data['confidence']['confidence_winner']}%",
         'winningTeamB': f"{ai_data['prediction']['winnerB']} - {ai_data['confidence']['confidence_winnerB']}%",
+        'winningTeamR': f"{ai_data['prediction']['winnerR']} - {ai_data['confidence']['confidence_winnerR']}%",
         'message': ai_data['message'],
         'offset': ai_data['prediction']['offset'],
         'totalGoals': f"{ai_data['prediction']['prediction_totalGoals'][0]} - {ai_data['confidence']['confidence_totalGoals']}%",

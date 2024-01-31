@@ -20,7 +20,7 @@ from train_torch import predict_model
 
 # RANDOM_STATE = 12
 # FILE_VERSION = 7
-
+Y_OUTPUTS.append('winnerR')
 MODEL_NAMES = Y_OUTPUTS
 
 
@@ -32,16 +32,18 @@ def winnerOffset(winnerId, homeId, awayId):
   else:
     return -1, -1
 
-MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')) for i in MODEL_NAMES])
+# MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')) for i in MODEL_NAMES])
 # MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_gbc_{i}.joblib')) for i in MODEL_NAMES])
-# MODELS = {}
-# for i in MODEL_NAMES:
-#   if i == 'winnerB':
-#     # f'C:/Users/syncc/code/Hockey API/hockey_api/models/nhl_ai_v{H2O_FILE_VERSION}_h2o_{i}/StackedEnsemble_BestOfFamily_1_AutoML_1_20240121_02310'
-#     MODELS[f'model_{i}'] = h2o.load_model(f'models/nhl_ai_v{TORCH_FILE_VERSION}_h2o_winner/StackedEnsemble_BestOfFamily_1_AutoML_1_20240121_02310')
-#   else:
-#     MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')
+MODELS = {}
+for i in MODEL_NAMES:
+  if i == 'winnerR':
+    MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_winnerB.joblib')
+  elif i == 'goalDifferential':
+    MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_goalDifferential.joblib')
+  else:
+    MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')
 
+# MODELS[f'model_winnerR'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_winnerB.joblib')
 
 def MODEL_X_INPUTS(x):
   return dict([(f'x_{i}',x) for i in MODEL_NAMES])
@@ -227,3 +229,17 @@ def TEST_DATA_PROJECTED_LINEUP(test_data,awayId,homeId):
     'test_totalGoals': round(test_data['totalGoals']),
     'test_goalDifferential': round(test_data['goalDifferential']),
   }
+
+def winnersAgree(predicted_winner,predicted_winnerB,test_winnerB,homeId,awayId):
+  if predicted_winnerB == 0 and predicted_winner == homeId:
+    if test_winnerB == 0:
+      return 1
+    else:
+      return 0
+  elif predicted_winnerB == 1 and predicted_winner == awayId:
+    if test_winnerB == 1:
+      return 1
+    else:
+      return 0
+  else:
+    return
