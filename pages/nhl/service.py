@@ -182,6 +182,7 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
     returns100_total = 0
     list_total = len(test_results[boxscore['gameDate']]['game'])
     all_list_total += list_total
+    # print(f'all_list_total: {all_list_total} (+{list_total})')
     for r in test_results[boxscore['gameDate']]['game']:
       line_total = TEST_LINE_UPDATE(line_total,r)
       if r['results']['winnerR'] == r['results']['winnerB']:
@@ -274,6 +275,7 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
   test_results['allGoalTotalPercent'] = (all_total['all_totalGoals_total'] / all_list_total) * 100
   test_results['allGoalDifferentialPercent'] = (all_total['all_goalDifferential_total'] / all_list_total) * 100
   test_results['allIDs'] = all_ids
+  test_results['allBoxscoreLength'] = len(boxscore_list)
   test_results['allIDLength'] = len(all_ids)
   test_results['totalGames'] = all_list_total
   if game_odds:

@@ -25,6 +25,7 @@ from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASO
 
 RE_PULL = True
 UPDATE = False
+TEST_DATA = False
 # VERSION = 6
 
 def train(db, inData):
@@ -411,21 +412,24 @@ if __name__ == '__main__':
   db = client["hockey"]
   if RE_PULL:
     if USE_SEASONS:
-      seasons = list(db["dev_seasons"].find(
-        {
-          'seasonId': {
-            '$gte': START_SEASON,
-            '$lte': END_SEASON,
-          }
-        },
-        {'_id':0,'seasonId': 1}
-      ))
-      seasons = [int(season['seasonId']) for season in seasons]
-      print(seasons)
-      if (len(SKIP_SEASONS) > 0):
-        for season in SKIP_SEASONS:
-          seasons.remove(season)
+      if TEST_DATA:
+        seasons = [END_SEASON]
+      else:
+        seasons = list(db["dev_seasons"].find(
+          {
+            'seasonId': {
+              '$gte': START_SEASON,
+              '$lte': END_SEASON,
+            }
+          },
+          {'_id':0,'seasonId': 1}
+        ))
+        seasons = [int(season['seasonId']) for season in seasons]
         print(seasons)
+        if (len(SKIP_SEASONS) > 0):
+          for season in SKIP_SEASONS:
+            seasons.remove(season)
+          print(seasons)
     else:
       ids = latestIDs()
       startID = ids['saved']['training']
@@ -441,15 +445,18 @@ if __name__ == '__main__':
       result = pool.map(season_training_data,seasons)
     else:
       result = pool.map(game_training_data,games)
-    if len(SKIP_SEASONS) > 0:
+    if len(SKIP_SEASONS) > 0 and not TEST_DATA:
       for skip_season in SKIP_SEASONS:
         season_data = load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{skip_season}.joblib')
         result.append(season_data)
     result = np.concatenate(result).tolist()
     pool.close()
-    dump(result,f'training_data/training_data_v{FILE_VERSION}.joblib')
-    f = open('training_data/training_data_text.txt', 'w')
-    f.write(json.dumps(result[len(result)-200:len(result)]))
+    if TEST_DATA:
+      dump(result,f'training_data/test_data_v{FILE_VERSION}.joblib')
+    else:
+      dump(result,f'training_data/training_data_v{FILE_VERSION}.joblib')
+      f = open('training_data/training_data_text.txt', 'w')
+      f.write(json.dumps(result[len(result)-200:len(result)]))
   else:
     training_data_path = f'training_data/training_data_v{FILE_VERSION}.joblib'
     print(training_data_path)
@@ -457,4 +464,5 @@ if __name__ == '__main__':
     f = open('training_data/training_data_text.txt', 'w')
     f.write(json.dumps(result[len(result)-200:len(result)]))
   print('Games Collected')
-  train(db, result)
+  if not TEST_DATA:
+    train(db, result)
