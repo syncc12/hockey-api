@@ -23,10 +23,9 @@ from util.helpers import latestIDs
 import time
 from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON, VERBOSE
 
-RE_PULL = True
+RE_PULL = False
 UPDATE = False
 TEST_DATA = False
-# VERSION = 6
 
 def train(db, inData):
   imputer = SimpleImputer(strategy='constant', fill_value=-1)

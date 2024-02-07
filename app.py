@@ -8,7 +8,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 from flask import Flask, request, jsonify, Response
 from joblib import load
 from pymongo import MongoClient
-from pages.nhl.service import debug, test_model, collect_boxscores, predict, predict_day, predict_day_simple, predict_week, get_day_ids, date_predict, now, game_date, metadata, save_boxscores
+from pages.nhl.service import debug, test_model, collect_boxscores, predict, predict_day, predict_day_simple, predict_week, get_day_ids, date_predict, now, game_date, metadata, save_boxscores, clean_boxscores
 from constants.constants import FILE_VERSION
 from util.helpers import recommended_wagers
 from util.models import MODELS
@@ -112,6 +112,10 @@ def nhl_metadata():
 def nhl_save_boxscores():
   date = request.args.get('date', default='now', type=str)
   return save_boxscores(db, date, models)
+
+@app.route('/db/clean', methods=['GET'])
+def nhl_clean_boxscores():
+  return clean_boxscores(db)
 
 # @app.teardown_appcontext
 # def shutdown_h2o(exception=None):

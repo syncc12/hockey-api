@@ -535,3 +535,10 @@ def save_boxscores(db,date,models):
     'previous': latest_ids,
     'updated': updated_ids
   }}
+
+def clean_boxscores(db):
+  Boxscores = db['dev_boxscores']
+  query = {"gameState": "FUT"}
+  result = Boxscores.delete_many(query)
+  return {"Documents deleted": result.deleted_count}
+

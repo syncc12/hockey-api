@@ -27,6 +27,8 @@ OUTPUT_DIM = 1
 
 USE_PARTIAL_SEASONS = False
 
+OUTPUT = 'goalDifferential'
+
 class PredictionDataset(Dataset):
   def __init__(self, x):
     # print(x)
@@ -56,26 +58,65 @@ class CustomDataset(Dataset):
     return self.x[index], self.y[index]
 
 
-HIDDEN_LAYERS = (len(X_INPUTS)*5,len(X_INPUTS)*2)
+HIDDEN_LAYERS = (
+  len(X_INPUTS)*2,
+  len(X_INPUTS)*4,
+  len(X_INPUTS)*6,
+  len(X_INPUTS)*8,
+  len(X_INPUTS)*10,
+  len(X_INPUTS)*8,
+  len(X_INPUTS)*6,
+  len(X_INPUTS)*4,
+  )
 class Net(nn.Module):
   def __init__(self):
     super(Net, self).__init__()
     self.linearStart = nn.Linear(INPUT_DIM, HIDDEN_LAYERS[0])
-    self.actStart = nn.Sigmoid()
+    self.actStart = nn.ReLU()
 
     self.linear2 = nn.Linear(HIDDEN_LAYERS[0], HIDDEN_LAYERS[1])
-    self.act2 = nn.Sigmoid()
+    self.act2 = nn.ReLU()
 
-    self.norm3 = nn.BatchNorm1d(HIDDEN_LAYERS[1])
+    self.linear3 = nn.Linear(HIDDEN_LAYERS[1], HIDDEN_LAYERS[2])
+    self.act3 = nn.ReLU()
+
+    self.linear4 = nn.Linear(HIDDEN_LAYERS[2], HIDDEN_LAYERS[3])
+    self.act4 = nn.ReLU()
+
+    self.norm4 = nn.BatchNorm1d(HIDDEN_LAYERS[3])
+
+    self.dropout1 = nn.Dropout(0.5)
+
+    self.linear5 = nn.Linear(HIDDEN_LAYERS[3], HIDDEN_LAYERS[4])
+    self.act5 = nn.ReLU()
+
+    self.linear6 = nn.Linear(HIDDEN_LAYERS[4], HIDDEN_LAYERS[5])
+    self.act6 = nn.ReLU()
+
+    self.linear7 = nn.Linear(HIDDEN_LAYERS[5], HIDDEN_LAYERS[6])
+    self.act7 = nn.ReLU()
+
+    self.linear8 = nn.Linear(HIDDEN_LAYERS[6], HIDDEN_LAYERS[7])
+    self.act8 = nn.ReLU()
+
+    self.norm8 = nn.BatchNorm1d(HIDDEN_LAYERS[7])
 
     self.dropout2 = nn.Dropout(0.5)
 
-    self.linearEnd = nn.Linear(HIDDEN_LAYERS[1], OUTPUT_DIM)
+    self.linearEnd = nn.Linear(HIDDEN_LAYERS[7], OUTPUT_DIM)
 
   def forward(self, x):
     x = self.actStart(self.linearStart(x))
     x = self.act2(self.linear2(x))
-    x = self.norm3(x)
+    x = self.act3(self.linear3(x))
+    x = self.act4(self.linear4(x))
+    x = self.norm4(x)
+    x = self.dropout1(x)
+    x = self.act5(self.linear5(x))
+    x = self.act6(self.linear6(x))
+    x = self.act7(self.linear7(x))
+    x = self.act8(self.linear8(x))
+    x = self.norm8(x)
     x = self.dropout2(x)
     x = self.linearEnd(x)
     return x
@@ -102,7 +143,7 @@ def train():
   
   data = pd.DataFrame(training_data)
   x = data [X_INPUTS].to_numpy()
-  y = data [['winnerB']].to_numpy()
+  y = data [[OUTPUT]].to_numpy()
   x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_STATE)
   x_train, x_validation, y_train, y_validation = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
   
@@ -121,10 +162,10 @@ def train():
   # Loss function and optimizer
   # criterion = nn.BCEWithLogitsLoss ()
   # criterion = nn.MSELoss ()
-  # criterion = HingeLoss ()
-  criterion = FocalLoss ()
-  # optimizer = torch.optim.SGD(model.parameters(),lr=LR,weight_decay=L2)
-  optimizer = torch.optim.Adam(model.parameters(),lr=LR,weight_decay=L2)
+  criterion = HingeLoss ()
+  # criterion = FocalLoss ()
+  optimizer = torch.optim.SGD(model.parameters(),lr=LR,weight_decay=L2)
+  # optimizer = torch.optim.Adam(model.parameters(),lr=LR,weight_decay=L2)
 
   # Training loop
   for epoch in range(NUM_EPOCHS):
@@ -183,7 +224,7 @@ def train():
     'savedAt': timestamp,
     'version': TORCH_VERSION,
     'inputs': X_INPUTS,
-    'outputs': 'winnerB',
+    'outputs': OUTPUT,
     'randomState': RANDOM_STATE,
     'startingSeason': START_SEASON,
     'finalSeason': END_SEASON,
@@ -200,12 +241,12 @@ def train():
       'output_dim': OUTPUT_DIM,
     },
     'accuracies': {
-      'winnerB': average_accuracy,
+      OUTPUT: average_accuracy,
     },
   })
 
   # Save/Load the model
-  torch.save(model.state_dict(), f'./models/nhl_ai_v{TORCH_FILE_VERSION}_torch_winnerB.pt')
+  torch.save(model.state_dict(), f'./models/nhl_ai_v{TORCH_FILE_VERSION}_torch_{OUTPUT}.pt')
 
 
 
@@ -214,7 +255,7 @@ def predict_model(input_data=[],threshold=0.489,include_confidence=False):
   model = Net()
 
   # Load the trained model weights
-  model.load_state_dict(torch.load(f'./models/nhl_ai_v{TORCH_FILE_VERSION}_torch_winnerB.pt'))
+  model.load_state_dict(torch.load(f'./models/nhl_ai_v{TORCH_FILE_VERSION}_torch_{OUTPUT}.pt'))
 
   # Set the model to evaluation mode
   model.eval()

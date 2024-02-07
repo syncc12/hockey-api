@@ -108,10 +108,10 @@ BASE_INPUTS = [
   'date',
   'awayHeadCoach',
   'homeHeadCoach',
-  'ref1',
-  'ref2',
-  'linesman1',
-  'linesman2',
+  # 'ref1',
+  # 'ref2',
+  # 'linesman1',
+  # 'linesman2',
 ]
 ANN_BASE_INPUTS = [
   'id','season','gameType','venueT','neutralSite','homeTeam','awayTeam','startTime',

@@ -1,6 +1,10 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
+
 from util.helpers import safe_chain
+from constants.constants import FLIP_R
+
 
 import numpy as np
 
@@ -115,9 +119,9 @@ def ai_return_dict_projectedLineup(data, prediction, confidence):
       else:
         predicted_data[d]['winnerB'] = 'Inconclusive'
       if winnerR == 0:
-        predicted_data[d]['winnerR'] = homeTeam
+        predicted_data[d]['winnerR'] = awayTeam if FLIP_R else homeTeam
       elif winnerR == 1:
-        predicted_data[d]['winnerR'] = awayTeam
+        predicted_data[d]['winnerR'] = homeTeam if FLIP_R else awayTeam
       else:
         predicted_data[d]['winnerR'] = 'Inconclusive'
   if winner_vote_away > winner_vote_home:
@@ -228,9 +232,9 @@ def ai_return_dict(data, prediction, confidence=-1):
     else:
       winningTeamB = 'Inconclusive'
     if winnerR == 0:
-      winningTeamR = homeTeam
+      winningTeamR = awayTeam if FLIP_R else homeTeam
     elif winnerR == 1:
-      winningTeamR = awayTeam
+      winningTeamR = homeTeam if FLIP_R else awayTeam
     else:
       winningTeamR = 'Inconclusive'
 

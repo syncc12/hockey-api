@@ -37,9 +37,9 @@ def winnerOffset(winnerId, homeId, awayId):
 MODELS = {}
 for i in MODEL_NAMES:
   if i == 'winnerR':
-    MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_winnerB.joblib')
-  elif i == 'goalDifferential':
-    MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_goalDifferential.joblib')
+    MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_winnerB_2.joblib')
+  # elif i == 'goalDifferential':
+  #   MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_goalDifferential.joblib')
   else:
     MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_{i}.joblib')
 
@@ -86,8 +86,8 @@ def MODEL_PREDICT(models,data):
   # print(data)
   for i in MODEL_NAMES:
     # if i == 'winnerB':
-    #   prediction = predict_model(data['data']['data'])
-    #   print(prediction)
+    #   # prediction = predict_model(data['data']['data'])
+    #   # print(prediction)
     #   out_dict[f'prediction_{i}'] = prediction
     # else:
     out_dict[f'prediction_{i}'] = models[f'model_{i}'].predict(data['data']['data'])
