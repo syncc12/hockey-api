@@ -17,7 +17,7 @@ Boxscores = db["dev_boxscores"]
 Games = db["dev_games"]
 
 # VERSION = 6
-def season_training_data(season):
+def season_training_data(season,test_data=False):
   print('fired',season)
 
   training_data = []
@@ -62,7 +62,8 @@ def season_training_data(season):
       training_data.append(boxscore_data)
     print(season,f'{i+1}/{len(games)}')
   print('DONE ',season)
-  dump(training_data,f"training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib")
+  if not test_data:
+    dump(training_data,f"training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib")
   return training_data
 
 def game_training_data(gameId):
@@ -208,3 +209,51 @@ def season_training_data_projectedLineup(season):
   print('DONE ',season)
   dump(training_data,f"training_data/v{VERSION}/projected_lineup/training_data_v{FILE_VERSION}_{season}_projectedLineup.joblib")
   return training_data
+
+
+def season_test_data(season):
+  print('fired',season)
+
+  test_data = []
+  boxscores = list(Boxscores.find(
+    {'season': int(season)},
+    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1, 'period': 1}
+  ))
+  games = list(Games.find(
+    {'season': int(season)},
+    {'id': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1}
+  ))
+  for i in range(0,len(boxscores)):
+    if false_chain(boxscores,i,'id'):
+      id = safe_chain(boxscores,i,'id')
+    else:
+      id = safe_chain(games,i,'id')
+    if false_chain(boxscores,i,'homeTeam'):
+      homeTeam = safe_chain(boxscores,i,'homeTeam')
+    else:
+      homeTeam = safe_chain(games,i,'homeTeam')
+    if false_chain(boxscores,i,'awayTeam'):
+      awayTeam = safe_chain(boxscores,i,'awayTeam')
+    else:
+      awayTeam = safe_chain(games,i,'awayTeam')
+    game_data = {
+      'id': id,
+      'season': safe_chain(boxscores,i,'season'),
+      'gameType': safe_chain(boxscores,i,'gameType'),
+      'gameDate': safe_chain(boxscores,i,'gameDate'),
+      'venue': safe_chain(boxscores,i,'venue'),
+      'period': safe_chain(boxscores,i,'period'),
+      'homeTeam': homeTeam,
+      'awayTeam': awayTeam,
+      'boxscore': safe_chain(boxscores,i,'boxscore'),
+      'neutralSite': safe_chain(games,i,'neutralSite'),
+      # 'homeSplitSquad': safe_chain(games,i,'homeTeam','homeSplitSquad'),
+      # 'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
+    }
+
+    boxscore_data = master_inputs(db=db, game=game_data)['data']
+    if boxscore_data:
+      test_data.append(boxscore_data)
+    print(season,f'{i+1}/{len(boxscores)}')
+  print('DONE ',season)
+  return test_data

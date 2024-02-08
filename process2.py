@@ -81,7 +81,7 @@ def nhl_data(db,game,useProjectedLineup,message='',test=False):
     boxscore = game
     
 
-  inputs = master_inputs(db=db,game=boxscore,isProjectedLineup=isProjectedLineup)
+  inputs = master_inputs(db=db,boxscore=boxscore,isProjectedLineup=isProjectedLineup)
   
   if not test:
     input_data = {}

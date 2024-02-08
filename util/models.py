@@ -114,8 +114,12 @@ def TEST_ALL_UPDATE(testAll,testLines):
 def TEST_PREDICTION(models,test_data):
   out_dict = {}
   for i in MODEL_NAMES:
-    # if i == 'winnerB':
-    #   out_dict[f'test_prediction_{i}'] = predict_model([test_data['data'][i]])
+    # if i == 'winnerR':
+    #   prediction = model.predict([test_data['data'][i]])
+    #   out_dict_verbose['winner'] = prediction
+    #   out_dict_verbose['homeTeam'] = test_data['input_data']['homeTeam']
+    #   out_dict_verbose['awayTeam'] = test_data['input_data']['awayTeam']
+    #   out_dict[f'test_prediction_{i}'] = prediction
     # else:
     model = models[f'model_{i}']
     out_dict[f'test_prediction_{i}'] = model.predict([test_data['data'][i]])
