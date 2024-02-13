@@ -24,6 +24,7 @@ from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from util.models import MODELS, TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP, winnersAgree
 from inputs.projectedLineup import testProjectedLineup
 import warnings
+import xgboost as xgb
 
 # Suppress specific UserWarning from sklearn
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
@@ -99,6 +100,11 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
       # test_confidence = TEST_CONFIDENCE(models,test_data)
       predicted = TEST_COMPARE(test_prediction,awayId,homeId)
       test_data_result = TEST_DATA(test_data,awayId,homeId)
+      # if test_data_result['test_winnerR'] == 1:
+      # print('test_data',f"home score: {test_data['input_data']['homeScore']} away score: {test_data['input_data']['awayScore']}")
+      # print('test_data',test_data['input_data'])
+      # print('predicted',predicted)
+      # print('test_data_result',test_data_result)
     else:
       projected_test_data = testProjectedLineup(db,boxscore)
       test_prediction = TEST_PREDICTION_PROJECTED_LINEUP(models,projected_test_data,awayId,homeId)
@@ -106,9 +112,12 @@ def test_model(db,startID,endID,show_data,wager,useProjectedLineup,models):
       test_data_result = TEST_DATA_PROJECTED_LINEUP(test_data,awayId,homeId)
 
     if not useProjectedLineup:
+      results = TEST_RESULTS(predicted,test_data_result)
+      # if test_data_result['test_winnerR'] == 1:
+      # print('results',results)
       test_results[boxscore['gameDate']]['game'].append({
         'id': boxscore['id'],
-        'results': TEST_RESULTS(predicted,test_data_result),
+        'results': results,
         # 'confidence': TEST_CONFIDENCE_RESULTS(test_confidence),
       })
     else:
@@ -365,21 +374,12 @@ def predict_day_simple(db,date,day,gamePick,projectedLineup,models):
         'prediction': {},
         'message': ai_data['message'],
       }
-      simple_data['voteAverage'] = {}
-      simple_data['voteAverage']['awayTeam'] = f"{ai_data['awayTeam']} - {ai_data['voteAverage']['awayScore']}"
-      simple_data['voteAverage']['homeTeam'] = f"{ai_data['homeTeam']} - {ai_data['voteAverage']['homeScore']}"
-      simple_data['voteAverage']['winningTeam'] = f"{ai_data['voteAverage']['winner']}"
-      simple_data['voteAverage']['winningTeamB'] = f"{ai_data['voteAverage']['winnerB']}"
-      simple_data['voteAverage']['offset'] = ai_data['voteAverage']['offset']
-      simple_data['voteAverage']['totalGoals'] = f"{ai_data['voteAverage']['totalGoals']}"
-      simple_data['voteAverage']['goalDifferential'] = f"{ai_data['voteAverage']['goalDifferential']}"
       for combo in goalie_combos:
         simple_data['prediction'][combo] = {}
         simple_data['prediction'][combo]['awayTeam'] = f"{ai_data['awayTeam']} - {ai_data['prediction'][combo]['prediction_awayScore']} - {ai_data['confidence'][combo]['confidence_awayScore']}%"
         simple_data['prediction'][combo]['homeTeam'] = f"{ai_data['homeTeam']} - {ai_data['prediction'][combo]['prediction_homeScore']} - {ai_data['confidence'][combo]['confidence_homeScore']}%"
         simple_data['prediction'][combo]['winningTeam'] = f"{ai_data['prediction'][combo]['winner']} - {ai_data['confidence'][combo]['confidence_winner']}%"
         simple_data['prediction'][combo]['winningTeamB'] = f"{ai_data['prediction'][combo]['winnerB']} - {ai_data['confidence'][combo]['confidence_winnerB']}%"
-        simple_data['prediction'][combo]['winningTeamR'] = f"{ai_data['prediction'][combo]['winnerR']} - {ai_data['confidence'][combo]['confidence_winnerR']}%"
         simple_data['prediction'][combo]['offset'] = ai_data['prediction'][combo]['offset']
         simple_data['prediction'][combo]['totalGoals'] = f"{ai_data['prediction'][combo]['prediction_totalGoals']} - {ai_data['confidence'][combo]['confidence_totalGoals']}%"
         simple_data['prediction'][combo]['goalDifferential'] = f"{ai_data['prediction'][combo]['prediction_goalDifferential']} - {ai_data['confidence'][combo]['confidence_goalDifferential']}%"
@@ -397,8 +397,6 @@ def predict_day_simple(db,date,day,gamePick,projectedLineup,models):
         'live': live_data,
         'winningTeam': f"{ai_data['prediction']['winner']} - {ai_data['confidence']['confidence_winner']}%",
         'winningTeamB': f"{ai_data['prediction']['winnerB']} - {ai_data['confidence']['confidence_winnerB']}%",
-        'winningTeamR': f"{ai_data['prediction']['winnerR']} - {ai_data['confidence']['confidence_winnerR']}%",
-        'winnerR': ai_data['prediction']['winnerR_raw'],
         'message': ai_data['message'],
         'offset': ai_data['prediction']['offset'],
         'totalGoals': f"{ai_data['prediction']['prediction_totalGoals'][0]} - {ai_data['confidence']['confidence_totalGoals']}%",
@@ -562,16 +560,15 @@ def test_model_simple(db,startID,endID,models):
     {'id': {'$gte':startID,'$lt':endID+1}}
   ))
 
-  winner_model = models['model_winner']
+  # winner_model = models['model_winner']
   winnerB_model = models['model_winnerB']
-  winnerR_model = models['model_winnerR']
 
-  winner_results = []
+  # winner_results = []
   winnerB_results = []
-  winnerR_results = []
-  winner_daily_percents = []
+  winnerB_correct_confidences = []
+  winnerB_incorrect_confidences = []
+  # winner_daily_percents = []
   winnerB_daily_percents = []
-  winnerR_daily_percents = []
 
   test_results = {}
 
@@ -581,10 +578,8 @@ def test_model_simple(db,startID,endID,models):
       'games': [],
       'winnerPercent': 0,
       'winnerBPercent': 0,
-      'winnerRPercent': 0,
       'winner_line_results': [],
       'winnerB_line_results': [],
-      'winnerR_line_results': [],
     }
 
   for boxscore in boxscore_list:
@@ -595,65 +590,60 @@ def test_model_simple(db,startID,endID,models):
     df = pd.DataFrame([inputs])
     data = df [X_INPUTS]
 
-    winner_prediction = winner_model.predict(data).tolist()
-    winnerB_prediction = winnerB_model.predict(data).tolist()
-    winnerR_prediction = winnerR_model.predict(data).tolist()
+    winnerB_probability = winnerB_model.predict(xgb.DMatrix(data))
+    # print('winnerB_probability',winnerB_probability)
+    # winner_prediction = winner_model.predict(data)[0]
+    winnerB_prediction = [1 if i > 0.5 else 0 for i in winnerB_probability]
+    # print('winnerB_prediction',winnerB_prediction)
 
-    winner_true = inputs['winner']
+    # winner_true = inputs['winner']
     winnerB_true = inputs['winnerB']
-    winnerR_true = inputs['winnerB']
-    winner_calculation = 1 if winner_prediction[0] == winner_true else 0
+    # winner_calculation = 1 if winner_prediction[0] == winner_true else 0
     winnerB_calculation = 1 if winnerB_prediction[0] == winnerB_true else 0
-    winnerR_calculation = 1 if winnerR_prediction[0] == winnerR_true else 0
-    winner_results.append(winner_calculation)
+    # winner_results.append(winner_calculation)
     winnerB_results.append(winnerB_calculation)
-    winnerR_results.append(winnerR_calculation)
-    test_results[boxscore['gameDate']]['winner_line_results'].append(winner_calculation)
+    if winnerB_calculation == 1:
+      winnerB_correct_confidences.append(round(winnerB_probability[0] * 100))
+    else:
+      winnerB_incorrect_confidences.append(round(winnerB_probability[0] * 100))
+
+    # test_results[boxscore['gameDate']]['winner_line_results'].append(winner_calculation)
     test_results[boxscore['gameDate']]['winnerB_line_results'].append(winnerB_calculation)
-    test_results[boxscore['gameDate']]['winnerR_line_results'].append(winnerR_calculation)
     test_results[boxscore['gameDate']]['games'].append({
       'id': gameId,
       'home': inputs['homeTeam'],
       'away': inputs['awayTeam'],
       'homeScore': inputs['homeScore'],
       'awayScore': inputs['awayScore'],
-      'winner': {
-        'prediction': winner_prediction[0],
-        'actual': winner_true,
-        'calculation': winner_calculation,
-      },
+      # 'winner': {
+      #   'prediction': winner_prediction[0],
+      #   'actual': winner_true,
+      #   'calculation': winner_calculation,
+      # },
       'winnerB': {
         'prediction': winnerB_prediction[0],
         'actual': winnerB_true,
         'calculation': winnerB_calculation,
-      },
-      'winnerR': {
-        'prediction': winnerR_prediction[0],
-        'actual': winnerR_true,
-        'calculation': winnerR_calculation,
+        'confidence': round(winnerB_probability[0] * 100),
       },
     })
 
 
   for date in test_results:
-    winnerPercent = (sum(test_results[date]['winner_line_results']) / len(test_results[date]['winner_line_results'])) * 100
+    # winnerPercent = (sum(test_results[date]['winner_line_results']) / len(test_results[date]['winner_line_results'])) * 100
     winnerBPercent = (sum(test_results[date]['winnerB_line_results']) / len(test_results[date]['winnerB_line_results'])) * 100
-    winnerRPercent = (sum(test_results[date]['winnerR_line_results']) / len(test_results[date]['winnerR_line_results'])) * 100
-    test_results[date]['winnerPercent'] = winnerPercent
+    # test_results[date]['winnerPercent'] = winnerPercent
     test_results[date]['winnerBPercent'] = winnerBPercent
-    test_results[date]['winnerRPercent'] = winnerRPercent
-    winner_daily_percents.append((winnerPercent,len(test_results[date]['winner_line_results'])))
+    # winner_daily_percents.append((winnerPercent,len(test_results[date]['winner_line_results'])))
     winnerB_daily_percents.append((winnerBPercent,len(test_results[date]['winnerB_line_results'])))
-    winnerR_daily_percents.append((winnerRPercent,len(test_results[date]['winnerR_line_results'])))
 
   # test_results['Winner Results'] = winner_results
   # test_results['WinnerB Results'] = winnerB_results
-  # test_results['WinnerR Results'] = winnerR_results
-  test_results['Winner Daily Percents'] = winner_daily_percents
-  test_results['WinnerB Daily Percents'] = winnerB_daily_percents
-  test_results['WinnerR Daily Percents'] = winnerR_daily_percents
-  test_results['allWinnerPercent'] = (sum(winner_results) / len(winner_results)) * 100
+  # test_results['Winner Daily Percents'] = winner_daily_percents
+  # test_results['WinnerB Daily Percents'] = winnerB_daily_percents
+  test_results['WinnerB Correct Confidences'] = winnerB_correct_confidences
+  test_results['WinnerB Incorrect Confidences'] = winnerB_incorrect_confidences
+  # test_results['allWinnerPercent'] = (sum(winner_results) / len(winner_results)) * 100
   test_results['allWinnerBPercent'] = (sum(winnerB_results) / len(winnerB_results)) * 100
-  test_results['allWinnerRPercent'] = (sum(winnerR_results) / len(winnerR_results)) * 100
 
   return test_results

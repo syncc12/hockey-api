@@ -5,9 +5,10 @@ from pymongo import MongoClient
 from datetime import datetime
 from util.helpers import safe_chain, false_chain, getLastTeamLineups
 from inputs.inputs import master_inputs
+from inputs.roster import roster_inputs
 import os
 from joblib import dump
-from constants.constants import VERSION, FILE_VERSION
+from constants.constants import VERSION, FILE_VERSION, PROJECTED_LINEUP_VERSION, PROJECTED_LINEUP_FILE_VERSION
 
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
 # client = MongoClient(db_url)
@@ -15,6 +16,7 @@ client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mong
 db = client["hockey"]
 Boxscores = db["dev_boxscores"]
 Games = db["dev_games"]
+Rosters = db["dev_rosters"]
 
 # VERSION = 6
 def season_training_data(season,test_data=False):
@@ -170,6 +172,7 @@ def season_training_data_projectedLineup(season):
     {'season': int(season)},
     {'id': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1}
   ))
+  
   for i in range(0,len(games)):
     if false_chain(boxscores,i,'id'):
       id = safe_chain(boxscores,i,'id')
@@ -183,31 +186,29 @@ def season_training_data_projectedLineup(season):
       awayTeam = safe_chain(boxscores,i,'awayTeam')
     else:
       awayTeam = safe_chain(games,i,'awayTeam')
-    last_boxscore = getLastTeamLineups(db,id)
-    if last_boxscore:
-      game_data = {
-        'id': id,
-        'season': safe_chain(boxscores,i,'season'),
-        'gameType': safe_chain(boxscores,i,'gameType'),
-        'gameDate': safe_chain(boxscores,i,'gameDate'),
-        'venue': safe_chain(boxscores,i,'venue'),
-        'period': safe_chain(boxscores,i,'period'),
-        'homeTeam': homeTeam,
-        'awayTeam': awayTeam,
-        'boxscore': last_boxscore,
-        'neutralSite': safe_chain(games,i,'neutralSite'),
-        # 'homeSplitSquad': safe_chain(games,i,'homeTeam','homeSplitSquad'),
-        # 'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
-      }
+    home_roster = Rosters.find_one({'season': season, 'team': homeTeam['abbrev'].lower()})
+    away_roster = Rosters.find_one({'season': season, 'team': awayTeam['abbrev'].lower()})
+    game_data = {
+      'id': id,
+      'season': safe_chain(boxscores,i,'season'),
+      'gameType': safe_chain(boxscores,i,'gameType'),
+      'gameDate': safe_chain(boxscores,i,'gameDate'),
+      'venue': safe_chain(boxscores,i,'venue'),
+      'homeTeam': homeTeam,
+      'awayTeam': awayTeam,
+      'boxscore': safe_chain(boxscores,i,'boxscore'),
+      'neutralSite': safe_chain(games,i,'neutralSite'),
+    }
 
-      boxscore_data = master_inputs(db=db, game=game_data,isProjectedLineup=True,training=True)['data']
-      if boxscore_data:
-        training_data.append(boxscore_data)
-      print(season,f'{i+1}/{len(games)}')
-    else:
-      print(season,f'{i+1}/{len(games)} - skip')
+    home_data = roster_inputs(db=db, boxscore=game_data, roster=home_roster, homeAway='homeTeam')
+    away_data = roster_inputs(db=db, boxscore=game_data, roster=away_roster, homeAway='awayTeam')
+    if home_data:
+      training_data.append(home_data)
+    if away_data:
+      training_data.append(away_data)
+    print(season,f'{i+1}/{len(games)}')
   print('DONE ',season)
-  dump(training_data,f"training_data/v{VERSION}/projected_lineup/training_data_v{FILE_VERSION}_{season}_projectedLineup.joblib")
+  dump(training_data,f"training_data/v{PROJECTED_LINEUP_VERSION}/projected_lineup/training_data_v{PROJECTED_LINEUP_FILE_VERSION}_{season}_projectedLineup.joblib")
   return training_data
 
 
@@ -243,12 +244,10 @@ def season_test_data(season):
       'gameDate': safe_chain(boxscores,i,'gameDate'),
       'venue': safe_chain(boxscores,i,'venue'),
       'period': safe_chain(boxscores,i,'period'),
-      'homeTeam': homeTeam,
-      'awayTeam': awayTeam,
+      'team': homeTeam,
+      'opponent': awayTeam,
       'boxscore': safe_chain(boxscores,i,'boxscore'),
       'neutralSite': safe_chain(games,i,'neutralSite'),
-      # 'homeSplitSquad': safe_chain(games,i,'homeTeam','homeSplitSquad'),
-      # 'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
     }
 
     boxscore_data = master_inputs(db=db, game=game_data)['data']

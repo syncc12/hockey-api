@@ -4,7 +4,8 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 from joblib import load, dump
 import pandas as pd
 import os
-from helpers import n2n, getGamesPlayed, getAllGamesPlayed, getTotalGamesPlayed, getAllAges, getPlayerStats
+import requests
+from helpers import n2n, getGamesPlayed, getAllGamesPlayed, getTotalGamesPlayed, getAllAges, getPlayerStats, projected_roster
 from pymongo import MongoClient, ASCENDING
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
@@ -114,5 +115,44 @@ db = client['hockey']
 
 # ages = getAllAges(db,players,'2024-1-6')
 # print(ages)
-stats = getPlayerStats(db,8478585,20232024,2023020220,'forwards')
-print(stats)
+# stats = getPlayerStats(db,8478585,20232024,2023020220,'forwards')
+# print(stats)
+# gameId = 2023020822
+# landing_url = f'https://api-web.nhle.com/v1_1/gamecenter/{gameId}/landing'
+# roster = f'https://api-web.nhle.com/v1/roster/TEAM/SEASON'
+# landing = requests.get(landing_url).json()
+# # pr = projected_roster(2023020822)
+# print(landing)
+
+
+Rosters = db['dev_rosters']
+
+all_rosters = list(Rosters.find({}))
+
+roster_lens = []
+forwards_lens = []
+defensemen_lens = []
+goalies_lens = []
+for roster in all_rosters:
+  roster_len = 0
+  roster_len += len(roster['roster']['forwards'])
+  forwards_lens.append(len(roster['roster']['forwards']))
+  roster_len += len(roster['roster']['defensemen'])
+  defensemen_lens.append(len(roster['roster']['defensemen']))
+  roster_len += len(roster['roster']['goalies'])
+  goalies_lens.append(len(roster['roster']['goalies']))
+  roster_lens.append(roster_len)
+
+# print(roster_lens)
+print('roster min:',min(roster_lens))
+print('roster max:',max(roster_lens))
+print('roster average:',sum(roster_lens) / len(roster_lens))
+print('forwards min:',min(forwards_lens))
+print('forwards max:',max(forwards_lens))
+print('forwards average:',sum(forwards_lens) / len(forwards_lens))
+print('defensemen min:',min(defensemen_lens))
+print('defensemen max:',max(defensemen_lens))
+print('defensemen average:',sum(defensemen_lens) / len(defensemen_lens))
+print('goalies min:',min(goalies_lens))
+print('goalies max:',max(goalies_lens))
+print('goalies average:',sum(goalies_lens) / len(goalies_lens))

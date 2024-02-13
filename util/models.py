@@ -17,10 +17,11 @@ from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from constants.constants import VERSION, FILE_VERSION, TORCH_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 from inputs.projectedLineup import testProjectedLineup
 from train_torch import predict_model
+import xgboost as xgb
 
 # RANDOM_STATE = 12
 # FILE_VERSION = 7
-Y_OUTPUTS.append('winnerR')
+Y_OUTPUTS
 MODEL_NAMES = Y_OUTPUTS
 
 
@@ -36,8 +37,8 @@ def winnerOffset(winnerId, homeId, awayId):
 # MODELS = dict([(f'model_{i}',load(f'models/nhl_ai_v{FILE_VERSION}_gbc_{i}.joblib')) for i in MODEL_NAMES])
 MODELS = {}
 for i in MODEL_NAMES:
-  if i == 'winnerR':
-    MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_winnerB_2.joblib')
+  if i == 'winnerB':
+    MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_xgboost_winnerB.joblib')
   # elif i == 'goalDifferential':
   #   MODELS[f'model_{i}'] = load(f'models/nhl_ai_v{FILE_VERSION}_stacked_goalDifferential.joblib')
   else:
@@ -85,21 +86,25 @@ def MODEL_PREDICT(models,data):
   out_dict = {}
   # print(data)
   for i in MODEL_NAMES:
-    # if i == 'winnerB':
-    #   # prediction = predict_model(data['data']['data'])
-    #   # print(prediction)
-    #   out_dict[f'prediction_{i}'] = prediction
-    # else:
-    out_dict[f'prediction_{i}'] = models[f'model_{i}'].predict(data['data']['data'])
+    if i == 'winnerB':
+      winnerB_input = xgb.DMatrix(pd.DataFrame(data['data']['input_data'],index=[0]))
+      probability = models[f'model_{i}'].predict(winnerB_input)
+      prediction = [1 if i > 0.5 else 0 for i in probability]
+      # print(prediction)
+      out_dict[f'prediction_{i}'] = prediction[0]
+    else:
+      out_dict[f'prediction_{i}'] = models[f'model_{i}'].predict(data['data']['data'])
   return out_dict
 
 def MODEL_CONFIDENCE(models,data):
   out_dict = {}
   for i in MODEL_NAMES:
-    # if i == 'winnerB':
-    #   pass
-    # else:
-    out_dict[f'confidence_{i}'] = int((np.max(models[f'model_{i}'].predict_proba(data['data']['data']), axis=1) * 100)[0])
+    if i == 'winnerB':
+      winnerB_input = xgb.DMatrix(pd.DataFrame(data['data']['input_data'],index=[0]))
+      probability = models[f'model_{i}'].predict(winnerB_input)
+      out_dict[f'confidence_{i}'] = round(probability[0] * 100)
+    else:
+      out_dict[f'confidence_{i}'] = int((np.max(models[f'model_{i}'].predict_proba(data['data']['data']), axis=1) * 100)[0])
   return out_dict
 
 TEST_ALL_INIT = dict([(f'all_{i}_total',0) for i in MODEL_NAMES])

@@ -7,6 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 from joblib import dump, load
 import pandas as pd
@@ -14,7 +15,7 @@ from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON, VERBOSE
 import time
 
-
+MAX_ITER = 1000
 
 def train(db, inData, inTestData):
   data = pd.DataFrame(inData)
@@ -25,7 +26,10 @@ def train(db, inData, inTestData):
   y_test = test_data [['winnerB']].values.ravel()
   # x_train, x_test, y_train, y_test = train_test_split(x, y_winner, test_size=0.3, random_state=RANDOM_STATE)
   base_learners = [
-    ('rfr', RandomForestRegressor()),
+    ('svc', SVC(probability=True)),
+    ('rfc', RandomForestClassifier()),
+    ('knn', KNeighborsClassifier()),
+    ('mlp', MLPClassifier(max_iter=MAX_ITER)),
   ]
   final_estimator = LogisticRegression()
   winnerB_stacked_clf = StackingClassifier(estimators=base_learners, final_estimator=final_estimator)
@@ -52,7 +56,7 @@ def train(db, inData, inTestData):
   })
 
   
-  dump(winnerB_stacked_clf, f'models/nhl_ai_v{FILE_VERSION}_stacked_winnerB_3.joblib')
+  dump(winnerB_stacked_clf, f'models/nhl_ai_v{FILE_VERSION}_stacked_winnerB_4.joblib')
 
 
 

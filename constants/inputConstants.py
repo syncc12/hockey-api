@@ -113,6 +113,19 @@ BASE_INPUTS = [
   # 'linesman1',
   # 'linesman2',
 ]
+P_BASE_INPUTS = [
+  'id',
+  'season',
+  'gameType',
+  'venue',
+  'neutralSite',
+  'team',
+  'opponent',
+  #'startTime',
+  'date',
+  'headCoach',
+  'opponentHeadCoach',
+]
 ANN_BASE_INPUTS = [
   'id','season','gameType','venueT','neutralSite','homeTeam','awayTeam','startTime',
   'date','awayHeadCoachT','homeHeadCoachT','ref1T','ref2T','linesman1T','linesman2T'
@@ -120,6 +133,9 @@ ANN_BASE_INPUTS = [
 FORWARD_INPUTS = ['Age']
 DEFENSE_INPUTS = ['Age']
 GOALIE_INPUTS = ['Catches', 'Age']
+P_FORWARD_INPUTS = []
+P_DEFENSE_INPUTS = []
+P_GOALIE_INPUTS = []
 ANN_GOALIE_INPUTS = ['CatchesT', 'Age']
 
 AWAY_FORWARD_INPUTS = []
@@ -143,6 +159,7 @@ FORWARD_INPUTS_ZIP = [i for i in range(0,13)]
 DEFENSE_INPUTS_ZIP = [i for i in range(0,7)]
 
 X_INPUTS = BASE_INPUTS
+X_INPUTS_P = P_BASE_INPUTS
 X_INPUTS_ANN = ANN_BASE_INPUTS
 Y_OUTPUTS = [
   'homeScore',
@@ -180,8 +197,17 @@ Y_OUTPUTS = [
   # 'period3PuckLine',
 ]
 
+Y_OUTPUTS_P = []
+for i in range(0,13):
+  Y_OUTPUTS_P.append(f'forward{i+1}')
+for i in range(0,7):
+  Y_OUTPUTS_P.append(f'defenseman{i+1}')
+Y_OUTPUTS_P.append('startingGoalie')
+Y_OUTPUTS_P.append('backupGoalie')
+
 for i in FORWARD_INPUTS_ZIP:
   X_INPUTS.append(f'awayForward{i+1}')
+  X_INPUTS_P.append(f'forwardPool{i+1}')
   X_INPUTS_ANN.append(f'awayForward{i+1}')
   AWAY_FORWARD_INPUTS.append(f'awayForward{i+1}')
   for feature in FORWARD_INPUTS:
@@ -192,6 +218,7 @@ for i in FORWARD_INPUTS_ZIP:
 
 for i in DEFENSE_INPUTS_ZIP:
   X_INPUTS.append(f'awayDefenseman{i+1}')
+  X_INPUTS_P.append(f'defensemanPool{i+1}')
   X_INPUTS_ANN.append(f'awayDefenseman{i+1}')
   AWAY_DEFENSE_INPUTS.append(f'awayDefenseman{i+1}')
   for feature in DEFENSE_INPUTS:
@@ -199,6 +226,10 @@ for i in DEFENSE_INPUTS_ZIP:
     X_INPUTS_ANN.append(f'awayDefenseman{i+1}{feature}')
     if feature == 'Age':
       AWAY_DEFENSE_AGE_INPUTS.append(f'awayDefenseman{i+1}Age')
+
+X_INPUTS_P.append(f'goaliePool1')
+X_INPUTS_P.append(f'goaliePool2')
+X_INPUTS_P.append(f'goaliePool3')
 
 X_INPUTS.append(f'awayStartingGoalie')
 X_INPUTS_ANN.append(f'awayStartingGoalie')
@@ -267,3 +298,9 @@ for feature in GOALIE_INPUTS:
   if feature == 'Catches':
     HOME_GOALIE_CATCHES_INPUTS.append(f'homeBackupGoalieCatches')
     X_INPUTS_ANN.append(f'homeBackupGoalieCatchesT')
+
+
+
+TEST_INPUTS = {
+  'id': 2023020804, 'season': 20232024, 'gameType': 2, 'venue': 1614123166321, 'neutralSite': -1, 'homeTeam': 7, 'awayTeam': 19, 'date': 20240210, 'awayHeadCoach': 71151233421, 'homeHeadCoach': 7311132, 'awayForward1': 8475170, 'awayForward1Age': 32, 'awayForward2': 8475763, 'awayForward2Age': 31, 'awayForward3': 8480281, 'awayForward3Age': 24, 'awayForward4': 8480023, 'awayForward4Age': 24, 'awayForward5': 8476438, 'awayForward5Age': 31, 'awayForward6': 8479385, 'awayForward6Age': 25, 'awayForward7': 8477573, 'awayForward7Age': 30, 'awayForward8': 8481543, 'awayForward8Age': 23, 'awayForward9': 8482089, 'awayForward9Age': 21, 'awayForward10': 8476897, 'awayForward10Age': 29, 'awayForward11': 8478104, 'awayForward11Age': 27, 'awayForward12': 8477402, 'awayForward12Age': 28, 'awayForward13': -1, 'awayForward13Age': -1, 'awayDefenseman1': 8475181, 'awayDefenseman1Age': 32, 'awayDefenseman2': 8474618, 'awayDefenseman2Age': 33, 'awayDefenseman3': 8476792, 'awayDefenseman3Age': 32, 'awayDefenseman4': 8482516, 'awayDefenseman4Age': 23, 'awayDefenseman5': 8476892, 'awayDefenseman5Age': 30, 'awayDefenseman6': 8481006, 'awayDefenseman6Age': 23, 'awayDefenseman7': -1, 'awayDefenseman7Age': -1, 'awayStartingGoalie': 8476412, 'awayStartingGoalieCatches': 5, 'awayStartingGoalieAge': 30, 'awayBackupGoalie': 8480981, 'awayBackupGoalieCatches': 5, 'awayBackupGoalieAge': 23, 'homeForward1': 8484145, 'homeForward1Age': 18, 'homeForward2': 8478413, 'homeForward2Age': 26, 'homeForward3': 8481522, 'homeForward3Age': 23, 'homeForward4': 8473449, 'homeForward4Age': 35, 'homeForward5': 8481528, 'homeForward5Age': 23, 'homeForward6': 8476878, 'homeForward6Age': 30, 'homeForward7': 8479999, 'homeForward7Age': 25, 'homeForward8': 8480762, 'homeForward8Age': 28, 'homeForward9': 8475784, 'homeForward9Age': 31, 'homeForward10': 8479420, 'homeForward10Age': 26, 'homeForward11': 8482175, 'homeForward11Age': 22, 'homeForward12': 8477949, 'homeForward12Age': 27, 'homeForward13': -1, 'homeForward13Age': -1, 'homeDefenseman1': 8473446, 'homeDefenseman1Age': 35, 'homeDefenseman2': 8480035, 'homeDefenseman2Age': 24, 'homeDefenseman3': 8482671, 'homeDefenseman3Age': 21, 'homeDefenseman4': 8480839, 'homeDefenseman4Age': 23, 'homeDefenseman5': 8481564, 'homeDefenseman5Age': 22, 'homeDefenseman6': 8477365, 'homeDefenseman6Age': 28, 'homeDefenseman7': -1, 'homeDefenseman7Age': -1, 'homeStartingGoalie': 8480045, 'homeStartingGoalieCatches': 5, 'homeStartingGoalieAge': 24, 'homeBackupGoalie': 8477480, 'homeBackupGoalieCatches': 5, 'homeBackupGoalieAge': 28
+}
