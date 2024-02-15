@@ -6,9 +6,9 @@ from util.query import get_last_game_player_stats, get_last_game_team_stats, las
 
 REPLACE_VALUE = -1
 
-POOL_FORWARDS = 16 # min: 12 max: 32 average: 20.672849915682967
-POOL_DEFENSE = 10 # min: 6 max: 21 average: 10.806070826306915
-POOL_GOALIES = 4 # min: 2 max: 8 average: 3.1720067453625633
+POOL_FORWARDS = 32 # min: 12 max: 32 average: 20.672849915682967
+POOL_DEFENSE = 21 # min: 6 max: 21 average: 10.806070826306915
+POOL_GOALIES = 8 # min: 2 max: 8 average: 3.1720067453625633
 
 def roster_forwards(ids):
   forward_dict = {}

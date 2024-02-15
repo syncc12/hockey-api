@@ -43,6 +43,17 @@ def binary_accuracy(y_pred, y_true):
   accuracy = correct_results.sum() / len(correct_results)
   return accuracy.item() * 100
 
+def calculate_accuracy(outputs, labels):
+    # Convert logits to predicted class indices
+    _, predicted = torch.max(outputs, dim=1)
+    
+    # Calculate the number of correctly predicted examples
+    correct = (predicted == labels).sum().item()
+    
+    # Calculate the accuracy
+    accuracy = correct / labels.size(0)
+    return accuracy
+
 def errorAnalysis(model,validation_loader,device):
   # Assume model, validation_loader are defined
   # Forward pass over the validation set

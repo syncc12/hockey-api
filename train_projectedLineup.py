@@ -14,28 +14,40 @@ import pandas as pd
 from multiprocessing import Pool
 from util.training_data import season_training_data_projectedLineup
 from constants.inputConstants import X_INPUTS_P, Y_OUTPUTS_P
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import accuracy_score
 import time
-from constants.constants import PROJECTED_LINEUP_VERSION, PROJECTED_LINEUP_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON, VERBOSE
+from constants.constants import PROJECTED_LINEUP_VERSION, PROJECTED_LINEUP_FILE_VERSION, PROJECTED_LINEUP_TEST_DATA_VERSION, PROJECTED_LINEUP_TEST_DATA_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON, VERBOSE
 from scipy.stats import mode
 
 
-RE_PULL = True
+RE_PULL = False
 N_ESTIMATORS = 100
 
-def train(db, inData):
+
+def train_batch(clf, X, Y, n_splits=5):
+  kf = KFold(n_splits=n_splits)
+  for train_index, _ in kf.split(X):
+    clf.fit(X[train_index], Y[train_index])
+  return clf
+
+
+def train(db, inData, inTestData):
 
   data = pd.DataFrame(inData)
-  x = data [X_INPUTS_P]
-  y = data [Y_OUTPUTS_P]
+  test_data = pd.DataFrame(inTestData)
+  x_train = data [X_INPUTS_P]
+  y_train = data [Y_OUTPUTS_P]
+  x_test = test_data [X_INPUTS_P]
+  y_test = test_data [Y_OUTPUTS_P]
 
-  x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_STATE)
+  # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_STATE)
 
   base_rf = RandomForestClassifier(n_estimators=N_ESTIMATORS, random_state=RANDOM_STATE)
-  clf = MultiOutputClassifier(base_rf, n_jobs=-1)
+  clf = MultiOutputClassifier(base_rf, n_jobs=1)
   
-  clf.fit(x_train,y_train)
+  # clf.fit(x_train,y_train)
+  clf = train_batch(clf, x_train.values, y_train.values, n_splits=50)
 
   predictions = clf.predict(x_test)
 
@@ -125,4 +137,5 @@ if __name__ == '__main__':
     f = open('training_data/training_data_text.txt', 'w')
     f.write(json.dumps(result[len(result)-200:len(result)]))
   print('Games Collected')
-  train(db, result)
+  test_data = load(f'test_data/test_data_v{PROJECTED_LINEUP_TEST_DATA_FILE_VERSION}_projectedLineup.joblib')
+  train(db, result, test_data)

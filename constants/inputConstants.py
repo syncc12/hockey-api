@@ -198,16 +198,17 @@ Y_OUTPUTS = [
 ]
 
 Y_OUTPUTS_P = []
-for i in range(0,13):
-  Y_OUTPUTS_P.append(f'forward{i+1}')
-for i in range(0,7):
-  Y_OUTPUTS_P.append(f'defenseman{i+1}')
-Y_OUTPUTS_P.append('startingGoalie')
-Y_OUTPUTS_P.append('backupGoalie')
+
+for i in range(0,32):
+  X_INPUTS_P.append(f'forwardPool{i+1}')
+for i in range(0,21):
+  X_INPUTS_P.append(f'defensemanPool{i+1}')
+for i in range(0,8):
+  X_INPUTS_P.append(f'goaliePool{i+1}')
 
 for i in FORWARD_INPUTS_ZIP:
   X_INPUTS.append(f'awayForward{i+1}')
-  X_INPUTS_P.append(f'forwardPool{i+1}')
+  Y_OUTPUTS_P.append(f'forward{i+1}')
   X_INPUTS_ANN.append(f'awayForward{i+1}')
   AWAY_FORWARD_INPUTS.append(f'awayForward{i+1}')
   for feature in FORWARD_INPUTS:
@@ -218,7 +219,7 @@ for i in FORWARD_INPUTS_ZIP:
 
 for i in DEFENSE_INPUTS_ZIP:
   X_INPUTS.append(f'awayDefenseman{i+1}')
-  X_INPUTS_P.append(f'defensemanPool{i+1}')
+  Y_OUTPUTS_P.append(f'defenseman{i+1}')
   X_INPUTS_ANN.append(f'awayDefenseman{i+1}')
   AWAY_DEFENSE_INPUTS.append(f'awayDefenseman{i+1}')
   for feature in DEFENSE_INPUTS:
@@ -227,9 +228,8 @@ for i in DEFENSE_INPUTS_ZIP:
     if feature == 'Age':
       AWAY_DEFENSE_AGE_INPUTS.append(f'awayDefenseman{i+1}Age')
 
-X_INPUTS_P.append(f'goaliePool1')
-X_INPUTS_P.append(f'goaliePool2')
-X_INPUTS_P.append(f'goaliePool3')
+Y_OUTPUTS_P.append(f'startingGoalie')
+Y_OUTPUTS_P.append(f'backupGoalie')
 
 X_INPUTS.append(f'awayStartingGoalie')
 X_INPUTS_ANN.append(f'awayStartingGoalie')
