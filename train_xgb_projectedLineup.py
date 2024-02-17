@@ -5,11 +5,12 @@ from pymongo import MongoClient
 from joblib import dump, load
 import pandas as pd
 import numpy as np
-from constants.inputConstants import X_INPUTS_P, Y_OUTPUTS_P
+from constants.inputConstants import X_INPUTS_P, Y_OUTPUTS_P, P_FORWARD_INPUTS, P_DEFENSE_INPUTS, P_GOALIE_INPUTS
 from constants.constants import PROJECTED_LINEUP_VERSION, PROJECTED_LINEUP_FILE_VERSION, PROJECTED_LINEUP_TEST_DATA_VERSION, PROJECTED_LINEUP_TEST_DATA_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 import time
 from sklearn.metrics import accuracy_score, mean_squared_error, mean_absolute_error, r2_score
 import xgboost as xgb
+from sklearn.preprocessing import LabelEncoder
 
 
 client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
@@ -29,6 +30,8 @@ PARAMS = {
 }
 EPOCHS = 10  # the number of training iterations
 
+ENCODERS = {}
+
 def train(db):
 
   accuracies = {}
@@ -38,21 +41,27 @@ def train(db):
     test_data = pd.DataFrame(TEST_DATA)
     x_train = data [X_INPUTS_P]
     x_test = test_data [X_INPUTS_P]
-    y_train = data[output]
-    y_test = test_data[output]
+    y_train = data[[output]].values.ravel()
+    y_test = test_data[[output]].values.ravel()
     # y_train, _ = pd.factorize(y_train)
     # y_test, _ = pd.factorize(y_test)
 
+    unique_labels = np.unique(y_train)
+    PARAMS['num_class'] = int(len(unique_labels))  # Make sure this is an int
+
+    label_encoder = LabelEncoder()
+    y_train = label_encoder.fit_transform(y_train)
+    y_test = label_encoder.fit_transform(y_test)
+    ENCODERS[output] = label_encoder
+
     # Calculate the number of unique classes for the current output
-    unique_classes = y_train.nunique()
-    unique_labels = y_train.unique()
-    print(f"Unique labels for forward1: {unique_labels}")
-    PARAMS['num_class'] = unique_classes  # Make sure this is an int
+    # unique_classes = y_train.nunique()
+    # print(f"Unique labels for {output}: {unique_labels}")
 
     # Convert y_train and y_test to be 1D arrays if they are not already
-    y_train = y_train.values.ravel()
-    y_test = y_test.values.ravel()
-    print(f"Number of unique classes for {output}: {unique_classes}")
+    # y_train = y_train.values.ravel()
+    # y_test = y_test.values.ravel()
+    # print(f"Number of unique classes for {output}: {unique_classes}")
     dtrain = xgb.DMatrix(x_train, label=y_train)
     dtest = xgb.DMatrix(x_test, label=y_test)
 

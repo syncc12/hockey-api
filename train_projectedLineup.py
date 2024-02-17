@@ -43,11 +43,11 @@ def train(db, inData, inTestData):
 
   # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_STATE)
 
-  base_rf = RandomForestClassifier(n_estimators=N_ESTIMATORS, random_state=RANDOM_STATE)
+  base_rf = RandomForestClassifier(random_state=RANDOM_STATE)
   clf = MultiOutputClassifier(base_rf, n_jobs=1)
   
   # clf.fit(x_train,y_train)
-  clf = train_batch(clf, x_train.values, y_train.values, n_splits=50)
+  clf = train_batch(clf, x_train.values, y_train.values, n_splits=200)
 
   predictions = clf.predict(x_test)
 
@@ -69,7 +69,7 @@ def train(db, inData, inTestData):
     'inputs': X_INPUTS_P,
     'outputs': Y_OUTPUTS_P,
     'randomState': RANDOM_STATE,
-    'n_estimators': N_ESTIMATORS,
+    # 'n_estimators': N_ESTIMATORS,
     'startingSeason': START_SEASON,
     'finalSeason': END_SEASON,
     'projectedLineup': True,

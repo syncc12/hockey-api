@@ -201,10 +201,13 @@ Y_OUTPUTS_P = []
 
 for i in range(0,32):
   X_INPUTS_P.append(f'forwardPool{i+1}')
+  P_FORWARD_INPUTS.append(f'forwardPool{i+1}')
 for i in range(0,21):
   X_INPUTS_P.append(f'defensemanPool{i+1}')
+  P_DEFENSE_INPUTS.append(f'defensemanPool{i+1}')
 for i in range(0,8):
   X_INPUTS_P.append(f'goaliePool{i+1}')
+  P_GOALIE_INPUTS.append(f'goaliePool{i+1}')
 
 for i in FORWARD_INPUTS_ZIP:
   X_INPUTS.append(f'awayForward{i+1}')
