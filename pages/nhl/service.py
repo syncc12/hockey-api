@@ -18,7 +18,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 # from util.training_data import save_training_data
 from util.helpers import false_chain, latestIDs, adjusted_winner, test_recommended_wagers, safe_chain
 from inputs.inputs import master_inputs
-from pages.nhl.nhl_helpers import ai, ai_return_dict
+from pages.nhl.nhl_helpers import ai, ai_return_dict, ai2
 from constants.constants import VERSION, FILE_VERSION
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from util.models import MODELS, TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP, winnersAgree
@@ -359,52 +359,72 @@ def predict_day(db,date,day,projectedLineup,models):
     games.append(ai_data)
   return games
 
+def predict_day_debug(db,date,day,gamePick,projectedLineup,models):
+  res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+  game_data = res['gameWeek'][day-1]
+  if gamePick > 0:
+    game_data['games'] = [game_data['games'][gamePick-1]]
+  games = []
+  ai_data = ai2(db, game_data['games'], projectedLineup, models)
+  return {}
 
 def predict_day_simple(db,date,day,gamePick,projectedLineup,models):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
-  games = []
-  for game in game_data['games']:
-    ai_data = ai(db, game, projectedLineup, models)
-    if ai_data['message'] == 'using projected lineup':
-      goalie_combos = list(ai_data['prediction'].keys())
-      simple_data = {
-        'prediction': {},
-        'message': ai_data['message'],
-      }
-      for combo in goalie_combos:
-        simple_data['prediction'][combo] = {}
-        simple_data['prediction'][combo]['awayTeam'] = f"{ai_data['awayTeam']} - {ai_data['prediction'][combo]['prediction_awayScore']} - {ai_data['confidence'][combo]['confidence_awayScore']}%"
-        simple_data['prediction'][combo]['homeTeam'] = f"{ai_data['homeTeam']} - {ai_data['prediction'][combo]['prediction_homeScore']} - {ai_data['confidence'][combo]['confidence_homeScore']}%"
-        simple_data['prediction'][combo]['winningTeam'] = f"{ai_data['prediction'][combo]['winner']} - {ai_data['confidence'][combo]['confidence_winner']}%"
-        simple_data['prediction'][combo]['winningTeamB'] = f"{ai_data['prediction'][combo]['winnerB']} - {ai_data['confidence'][combo]['confidence_winnerB']}%"
-        simple_data['prediction'][combo]['offset'] = ai_data['prediction'][combo]['offset']
-        simple_data['prediction'][combo]['totalGoals'] = f"{ai_data['prediction'][combo]['prediction_totalGoals']} - {ai_data['confidence'][combo]['confidence_totalGoals']}%"
-        simple_data['prediction'][combo]['goalDifferential'] = f"{ai_data['prediction'][combo]['prediction_goalDifferential']} - {ai_data['confidence'][combo]['confidence_goalDifferential']}%"
-    else:
-      live_data = {
-        'away': ai_data['live']['away'],
-        'home': ai_data['live']['home'],
-        'leader': ai_data['live']['leader'],
-        'period': ai_data['live']['period'],
-      }
-      simple_data = {
-        'id': ai_data['gameId'],
-        'awayTeam': f"{ai_data['awayTeam']} - {ai_data['prediction']['prediction_awayScore'][0]} - {ai_data['confidence']['confidence_awayScore']}%",
-        'homeTeam': f"{ai_data['homeTeam']} - {ai_data['prediction']['prediction_homeScore'][0]} - {ai_data['confidence']['confidence_homeScore']}%",
-        'live': live_data,
-        'winningTeam': f"{ai_data['prediction']['winner']} - {ai_data['confidence']['confidence_winner']}%",
-        'winningTeamB': f"{ai_data['prediction']['winnerB']} - {ai_data['confidence']['confidence_winnerB']}%",
-        'message': ai_data['message'],
-        'offset': ai_data['prediction']['offset'],
-        'totalGoals': f"{ai_data['prediction']['prediction_totalGoals'][0]} - {ai_data['confidence']['confidence_totalGoals']}%",
-        'goalDifferential': f"{ai_data['prediction']['prediction_goalDifferential'][0]} - {ai_data['confidence']['confidence_goalDifferential']}%",
-      }
-    games.append(simple_data)
+  # games = []
+  projectedLineups = [projectedLineup for i in range(0,len(game_data['games']))]
+  games,simple_games = ai2(db, game_data['games'], projectedLineups, models)
+
+  return jsonify(simple_games)
+
+  # for game in game_data['games']:
+  #   ai_data = ai(db, game, projectedLineup, models)
+  #   if ai_data['message'] == 'using projected lineup':
+  #     # goalie_combos = list(ai_data['prediction'].keys())
+  #     simple_data = {
+  #       'prediction': {},
+  #       'message': ai_data['message'],
+  #     }
+  #     simple_data['awayTeam'] = f"{ai_data['awayTeam']} - {ai_data['prediction']['prediction_awayScore']} - {ai_data['confidence'][combo]['confidence_awayScore']}%"
+  #     simple_data['homeTeam'] = f"{ai_data['homeTeam']} - {ai_data['prediction']['prediction_homeScore']} - {ai_data['confidence'][combo]['confidence_homeScore']}%"
+  #     simple_data['winningTeam'] = f"{ai_data['winner']} - {ai_data['confidence'][combo]['confidence_winner']}%"
+  #     simple_data['winningTeamB'] = f"{ai_data['winnerB']} - {ai_data['confidence'][combo]['confidence_winnerB']}%"
+  #     simple_data['offset'] = ai_data['offset']
+  #     simple_data['totalGoals'] = f"{ai_data['prediction']['prediction_totalGoals']} - {ai_data['confidence'][combo]['confidence_totalGoals']}%"
+  #     simple_data['goalDifferential'] = f"{ai_data['prediction']['prediction_goalDifferential']} - {ai_data['confidence'][combo]['confidence_goalDifferential']}%"
+  #     # for combo in goalie_combos:
+  #     #   simple_data['prediction'][combo] = {}
+  #     #   simple_data['prediction'][combo]['awayTeam'] = f"{ai_data['awayTeam']} - {ai_data['prediction'][combo]['prediction_awayScore']} - {ai_data['confidence'][combo]['confidence_awayScore']}%"
+  #     #   simple_data['prediction'][combo]['homeTeam'] = f"{ai_data['homeTeam']} - {ai_data['prediction'][combo]['prediction_homeScore']} - {ai_data['confidence'][combo]['confidence_homeScore']}%"
+  #     #   simple_data['prediction'][combo]['winningTeam'] = f"{ai_data['prediction'][combo]['winner']} - {ai_data['confidence'][combo]['confidence_winner']}%"
+  #     #   simple_data['prediction'][combo]['winningTeamB'] = f"{ai_data['prediction'][combo]['winnerB']} - {ai_data['confidence'][combo]['confidence_winnerB']}%"
+  #     #   simple_data['prediction'][combo]['offset'] = ai_data['prediction'][combo]['offset']
+  #     #   simple_data['prediction'][combo]['totalGoals'] = f"{ai_data['prediction'][combo]['prediction_totalGoals']} - {ai_data['confidence'][combo]['confidence_totalGoals']}%"
+  #     #   simple_data['prediction'][combo]['goalDifferential'] = f"{ai_data['prediction'][combo]['prediction_goalDifferential']} - {ai_data['confidence'][combo]['confidence_goalDifferential']}%"
+  #   else:
+  #     live_data = {
+  #       'away': ai_data['live']['away'],
+  #       'home': ai_data['live']['home'],
+  #       'leader': ai_data['live']['leader'],
+  #       'period': ai_data['live']['period'],
+  #     }
+  #     simple_data = {
+  #       'id': ai_data['gameId'],
+  #       'awayTeam': f"{ai_data['awayTeam']} - {ai_data['prediction']['prediction_awayScore'][0]} - {ai_data['confidence']['confidence_awayScore']}%",
+  #       'homeTeam': f"{ai_data['homeTeam']} - {ai_data['prediction']['prediction_homeScore'][0]} - {ai_data['confidence']['confidence_homeScore']}%",
+  #       'live': live_data,
+  #       'winningTeam': f"{ai_data['prediction']['winner']} - {ai_data['confidence']['confidence_winner']}%",
+  #       'winningTeamB': f"{ai_data['prediction']['winnerB']} - {ai_data['confidence']['confidence_winnerB']}%",
+  #       'message': ai_data['message'],
+  #       'offset': ai_data['prediction']['offset'],
+  #       'totalGoals': f"{ai_data['prediction']['prediction_totalGoals'][0]} - {ai_data['confidence']['confidence_totalGoals']}%",
+  #       'goalDifferential': f"{ai_data['prediction']['prediction_goalDifferential'][0]} - {ai_data['confidence']['confidence_goalDifferential']}%",
+  #     }
+  #   games.append(simple_data)
   
-  return jsonify(games)
+  # return jsonify(games)
 
 
 def predict_week(db,models):

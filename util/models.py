@@ -18,14 +18,16 @@ from constants.constants import VERSION, FILE_VERSION, TORCH_FILE_VERSION, RANDO
 from inputs.projectedLineup import testProjectedLineup
 from train_torch import predict_model
 import xgboost as xgb
+import warnings
+
+# Suppress specific UserWarning from sklearn
+warnings.filterwarnings("ignore", message="X does not have valid feature names")
+warnings.filterwarnings("ignore", message="X has feature names")
 
 # RANDOM_STATE = 12
 # FILE_VERSION = 7
 Y_OUTPUTS
 MODEL_NAMES = Y_OUTPUTS
-
-def batch_predict(model, data=[]):
-  return model.predict(data)
 
 def winnerOffset(winnerId, homeId, awayId):
   if abs(winnerId - homeId) < abs(winnerId - awayId):
@@ -107,6 +109,32 @@ def MODEL_CONFIDENCE(models,data):
       out_dict[f'confidence_{i}'] = round(probability[0] * 100)
     else:
       out_dict[f'confidence_{i}'] = int((np.max(models[f'model_{i}'].predict_proba(data['data']['data']), axis=1) * 100)[0])
+  return out_dict
+
+def MODEL_BATCH_PREDICT(models,data):
+  out_dict = {}
+  for i in MODEL_NAMES:
+    if i == 'winnerB':
+      # winnerB_input = xgb.DMatrix(pd.DataFrame(data,index=[0]))
+      winnerB_input = xgb.DMatrix(data)
+      probability = models[f'model_{i}'].predict(winnerB_input)
+      predictions = [1 if ii > 0.5 else 0 for ii in probability]
+      out_dict[f'prediction_{i}'] = predictions
+    else:
+      # data = pd.DataFrame(data)
+      out_dict[f'prediction_{i}'] = list(models[f'model_{i}'].predict(data))
+  return out_dict
+
+def MODEL_BATCH_CONFIDENCE(models,data):
+  out_dict = {}
+  for i in MODEL_NAMES:
+    if i == 'winnerB':
+      winnerB_input = xgb.DMatrix(data)
+      probabilities = models[f'model_{i}'].predict(winnerB_input)
+      out_dict[f'confidence_{i}'] = [round(probability * 100) for probability in probabilities]
+    else:
+      probabilities = models[f'model_{i}'].predict_proba(data)
+      out_dict[f'confidence_{i}'] = [int((np.max(probability) * 100)) for probability in probabilities]
   return out_dict
 
 TEST_ALL_INIT = dict([(f'all_{i}_total',0) for i in MODEL_NAMES])

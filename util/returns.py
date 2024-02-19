@@ -221,3 +221,127 @@ def ai_return_dict(data, prediction, confidence=-1):
     'message': data['message'],
   }
   return out_data
+
+def ai_return_dict2(game_datas, extra_datas, predictions=[], confidences=[]):
+  out_data = []
+  simple_out_data = []
+  for i in range(0,len(game_datas)):
+    game_data = game_datas[i]
+    extra_data = extra_datas[i]
+    homeId = game_data['home_team']['id']
+    awayId = game_data['away_team']['id']
+    if len(game_data) == 0 or len(predictions['prediction_winner']) == 0:
+      winnerId = -1
+      winnerB = -1
+      homeScore = -1
+      awayScore = -1
+      totalGoals = -1
+      goalDifferential = -1
+      state = 'OFF'
+      homeTeam = game_data['home_team']['city']
+      awayTeam = game_data['away_team']['city']
+      live_away = -1
+      live_home = -1
+      live_period = -1
+      live_clock = -1
+      live_stopped = -1
+      live_intermission = -1
+      live_leaderId = -1
+      live_leader = -1
+      winningTeam = -1
+      offset = -1
+    else:
+      winnerId = int(predictions['prediction_winner'][i])
+      winnerB = int(predictions['prediction_winnerB'][i])
+      state = game_data['state']
+      homeTeam = f"{game_data['home_team']['city']} {game_data['home_team']['name']}"
+      awayTeam = f"{game_data['away_team']['city']} {game_data['away_team']['name']}"
+      live_away = game_data['live']['away_score']
+      live_home = game_data['live']['home_score']
+      live_period = game_data['live']['period']
+      live_clock = game_data['live']['clock']
+      live_stopped = game_data['live']['stopped']
+      live_intermission = game_data['live']['intermission']
+      if live_away > live_home:
+        live_leaderId = awayId
+        live_leader = awayTeam
+      elif live_home > live_away:
+        live_leaderId = homeId
+        live_leader = homeTeam
+      else:
+        live_leaderId = -1
+        live_leader = 'tied'
+      if abs(winnerId - homeId) < abs(winnerId - awayId):
+        winningTeam = homeTeam
+        offset = abs(winnerId - homeId)
+      elif abs(winnerId - homeId) > abs(winnerId - awayId):
+        winningTeam = awayTeam
+        offset = abs(winnerId - awayId)
+      else:
+        winningTeam = 'Inconclusive'
+        offset = -1
+      if winnerB == 0:
+        winningTeamB = homeTeam
+      elif winnerB == 1:
+        winningTeamB = awayTeam
+      else:
+        winningTeamB = 'Inconclusive'
+
+    if extra_data['isProjectedLineup']:
+      live_data = {}
+      simple_live_data = {}
+    else:
+      live_data = {
+        'away': live_away,
+        'home': live_home,
+        'period': live_period,
+        'clock': live_clock,
+        'stopped': live_stopped,
+        'intermission': live_intermission,
+        'leader': live_leader,
+        'leaderId': live_leaderId,
+      }
+      simple_live_data = {
+        'away': live_away,
+        'home': live_home,
+        'period': live_period,
+        'leader': live_leader,
+      }
+
+    line_predictions = {f'{k}': v for k, v in predictions.items()}
+    line_confidences = {f'{k}': v for k, v in confidences.items()}
+    
+    predicted_data = {
+      **line_predictions,
+      'winner': winningTeam,
+      'winnerB': winningTeamB,
+      'offset': offset,
+    }
+
+    out_data.append({
+      'gameId': game_data['game_id'],
+      'date': game_data['date'],
+      'state': state,
+      'homeId': homeId,
+      'awayId': awayId,
+      'homeTeam': homeTeam,
+      'awayTeam': awayTeam,
+      'prediction': predicted_data,
+      'confidence': line_confidences,
+      'live': live_data,
+      'message': extra_data['message'],
+    })
+
+    simple_out_data.append({
+      'awayTeam': f"{awayTeam} - {predicted_data['prediction_awayScore'][i]} - {confidences['confidence_awayScore'][i]}%",
+      'homeTeam': f"{homeTeam} - {predicted_data['prediction_homeScore'][i]} - {confidences['confidence_homeScore'][i]}%",
+      'winningTeam': f"{predicted_data['winner']} - {confidences['confidence_winner'][i]}%",
+      'winningTeamB': f"{predicted_data['winnerB']} - {confidences['confidence_winnerB'][i]}%",
+      'offset': predicted_data['offset'],
+      'totalGoals': f"{predicted_data['prediction_totalGoals'][i]} - {confidences['confidence_totalGoals'][i]}%",
+      'goalDifferential': f"{predicted_data['prediction_goalDifferential'][i]} - {confidences['confidence_goalDifferential'][i]}%",
+      'message': extra_data['message'],
+      'Id': game_data['game_id'],
+      'live': simple_live_data,
+    })
+  return out_data, simple_out_data

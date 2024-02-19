@@ -6,8 +6,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
 from flask import Flask, request, jsonify, Response
 from joblib import load
 import requests
-from process import nhl_ai
-from process2 import nhl_data, nhl_test
+from process2 import nhl_data, nhl_test, nhl_data2
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 import os
@@ -18,8 +17,8 @@ from util.helpers import latestIDs, adjusted_winner, recommended_wagers
 import boto3
 import io
 from inputs.inputs import master_inputs
-from util.models import MODEL_PREDICT, MODEL_CONFIDENCE
-from util.returns import ai_return_dict_projectedLineup, ai_return_dict
+from util.models import MODEL_PREDICT, MODEL_CONFIDENCE, MODEL_BATCH_PREDICT, MODEL_BATCH_CONFIDENCE
+from util.returns import ai_return_dict_projectedLineup, ai_return_dict, ai_return_dict2
 from train_torch import predict_model
 import xgboost as xgb
 from constants.inputConstants import X_INPUTS
@@ -64,3 +63,9 @@ def ai(db, game_data, useProjectedLineup, models):
       confidences[i][f'confidence_goalDifferential'] = models['model_goalDifferential'].predict_proba(data['data']['data'][i])
     
     return ai_return_dict_projectedLineup(data,predictions,confidences)
+
+def ai2(db, games, projectedLineups, models):
+  data, game_data, extra_data = nhl_data2(db, games, projectedLineups)
+  predictions = MODEL_BATCH_PREDICT(models,data)
+  confidences = MODEL_BATCH_CONFIDENCE(models,data)
+  return ai_return_dict2(game_data,extra_data,predictions,confidences)

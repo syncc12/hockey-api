@@ -7,6 +7,7 @@ import requests
 from pymongo import MongoClient
 import math
 from datetime import datetime
+import pandas as pd
 import os
 from joblib import dump
 from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup, projected_roster
@@ -272,6 +273,80 @@ def nhl_data(db,game,useProjectedLineup,message='',test=False):
 # game = requests.get(f"https://api-web.nhle.com/v1/schedule/now").json()
 # data = nhl_data(game=game['gameWeek'][0]['games'][0])
 # print(data)
+    
+
+def nhl_data2(db,games,useProjectedLineups=[],messages=[''],test=False):
+  input_data = []
+  game_data = []
+  extra_data = []
+  for i in range(0,len(games)):
+    game = games[i]
+    useProjectedLineup = useProjectedLineups[i]
+    isProjectedLineup = useProjectedLineup
+    message = ''
+
+    boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
+    check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
+    if not check_pbgs or useProjectedLineup:
+      isProjectedLineup = True
+
+      away_last_game, away_home_away = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'])
+      home_last_game, home_home_away = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'])
+      
+      away_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{away_last_game}/boxscore").json()
+      home_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{home_last_game}/boxscore").json()
+      boxscore['boxscore'] = {
+        'playerByGameStats': {
+          'awayTeam': away_last_boxscore['boxscore']['playerByGameStats'][away_home_away],
+          'homeTeam': home_last_boxscore['boxscore']['playerByGameStats'][home_home_away],
+        },
+        'gameInfo': {
+          'awayTeam': away_last_boxscore['boxscore']['gameInfo'][away_home_away],
+          'homeTeam': home_last_boxscore['boxscore']['gameInfo'][home_home_away],
+        },
+      }
+      message = 'using projected lineup'
+      
+
+    inputs = master_inputs(db=db,boxscore=boxscore,isProjectedLineup=isProjectedLineup)
+    
+    line_input_data = {}
+    if inputs:
+      for i in X_INPUTS:
+        line_input_data[i] = inputs['data'][i]
+
+    input_data.append(line_input_data)
+    game_data.append({
+      'game_id': safe_chain(boxscore,'id'),
+      'date': safe_chain(boxscore,'gameDate'),
+      'state': safe_chain(boxscore,'gameState'),
+      'home_team': {
+        'id': safe_chain(boxscore,'homeTeam','id'),
+        'city': safe_chain(game,'homeTeam','placeName','default'),
+        'name': safe_chain(boxscore,'homeTeam','name','default'),
+        'abbreviation': safe_chain(boxscore,'homeTeam','abbrev'),
+      },
+      'away_team': {
+        'id': safe_chain(boxscore,'awayTeam','id'),
+        'city': safe_chain(game,'awayTeam','placeName','default'),
+        'name': safe_chain(boxscore,'awayTeam','name','default'),
+        'abbreviation': safe_chain(boxscore,'awayTeam','abbrev'),
+      },
+      'live': {
+        'home_score': safe_chain(boxscore,'homeTeam','score'),
+        'away_score': safe_chain(boxscore,'awayTeam','score'),
+        'period': safe_chain(boxscore,'period'),
+        'clock': safe_chain(boxscore,'clock','timeRemaining'),
+        'stopped': not safe_chain(boxscore,'clock','running'),
+        'intermission': safe_chain(boxscore,'clock','inIntermission'),
+      },
+    })
+    extra_data.append({
+      'isProjectedLineup': inputs['options']['projectedLineup'],
+      'message': message,
+    })
+  data = pd.DataFrame(input_data)
+  return data, game_data, extra_data
 
 def nhl_test(db,boxscore,useProjectedLineup):
   return nhl_data(db=db,game=boxscore,useProjectedLineup=useProjectedLineup,test=True)
