@@ -7,29 +7,29 @@ import json
 from pymongo import MongoClient
 import os
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.multioutput import MultiOutputClassifier
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.multioutput import MultiOutputRegressor
 from joblib import dump, load
 import pandas as pd
 from multiprocessing import Pool
 from util.training_data import season_training_data_projectedLineup
 from constants.inputConstants import X_INPUTS_P, Y_OUTPUTS_P
 from sklearn.model_selection import train_test_split, KFold
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, mean_squared_error, mean_absolute_error, r2_score
 import time
 from constants.constants import PROJECTED_LINEUP_VERSION, PROJECTED_LINEUP_FILE_VERSION, PROJECTED_LINEUP_TEST_DATA_VERSION, PROJECTED_LINEUP_TEST_DATA_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON, VERBOSE
 from scipy.stats import mode
 
 
-RE_PULL = True
+RE_PULL = False
 N_ESTIMATORS = 100
 
 
-def train_batch(clf, X, Y, n_splits=5):
+def train_batch(reg, X, Y, n_splits=5):
   kf = KFold(n_splits=n_splits)
   for train_index, _ in kf.split(X):
-    clf.fit(X[train_index], Y[train_index])
-  return clf
+    reg.fit(X[train_index], Y[train_index])
+  return reg
 
 
 def train(db, inData, inTestData):
@@ -45,20 +45,32 @@ def train(db, inData, inTestData):
 
   # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_STATE)
 
-  base_rf = RandomForestClassifier(random_state=RANDOM_STATE)
-  clf = MultiOutputClassifier(base_rf, n_jobs=1)
+  base_rf = RandomForestRegressor(random_state=RANDOM_STATE)
+  reg = MultiOutputRegressor(base_rf, n_jobs=1)
   
-  # clf.fit(x_train,y_train)
-  clf = train_batch(clf, x_train.values, y_train.values, n_splits=4)
+  # reg.fit(x_train,y_train)
+  reg = train_batch(reg, x_train.values, y_train.values, n_splits=4)
 
-  predictions = clf.predict(x_test)
+  predictions = reg.predict(x_test)
 
   accuracies = {}
   for i in range(y_test.shape[1]):  # Iterate through each of the target variables
     target_name = y_test.columns[i]
-    accuracy = accuracy_score(y_test.iloc[:, i], predictions[:, i])
-    accuracies[target_name] = accuracy
-    print(f'Projected Lineup Accuracy ({target_name}): {accuracy:.4f}')
+    
+    # Calculate metrics
+    mse = mean_squared_error(y_test.iloc[:, i], predictions[:, i])
+    mae = mean_absolute_error(y_test.iloc[:, i], predictions[:, i])
+    r2 = r2_score(y_test.iloc[:, i], predictions[:, i])
+
+    print(f"{target_name} Mean Squared Error: {mse}")
+    print(f"{target_name} Mean Absolute Error: {mae}")
+    print(f"{target_name} R-squared: {r2}")
+
+    accuracies[target_name] = {
+      'mse': mse,
+      'mae': mae,
+      'r2': r2,
+    }
 
 
   TrainingRecords = db['dev_training_records']
@@ -75,14 +87,15 @@ def train(db, inData, inTestData):
     'startingSeason': START_SEASON,
     'finalSeason': END_SEASON,
     'projectedLineup': True,
-    'model': 'Multi-Class Random Forest Classifier',
+    'model': 'Multi-Class Random Forest Regressor',
+    'file': 'train_mor_projectedLineup.py',
     'accuracies': {
       'projectedLineup': accuracies,
     },
   })
 
-  # dump(clf, f'models/nhl_ai_v{FILE_VERSION}.joblib')
-  dump(clf, f'models/nhl_ai_v{PROJECTED_LINEUP_FILE_VERSION}_projectedLineup.joblib')
+  # dump(reg, f'models/nhl_ai_v{FILE_VERSION}.joblib')
+  dump(reg, f'models/nhl_ai_v{PROJECTED_LINEUP_FILE_VERSION}_mor_projectedLineup.joblib')
 
 
 dir_path = f'training_data/v{PROJECTED_LINEUP_VERSION}'

@@ -73,6 +73,10 @@ def roster_inputs(db, boxscore, roster, homeAway='homeTeam'):
         allPlayerIds.append({'playerId': p['playerId']})
         goalieIds.append(p['playerId'])
     
+    forwardIdsAverage = sum(forwardIds) / len(forwardIds) if len(forwardIds) > 0 else REPLACE_VALUE
+    defenseIdsAverage = sum(defenseIds) / len(defenseIds) if len(defenseIds) > 0 else REPLACE_VALUE
+    goalieIdsAverage = sum(goalieIds) / len(goalieIds) if len(goalieIds) > 0 else REPLACE_VALUE
+    
     startingTOI = safe_none(formatTime(pbgs[homeAway]['goalies'][0]['toi']))
     startingID =  pbgs[homeAway]['goalies'][0]['playerId']
     backupID = pbgs[homeAway]['goalies'][1]['playerId']
@@ -89,6 +93,10 @@ def roster_inputs(db, boxscore, roster, homeAway='homeTeam'):
     defensePoolIds = [p['id'] for p in roster['roster']['defensemen']]
     goaliePoolIds = [p['id'] for p in roster['roster']['goalies']]
 
+    forwardPoolIdsAverage = sum(forwardPoolIds) / len(forwardPoolIds) if len(forwardPoolIds) > 0 else REPLACE_VALUE
+    defensePoolIdsAverage = sum(defensePoolIds) / len(defensePoolIds) if len(defensePoolIds) > 0 else REPLACE_VALUE
+    goaliePoolIdsAverage = sum(goaliePoolIds) / len(goaliePoolIds) if len(goaliePoolIds) > 0 else REPLACE_VALUE
+
     all_inputs = {
       'id': safe_chain(boxscore,'id'),
       'season': safe_chain(boxscore,'season'),
@@ -104,11 +112,17 @@ def roster_inputs(db, boxscore, roster, homeAway='homeTeam'):
       'headCoachT': str(safe_chain(gi,homeAway,'headCoach','default',default=0)),
       'opponentHeadCoach': n2n(safe_chain(gi,'homeTeam','headCoach','default')),
       'opponentHeadCoachT': str(safe_chain(gi,'homeTeam','headCoach','default',default=0)),
+      'forwardAverage': forwardIdsAverage,
+      'defenseAverage': defenseIdsAverage,
+      'goalieAverage': goalieIdsAverage,
       **roster_forwards(forwardIds),
       **roster_defense(defenseIds),
       **roster_forwards(forwardIds),
       'startingGoalie': startingGoalie,
       'backupGoalie': backupGoalie,
+      'forwardPoolAverage': forwardPoolIdsAverage,
+      'defensePoolAverage': defensePoolIdsAverage,
+      'goaliePoolAverage': goaliePoolIdsAverage,
       **forwards(forwardPoolIds),
       **defense(defensePoolIds),
       **goalies(goaliePoolIds),

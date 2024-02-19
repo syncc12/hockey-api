@@ -59,7 +59,7 @@ def season_training_data(season,test_data=False):
       # 'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
     }
 
-    boxscore_data = master_inputs(db=db, game=game_data)['data']
+    boxscore_data = master_inputs(db=db, boxscore=game_data)['data']
     if boxscore_data:
       training_data.append(boxscore_data)
     print(season,f'{i+1}/{len(games)}')
@@ -208,7 +208,7 @@ def season_training_data_projectedLineup(season):
       training_data.append(away_data)
     print(season,f'{i+1}/{len(games)}')
   print('DONE ',season)
-  dump(training_data,f"training_data/v{PROJECTED_LINEUP_VERSION}/projected_lineup/training_data_v{PROJECTED_LINEUP_FILE_VERSION}_{season}_projectedLineup.joblib")
+  # dump(training_data,f"training_data/v{PROJECTED_LINEUP_VERSION}/projected_lineup/training_data_v{PROJECTED_LINEUP_FILE_VERSION}_{season}_projectedLineup.joblib")
   return training_data
 
 
@@ -244,13 +244,13 @@ def season_test_data(season):
       'gameDate': safe_chain(boxscores,i,'gameDate'),
       'venue': safe_chain(boxscores,i,'venue'),
       'period': safe_chain(boxscores,i,'period'),
-      'team': homeTeam,
-      'opponent': awayTeam,
+      'homeTeam': homeTeam,
+      'awayTeam': awayTeam,
       'boxscore': safe_chain(boxscores,i,'boxscore'),
       'neutralSite': safe_chain(games,i,'neutralSite'),
     }
 
-    boxscore_data = master_inputs(db=db, game=game_data)['data']
+    boxscore_data = master_inputs(db=db, boxscore=game_data)['data']
     if boxscore_data:
       test_data.append(boxscore_data)
     print(season,f'{i+1}/{len(boxscores)}')

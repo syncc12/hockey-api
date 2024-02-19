@@ -37,6 +37,8 @@ def train(db):
   accuracies = {}
 
   for output in Y_OUTPUTS_P:
+    print('Inputs:', X_INPUTS_P)
+    print('Output:', output)
     data = pd.DataFrame(TRAINING_DATA)
     test_data = pd.DataFrame(TEST_DATA)
     x_train = data [X_INPUTS_P]

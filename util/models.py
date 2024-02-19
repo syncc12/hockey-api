@@ -24,6 +24,8 @@ import xgboost as xgb
 Y_OUTPUTS
 MODEL_NAMES = Y_OUTPUTS
 
+def batch_predict(model, data=[]):
+  return model.predict(data)
 
 def winnerOffset(winnerId, homeId, awayId):
   if abs(winnerId - homeId) < abs(winnerId - awayId):

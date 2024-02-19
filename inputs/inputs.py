@@ -223,49 +223,136 @@ def master_inputs(db, boxscore, isProjectedLineup=False, training=False):
       #   all_inputs['projectedRoster3'] = projectedRoster3
       # if projectedRoster4:
       #   all_inputs['projectedRoster4'] = projectedRoster4
+      
+      af = forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True)
+      ad = defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True)
+      hf = forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False)
+      hd = defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False)
+      awayStartingGoalieAge = goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=True)['awayStartingGoalieAge']
+      awayBackupGoalieAge = goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=True)['awayBackupGoalieAge']
+      homeStartingGoalieAge = goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=False)['homeStartingGoalieAge']
+      homeBackupGoalieAge = goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=False)['homeBackupGoalieAge']
+      awayForwardAverage = -1 if len(awayForwardIds) == 0 else (sum(awayForwardIds) / len(awayForwardIds))
+      awayDefenseAverage = -1 if len(awayDefenseIds) == 0 else (sum(awayDefenseIds) / len(awayDefenseIds))
+      awayGoalieAverage = (sum([awayStartingGoalieID,awayBackupGoalieID]) / 2)
+      homeForwardAverage = -1 if len(homeForwardIds) == 0 else (sum(homeForwardIds) / len(homeForwardIds))
+      homeDefenseAverage = -1 if len(homeDefenseIds) == 0 else (sum(homeDefenseIds) / len(homeDefenseIds))
+      homeGoalieAverage = (sum([homeStartingGoalieID,homeBackupGoalieID]) / 2)
+      awayForwardAges = []
+      awayDefenseAges = []
+      awayGoalieAges = [awayStartingGoalieAge,awayBackupGoalieAge]
+      homeForwardAges = []
+      homeDefenseAges = []
+      homeGoalieAges = [homeStartingGoalieAge,homeBackupGoalieAge]
+      for i in range(0,13):
+        if not af[f'awayForward{i+1}Age'] == -1:
+          awayForwardAges.append(af[f'awayForward{i+1}Age'])
+        if not hf[f'homeForward{i+1}Age'] == -1:
+          homeForwardAges.append(hf[f'homeForward{i+1}Age'])
+      for i in range(0,7):
+        if not ad[f'awayDefenseman{i+1}Age'] == -1:
+          awayDefenseAges.append(ad[f'awayDefenseman{i+1}Age'])
+        if not hd[f'homeDefenseman{i+1}Age'] == -1:
+          homeDefenseAges.append(hd[f'homeDefenseman{i+1}Age'])
+      
+      awayForwardAverageAge = -1 if len(awayForwardAges) == 0 else (sum(awayForwardAges) / len(awayForwardAges))
+      awayDefenseAverageAge = -1 if len(awayDefenseAges) == 0 else (sum(awayDefenseAges) / len(awayDefenseAges))
+      awayGoalieAverageAge = -1 if len(awayGoalieAges) == 0 else (sum(awayGoalieAges) / len(awayGoalieAges))
+      homeForwardAverageAge = -1 if len(homeForwardAges) == 0 else (sum(homeForwardAges) / len(homeForwardAges))
+      homeDefenseAverageAge = -1 if len(homeDefenseAges) == 0 else (sum(homeDefenseAges) / len(homeDefenseAges))
+      homeGoalieAverageAge = -1 if len(homeGoalieAges) == 0 else (sum(homeGoalieAges) / len(homeGoalieAges))
+
       all_inputs[f'{awayStartingGoalieName}-{awayStartingGoalieID}|{homeStartingGoalieName}-{homeStartingGoalieID}'] = {
         **base_inputs(db,awayTeam,homeTeam,boxscore,gi,startTime,date),
-        **forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True),
-        **defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True),
-        **goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=True),
-        **goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=True),
-        **forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False),
-        **defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False),
-        **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
-        **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
+        # **forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True),
+        # **defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True),
+        # **goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=True),
+        # **goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=True),
+        # **forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False),
+        # **defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False),
+        # **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
+        # **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
+        'awayForwardAverage': awayForwardAverage,
+        'awayDefenseAverage': awayDefenseAverage,
+        'awayGoalieAverage': awayGoalieAverage,
+        'homeForwardAverage': homeForwardAverage,
+        'homeDefenseAverage': homeDefenseAverage,
+        'homeGoalieAverage': homeGoalieAverage,
+        'awayForwardAverageAge': awayForwardAverageAge,
+        'awayDefenseAverageAge': awayDefenseAverageAge,
+        'awayGoalieAverageAge': awayGoalieAverageAge,
+        'homeForwardAverageAge': homeForwardAverageAge,
+        'homeDefenseAverageAge': homeDefenseAverageAge,
+        'homeGoalieAverageAge': homeGoalieAverageAge,
       }
       all_inputs[f'{awayStartingGoalieName}-{awayStartingGoalieID}|{homeBackupGoalieName}-{homeBackupGoalieID}'] = {
         **base_inputs(db,awayTeam,homeTeam,boxscore,gi,startTime,date),
-        **forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True),
-        **defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True),
-        **goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=True),
-        **goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=True),
-        **forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False),
-        **defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False),
-        **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
-        **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
+        # **forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True),
+        # **defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True),
+        # **goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=True),
+        # **goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=True),
+        # **forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False),
+        # **defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False),
+        # **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
+        # **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
+        'awayForwardAverage': awayForwardAverage,
+        'awayDefenseAverage': awayDefenseAverage,
+        'awayGoalieAverage': awayGoalieAverage,
+        'homeForwardAverage': homeForwardAverage,
+        'homeDefenseAverage': homeDefenseAverage,
+        'homeGoalieAverage': homeGoalieAverage,
+        'awayForwardAverageAge': awayForwardAverageAge,
+        'awayDefenseAverageAge': awayDefenseAverageAge,
+        'awayGoalieAverageAge': awayGoalieAverageAge,
+        'homeForwardAverageAge': homeForwardAverageAge,
+        'homeDefenseAverageAge': homeDefenseAverageAge,
+        'homeGoalieAverageAge': homeGoalieAverageAge,
       }
       all_inputs[f'{awayBackupGoalieName}-{awayBackupGoalieID}|{homeStartingGoalieName}-{homeStartingGoalieID}'] = {
         **base_inputs(db,awayTeam,homeTeam,boxscore,gi,startTime,date),
-        **forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True),
-        **defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True),
-        **goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=True,isAway=True),
-        **goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=False,isAway=True),
-        **forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False),
-        **defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False),
-        **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
-        **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
+        # **forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True),
+        # **defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True),
+        # **goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=True,isAway=True),
+        # **goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=False,isAway=True),
+        # **forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False),
+        # **defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False),
+        # **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
+        # **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
+        'awayForwardAverage': awayForwardAverage,
+        'awayDefenseAverage': awayDefenseAverage,
+        'awayGoalieAverage': awayGoalieAverage,
+        'homeForwardAverage': homeForwardAverage,
+        'homeDefenseAverage': homeDefenseAverage,
+        'homeGoalieAverage': homeGoalieAverage,
+        'awayForwardAverageAge': awayForwardAverageAge,
+        'awayDefenseAverageAge': awayDefenseAverageAge,
+        'awayGoalieAverageAge': awayGoalieAverageAge,
+        'homeForwardAverageAge': homeForwardAverageAge,
+        'homeDefenseAverageAge': homeDefenseAverageAge,
+        'homeGoalieAverageAge': homeGoalieAverageAge,
       }
       all_inputs[f'{awayBackupGoalieName}-{awayBackupGoalieID}|{homeBackupGoalieName}-{homeBackupGoalieID}'] = {
         **base_inputs(db,awayTeam,homeTeam,boxscore,gi,startTime,date),
-        **forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True),
-        **defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True),
-        **goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=True,isAway=True),
-        **goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=False,isAway=True),
-        **forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False),
-        **defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False),
-        **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
-        **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
+        # **forwards(db,awayForwardIds,allPlayers,boxscore,isAway=True),
+        # **defense(db,awayDefenseIds,allPlayers,boxscore,isAway=True),
+        # **goalie(db,awayBackupGoalieID,allPlayers,boxscore,isStarting=True,isAway=True),
+        # **goalie(db,awayStartingGoalieID,allPlayers,boxscore,isStarting=False,isAway=True),
+        # **forwards(db,homeForwardIds,allPlayers,boxscore,isAway=False),
+        # **defense(db,homeDefenseIds,allPlayers,boxscore,isAway=False),
+        # **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
+        # **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
+        'awayForwardAverage': awayForwardAverage,
+        'awayDefenseAverage': awayDefenseAverage,
+        'awayGoalieAverage': awayGoalieAverage,
+        'homeForwardAverage': homeForwardAverage,
+        'homeDefenseAverage': homeDefenseAverage,
+        'homeGoalieAverage': homeGoalieAverage,
+        'awayForwardAverageAge': awayForwardAverageAge,
+        'awayDefenseAverageAge': awayDefenseAverageAge,
+        'awayGoalieAverageAge': awayGoalieAverageAge,
+        'homeForwardAverageAge': homeForwardAverageAge,
+        'homeDefenseAverageAge': homeDefenseAverageAge,
+        'homeGoalieAverageAge': homeGoalieAverageAge,
       }
   else:
     all_inputs = {
@@ -279,6 +366,50 @@ def master_inputs(db, boxscore, isProjectedLineup=False, training=False):
       **goalie(db,homeStartingGoalieID,allPlayers,boxscore,isStarting=True,isAway=False),
       **goalie(db,homeBackupGoalieID,allPlayers,boxscore,isStarting=False,isAway=False),
     }
+  
+    awayForwardAverage = -1 if len(awayForwardIds) == 0 else (sum(awayForwardIds) / len(awayForwardIds))
+    awayDefenseAverage = -1 if len(awayDefenseIds) == 0 else (sum(awayDefenseIds) / len(awayDefenseIds))
+    awayGoalieAverage = (sum([awayStartingGoalieID,awayBackupGoalieID]) / 2)
+    homeForwardAverage = -1 if len(homeForwardIds) == 0 else (sum(homeForwardIds) / len(homeForwardIds))
+    homeDefenseAverage = -1 if len(homeDefenseIds) == 0 else (sum(homeDefenseIds) / len(homeDefenseIds))
+    homeGoalieAverage = (sum([homeStartingGoalieID,homeBackupGoalieID]) / 2)
+    awayForwardAges = []
+    awayDefenseAges = []
+    awayGoalieAges = [all_inputs['awayStartingGoalieAge'],all_inputs['awayBackupGoalieAge']]
+    homeForwardAges = []
+    homeDefenseAges = []
+    homeGoalieAges = [all_inputs['homeStartingGoalieAge'],all_inputs['homeBackupGoalieAge']]
+    for i in range(0,13):
+      if not all_inputs[f'awayForward{i+1}Age'] == -1:
+        awayForwardAges.append(all_inputs[f'awayForward{i+1}Age'])
+      if not all_inputs[f'homeForward{i+1}Age'] == -1:
+        homeForwardAges.append(all_inputs[f'homeForward{i+1}Age'])
+    for i in range(0,7):
+      if not all_inputs[f'awayDefenseman{i+1}Age'] == -1:
+        awayDefenseAges.append(all_inputs[f'awayDefenseman{i+1}Age'])
+      if not all_inputs[f'homeDefenseman{i+1}Age'] == -1:
+        homeDefenseAges.append(all_inputs[f'homeDefenseman{i+1}Age'])
+    
+    awayForwardAverageAge = -1 if len(awayForwardAges) == 0 else (sum(awayForwardAges) / len(awayForwardAges))
+    awayDefenseAverageAge = -1 if len(awayDefenseAges) == 0 else (sum(awayDefenseAges) / len(awayDefenseAges))
+    awayGoalieAverageAge = -1 if len(awayGoalieAges) == 0 else (sum(awayGoalieAges) / len(awayGoalieAges))
+    homeForwardAverageAge = -1 if len(homeForwardAges) == 0 else (sum(homeForwardAges) / len(homeForwardAges))
+    homeDefenseAverageAge = -1 if len(homeDefenseAges) == 0 else (sum(homeDefenseAges) / len(homeDefenseAges))
+    homeGoalieAverageAge = -1 if len(homeGoalieAges) == 0 else (sum(homeGoalieAges) / len(homeGoalieAges))
+
+    all_inputs['awayForwardAverage'] = awayForwardAverage
+    all_inputs['awayDefenseAverage'] = awayDefenseAverage
+    all_inputs['awayGoalieAverage'] = awayGoalieAverage
+    all_inputs['homeForwardAverage'] = homeForwardAverage
+    all_inputs['homeDefenseAverage'] = homeDefenseAverage
+    all_inputs['homeGoalieAverage'] = homeGoalieAverage
+    all_inputs['awayForwardAverageAge'] = awayForwardAverageAge
+    all_inputs['awayDefenseAverageAge'] = awayDefenseAverageAge
+    all_inputs['awayGoalieAverageAge'] = awayGoalieAverageAge
+    all_inputs['homeForwardAverageAge'] = homeForwardAverageAge
+    all_inputs['homeDefenseAverageAge'] = homeDefenseAverageAge
+    all_inputs['homeGoalieAverageAge'] = homeGoalieAverageAge
+    
   # print('all_inputs',all_inputs)
   return {
     'data': all_inputs,

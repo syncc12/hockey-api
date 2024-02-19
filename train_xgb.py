@@ -27,17 +27,13 @@ TRIAL = True
 NUM_BOOST_ROUND = 500
 N_TRIALS = 100
 
-# PARAMS = {
-#   'max_depth': 23,  # the maximum depth of each tree
-#   'eta': 0.18,  # the training step for each iteration
-#   'objective': 'binary:logistic',  # binary classification
-#   'eval_metric': 'logloss'  # evaluation metric
-# }
 PARAMS = {
   'max_depth': 23,  # the maximum depth of each tree
   'eta': 0.18,  # the training step for each iteration
-  'objective': 'reg:absoluteerror',
-  'eval_metric': 'logloss'  # evaluation metric
+  'objective': 'binary:logistic',  # binary classification
+  'eval_metric': 'logloss',  # evaluation metric
+  'device': 'cuda',
+  'tree_method': 'hist',
 }
 EPOCHS = 10  # the number of training iterations
 THRESHOLD = 0.5
@@ -48,7 +44,10 @@ THRESHOLD = 0.5
 
 # f = open('records/xgboost_records.txt', 'a')
 
-def train(db):
+def train(db,params,trial):
+  if not trial:
+    print('Inputs:', X_INPUTS)
+    print('Output:', OUTPUT)
   data = pd.DataFrame(TRAINING_DATA)
   test_data = pd.DataFrame(TEST_DATA)
   x_train = data [X_INPUTS]
@@ -59,44 +58,45 @@ def train(db):
   dtrain = xgb.DMatrix(x_train, label=y_train)
   dtest = xgb.DMatrix(x_test, label=y_test)
 
-  bst = xgb.train(PARAMS, dtrain, EPOCHS)
+  bst = xgb.train(params, dtrain, EPOCHS)
 
   preds = bst.predict(dtest)
 
   # Convert probabilities to binary output with a threshold of 0.5
-  # predictions = [1 if i > THRESHOLD else 0 for i in preds]
-  predictions = [round(i) for i in preds]
+  predictions = [1 if i > THRESHOLD else 0 for i in preds]
+  # predictions = [round(i) for i in preds]
 
   accuracy = accuracy_score(y_test, predictions)
   # model_data = f"Accuracy: {'%.2f%%' % (accuracy * 100.0)} | eta: {eta} | max_depth: {max_depth} | epochs: {epochs}"
-  model_data = f"Accuracy: {'%.2f%%' % (accuracy * 100.0)}"
-  # records.append(model_data)
-  # f.write(f'{model_data}\n')
-  print(model_data)
+  if not trial:
+    model_data = f"Accuracy: {'%.2f%%' % (accuracy * 100.0)}"
+    # records.append(model_data)
+    # f.write(f'{model_data}\n')
+    print(model_data)
 
-  TrainingRecords = db['dev_training_records']
+    TrainingRecords = db['dev_training_records']
 
-  timestamp = time.time()
-  TrainingRecords.insert_one({
-    'savedAt': timestamp,
-    'lastTrainedId': TRAINING_DATA[len(TRAINING_DATA)-1]['id'],
-    'version': VERSION,
-    'inputs': X_INPUTS,
-    'outputs': Y_OUTPUTS,
-    'randomState': RANDOM_STATE,
-    'startingSeason': START_SEASON,
-    'finalSeason': END_SEASON,
-    'model': 'XGBoost Classifier',
-    'threshold': THRESHOLD,
-    'params': PARAMS,
-    'epochs': EPOCHS,
-    'accuracies': {
-      OUTPUT: accuracy,
-    },
-  })
+    timestamp = time.time()
+    TrainingRecords.insert_one({
+      'savedAt': timestamp,
+      'lastTrainedId': TRAINING_DATA[len(TRAINING_DATA)-1]['id'],
+      'version': VERSION,
+      'inputs': X_INPUTS,
+      'outputs': Y_OUTPUTS,
+      'randomState': RANDOM_STATE,
+      'startingSeason': START_SEASON,
+      'finalSeason': END_SEASON,
+      'model': 'XGBoost Classifier',
+      'threshold': THRESHOLD,
+      'params': PARAMS,
+      'epochs': EPOCHS,
+      'accuracies': {
+        OUTPUT: accuracy,
+      },
+    })
 
-  
-  dump(bst, f'models/nhl_ai_v{FILE_VERSION}_xgboost_{OUTPUT}.joblib')
+    dump(bst, f'models/nhl_ai_v{FILE_VERSION}_xgboost_{OUTPUT}.joblib')
+  return accuracy
 
 
 def objective(trial):
@@ -155,14 +155,46 @@ def objective(trial):
   return accuracy
 
 if TRIAL:
-  # Create a study object and optimize the objective function
-  study = optuna.create_study(direction='maximize')
-  study.optimize(objective, n_trials=N_TRIALS)
+  best = {
+    'max_depth': 0,
+    'eta': 0,
+    'accuracy': 0,
+  }
+  for max_depth in range(10,101):
+    for eta in np.arange(0.01, 0.91, 0.01):
+      params = {
+        'max_depth': max_depth,  # the maximum depth of each tree
+        'eta': eta,  # the training step for each iteration
+        'objective': 'binary:logistic',  # binary classification
+        'eval_metric': 'logloss',  # evaluation metric
+        'device': 'cuda',
+        'tree_method': 'hist',
+      }
+      accuracy = train(db,params,True)
+      if accuracy > best['accuracy']:
+        best['max_depth'] = max_depth
+        best['eta'] = eta
+        best['accuracy'] = accuracy
+      print(f'{OUTPUT} Accuracy: {(accuracy*100):.2f}% | eta: {eta} | max_depth: {max_depth} | Best So Far: Accuracy: {(best["accuracy"]*100):.2f}% | eta: {best["eta"]} | max_depth: {best["max_depth"]}')
+  best_params = {
+    'max_depth': best['max_depth'],
+    'eta': best['eta'],
+    'objective': 'binary:logistic',
+    'eval_metric': 'logloss',
+    'device': 'cuda',
+    'tree_method': 'hist',
+  }
+  train(db,best_params,False)
 
-  # Best trial
-  trial = study.best_trial
-  print(f'Accuracy: {trial.value}')
-  print("Best hyperparameters: {}".format(trial.params))
+
+  # # Create a study object and optimize the objective function
+  # study = optuna.create_study(direction='maximize')
+  # study.optimize(objective, n_trials=N_TRIALS)
+
+  # # Best trial
+  # trial = study.best_trial
+  # print(f'Accuracy: {trial.value}')
+  # print("Best hyperparameters: {}".format(trial.params))
 else:
   train(db)
 

@@ -112,6 +112,18 @@ BASE_INPUTS = [
   # 'ref2',
   # 'linesman1',
   # 'linesman2',
+  'awayForwardAverage',
+  'awayDefenseAverage',
+  'awayGoalieAverage',
+  'homeForwardAverage',
+  'homeDefenseAverage',
+  'homeGoalieAverage',
+  'awayForwardAverageAge',
+  'awayDefenseAverageAge',
+  'awayGoalieAverageAge',
+  'homeForwardAverageAge',
+  'homeDefenseAverageAge',
+  'homeGoalieAverageAge',
 ]
 P_BASE_INPUTS = [
   'id',
@@ -125,6 +137,9 @@ P_BASE_INPUTS = [
   'date',
   'headCoach',
   'opponentHeadCoach',
+  'forwardPoolAverage',
+  'defensePoolAverage',
+  'goaliePoolAverage',
 ]
 ANN_BASE_INPUTS = [
   'id','season','gameType','venueT','neutralSite','homeTeam','awayTeam','startTime',
@@ -168,36 +183,13 @@ Y_OUTPUTS = [
   'totalGoals',
   'goalDifferential',
   'winnerB',
-  # 'finalPeriod',
-  # 'pastRegulation',
-  # 'awayShots',
-  # 'homeShots',
-  # 'awayShotsPeriod1',
-  # 'homeShotsPeriod1',
-  # 'awayShotsPeriod2',
-  # 'homeShotsPeriod2',
-  # 'awayShotsPeriod3',
-  # 'homeShotsPeriod3',
-  # 'awayShotsPeriod4',
-  # 'homeShotsPeriod4',
-  # 'awayShotsPeriod5',
-  # 'homeShotsPeriod5',
-  # 'awayScorePeriod1',
-  # 'homeScorePeriod1',
-  # 'awayScorePeriod2',
-  # 'homeScorePeriod2',
-  # 'awayScorePeriod3',
-  # 'homeScorePeriod3',
-  # 'awayScorePeriod4',
-  # 'homeScorePeriod4',
-  # 'awayScorePeriod5',
-  # 'homeScorePeriod5',
-  # 'period1PuckLine',
-  # 'period2PuckLine',
-  # 'period3PuckLine',
 ]
 
-Y_OUTPUTS_P = []
+Y_OUTPUTS_P = [
+  # 'forwardAverage',
+  # 'defenseAverage',
+  # 'goalieAverage',
+]
 
 for i in range(0,32):
   X_INPUTS_P.append(f'forwardPool{i+1}')
@@ -210,23 +202,23 @@ for i in range(0,8):
   P_GOALIE_INPUTS.append(f'goaliePool{i+1}')
 
 for i in FORWARD_INPUTS_ZIP:
-  X_INPUTS.append(f'awayForward{i+1}')
+  # X_INPUTS.append(f'awayForward{i+1}')
   Y_OUTPUTS_P.append(f'forward{i+1}')
   X_INPUTS_ANN.append(f'awayForward{i+1}')
   AWAY_FORWARD_INPUTS.append(f'awayForward{i+1}')
   for feature in FORWARD_INPUTS:
-    X_INPUTS.append(f'awayForward{i+1}{feature}')
+    # X_INPUTS.append(f'awayForward{i+1}{feature}')
     X_INPUTS_ANN.append(f'awayForward{i+1}{feature}')
     if feature == 'Age':
       AWAY_FORWARD_AGE_INPUTS.append(f'awayForward{i+1}Age')
 
 for i in DEFENSE_INPUTS_ZIP:
-  X_INPUTS.append(f'awayDefenseman{i+1}')
+  # X_INPUTS.append(f'awayDefenseman{i+1}')
   Y_OUTPUTS_P.append(f'defenseman{i+1}')
   X_INPUTS_ANN.append(f'awayDefenseman{i+1}')
   AWAY_DEFENSE_INPUTS.append(f'awayDefenseman{i+1}')
   for feature in DEFENSE_INPUTS:
-    X_INPUTS.append(f'awayDefenseman{i+1}{feature}')
+    # X_INPUTS.append(f'awayDefenseman{i+1}{feature}')
     X_INPUTS_ANN.append(f'awayDefenseman{i+1}{feature}')
     if feature == 'Age':
       AWAY_DEFENSE_AGE_INPUTS.append(f'awayDefenseman{i+1}Age')
@@ -234,11 +226,11 @@ for i in DEFENSE_INPUTS_ZIP:
 Y_OUTPUTS_P.append(f'startingGoalie')
 Y_OUTPUTS_P.append(f'backupGoalie')
 
-X_INPUTS.append(f'awayStartingGoalie')
+# X_INPUTS.append(f'awayStartingGoalie')
 X_INPUTS_ANN.append(f'awayStartingGoalie')
 AWAY_GOALIE_INPUTS.append(f'awayStartingGoalie')
 for feature in GOALIE_INPUTS:
-  X_INPUTS.append(f'awayStartingGoalie{feature}')
+  # X_INPUTS.append(f'awayStartingGoalie{feature}')
   if feature == 'Age':
     AWAY_GOALIE_AGE_INPUTS.append(f'awayStartingGoalieAge')
     X_INPUTS_ANN.append(f'awayStartingGoalieAge')
@@ -246,11 +238,11 @@ for feature in GOALIE_INPUTS:
     AWAY_GOALIE_CATCHES_INPUTS.append(f'awayStartingGoalieCatches')
     X_INPUTS_ANN.append(f'awayStartingGoalieCatchesT')
 
-X_INPUTS.append(f'awayBackupGoalie')
+# X_INPUTS.append(f'awayBackupGoalie')
 X_INPUTS_ANN.append(f'awayBackupGoalie')
 AWAY_GOALIE_INPUTS.append(f'awayBackupGoalie')
 for feature in GOALIE_INPUTS:
-  X_INPUTS.append(f'awayBackupGoalie{feature}')
+  # X_INPUTS.append(f'awayBackupGoalie{feature}')
   if feature == 'Age':
     AWAY_GOALIE_AGE_INPUTS.append(f'awayBackupGoalieAge')
     X_INPUTS_ANN.append(f'awayBackupGoalieAge')
@@ -259,30 +251,30 @@ for feature in GOALIE_INPUTS:
     X_INPUTS_ANN.append(f'awayBackupGoalieCatchesT')
 
 for i in FORWARD_INPUTS_ZIP:
-  X_INPUTS.append(f'homeForward{i+1}')
+  # X_INPUTS.append(f'homeForward{i+1}')
   X_INPUTS_ANN.append(f'homeForward{i+1}')
   HOME_FORWARD_INPUTS.append(f'homeForward{i+1}')
   for feature in FORWARD_INPUTS:
-    X_INPUTS.append(f'homeForward{i+1}{feature}')
+    # X_INPUTS.append(f'homeForward{i+1}{feature}')
     X_INPUTS_ANN.append(f'homeForward{i+1}{feature}')
     if feature == 'Age':
       HOME_FORWARD_AGE_INPUTS.append(f'homeForward{i+1}Age')
 
 for i in DEFENSE_INPUTS_ZIP:
-  X_INPUTS.append(f'homeDefenseman{i+1}')
+  # X_INPUTS.append(f'homeDefenseman{i+1}')
   X_INPUTS_ANN.append(f'homeDefenseman{i+1}')
   HOME_DEFENSE_INPUTS.append(f'homeDefenseman{i+1}')
   for feature in DEFENSE_INPUTS:
-    X_INPUTS.append(f'homeDefenseman{i+1}{feature}')
+    # X_INPUTS.append(f'homeDefenseman{i+1}{feature}')
     X_INPUTS_ANN.append(f'homeDefenseman{i+1}{feature}')
     if feature == 'Age':
       HOME_DEFENSE_AGE_INPUTS.append(f'homeDefenseman{i+1}Age')
 
-X_INPUTS.append(f'homeStartingGoalie')
+# X_INPUTS.append(f'homeStartingGoalie')
 X_INPUTS_ANN.append(f'homeStartingGoalie')
 HOME_GOALIE_INPUTS.append(f'homeStartingGoalie')
 for feature in GOALIE_INPUTS:
-  X_INPUTS.append(f'homeStartingGoalie{feature}')
+  # X_INPUTS.append(f'homeStartingGoalie{feature}')
   if feature == 'Age':
     HOME_GOALIE_AGE_INPUTS.append(f'homeStartingGoalieAge')
     X_INPUTS_ANN.append(f'homeStartingGoalieAge')
@@ -290,11 +282,11 @@ for feature in GOALIE_INPUTS:
     HOME_GOALIE_CATCHES_INPUTS.append(f'homeStartingGoalieCatches')
     X_INPUTS_ANN.append(f'homeStartingGoalieCatchesT')
 
-X_INPUTS.append(f'homeBackupGoalie')
+# X_INPUTS.append(f'homeBackupGoalie')
 X_INPUTS_ANN.append(f'homeBackupGoalie')
 HOME_GOALIE_INPUTS.append(f'homeBackupGoalie')
 for feature in GOALIE_INPUTS:
-  X_INPUTS.append(f'homeBackupGoalie{feature}')
+  # X_INPUTS.append(f'homeBackupGoalie{feature}')
   if feature == 'Age':
     HOME_GOALIE_AGE_INPUTS.append(f'homeBackupGoalieAge')
     X_INPUTS_ANN.append(f'homeBackupGoalieAge')

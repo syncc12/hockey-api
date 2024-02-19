@@ -90,6 +90,7 @@ def nhl_data(db,game,useProjectedLineup,message='',test=False):
         input_keys = list(inputs['data'].keys())
         x = {}
         
+        # print(list(inputs['data'].values()))
         for i in range(0, len(input_keys)):
           input_list = list(inputs['data'].values())[i]
           x[f'{input_keys[i]}'] = [[input_list[j] for j in X_INPUTS]]
