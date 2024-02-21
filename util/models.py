@@ -137,6 +137,13 @@ def MODEL_BATCH_CONFIDENCE(models,data):
       out_dict[f'confidence_{i}'] = [int((np.max(probability) * 100)) for probability in probabilities]
   return out_dict
 
+def MODEL_PREDICT_CONFIDENCE_WINNER_B(models,data):
+  winnerB_input = xgb.DMatrix(data)
+  probability = models['model_winnerB'].predict(winnerB_input)
+  predictions = [1 if ii > 0.5 else 0 for ii in probability]
+  probabilities = [round(probability * 100) for probability in probability]
+  return predictions, probabilities
+
 TEST_ALL_INIT = dict([(f'all_{i}_total',0) for i in MODEL_NAMES])
 TEST_LINE_INIT = dict([(f'{i}_total',0) for i in MODEL_NAMES])
 

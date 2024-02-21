@@ -17,7 +17,7 @@ from util.helpers import latestIDs, adjusted_winner, recommended_wagers
 import boto3
 import io
 from inputs.inputs import master_inputs
-from util.models import MODEL_PREDICT, MODEL_CONFIDENCE, MODEL_BATCH_PREDICT, MODEL_BATCH_CONFIDENCE
+from util.models import MODEL_PREDICT, MODEL_CONFIDENCE, MODEL_BATCH_PREDICT, MODEL_BATCH_CONFIDENCE, MODEL_PREDICT_CONFIDENCE_WINNER_B
 from util.returns import ai_return_dict_projectedLineup, ai_return_dict, ai_return_dict2
 from train_torch import predict_model
 import xgboost as xgb
@@ -69,3 +69,11 @@ def ai2(db, games, projectedLineups, models):
   predictions = MODEL_BATCH_PREDICT(models,data)
   confidences = MODEL_BATCH_CONFIDENCE(models,data)
   return ai_return_dict2(game_data,extra_data,predictions,confidences)
+
+def ai_receipt(db, games, projectedLineups, models):
+  data, game_data, extra_data = nhl_data2(db, games, projectedLineups)
+  predictions, confidences = MODEL_PREDICT_CONFIDENCE_WINNER_B(models,data)
+  receipt = []
+  for i in range(len(predictions)):
+    receipt.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {confidences[i]}%')
+  return receipt
