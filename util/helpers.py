@@ -3,6 +3,7 @@ import requests
 from pymongo import MongoClient
 from datetime import datetime
 import numpy as np
+from itertools import combinations
 
 REPLACE_VALUE = -1
 
@@ -667,3 +668,10 @@ def getLastTeamLineups(db,gameId):
       }
   except:
     return {}
+
+def all_combinations(lst):
+  result = []
+  for r in range(1, len(lst) + 1):
+    for combo in combinations(lst, r):
+      result.append(list(combo))
+  return result

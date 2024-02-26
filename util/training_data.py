@@ -32,6 +32,10 @@ def season_training_data(season,test_data=False):
     {'id': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1}
   ))
   for i in range(0,len(games)):
+    if safe_chain(boxscores,i,'gameType') != 2 and safe_chain(boxscores,i,'gameType') != 3:
+      print(season,f'{i+1}/{len(games)} - SKIPPED')
+      continue
+
     if false_chain(boxscores,i,'id'):
       id = safe_chain(boxscores,i,'id')
     else:
@@ -225,6 +229,9 @@ def season_test_data(season):
     {'id': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1}
   ))
   for i in range(0,len(boxscores)):
+    if safe_chain(boxscores,i,'gameType') != 2 and safe_chain(boxscores,i,'gameType') != 3:
+      print(season,f'{i+1}/{len(boxscores)} - SKIPPED')
+      continue
     if false_chain(boxscores,i,'id'):
       id = safe_chain(boxscores,i,'id')
     else:

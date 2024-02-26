@@ -675,3 +675,6 @@ def predict_day_receipt(db,date,day,gamePick,projectedLineup,models):
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
   return ai_receipt(db, game_data['games'], projectedLineups, models)
+
+def analytics(db,date,day,gamePick,projectedLineup,models):
+  pass

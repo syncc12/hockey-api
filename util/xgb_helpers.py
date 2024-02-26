@@ -1,24 +1,58 @@
 import pandas as pd
 import numpy as np
+import xgboost as xgb
 from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 def aggregate_statistics():
+  pass
 
-  # Assuming df is your DataFrame and it contains the feature groups player1a...player20a and player1b...player20b
-  features_group_a = [f'player{i}a' for i in range(1, 21)]
-  features_group_b = [f'player{i}b' for i in range(1, 21)]
+def learning_rate_schedule(round, num_boost_round, initial_lr=0.1, final_lr=0.01):
+  """
+  Calculates the learning rate at a given round using a linear schedule.
+  
+  Parameters:
+  - round: int, current round number.
+  - num_boost_round: int, total number of boosting rounds.
+  - initial_lr: float, initial learning rate.
+  - final_lr: float, final learning rate.
+  
+  Returns:
+  - lr: float, the learning rate for the current round.
+  """
+  if round >= num_boost_round:
+    return final_lr
+  else:
+    lr = initial_lr - ((initial_lr - final_lr) / num_boost_round) * round
+    return lr
 
-  # Compute aggregate statistics for each group
-  for group, name in zip([features_group_a, features_group_b], ['a', 'b']):
-    df[f'mean_{name}'] = df[group].mean(axis=1)
-    df[f'std_{name}'] = df[group].std(axis=1)
-    df[f'max_{name}'] = df[group].max(axis=1)
-    df[f'min_{name}'] = df[group].min(axis=1)
+def update_learning_rate(round, num_boost_round, initial_lr, final_lr):
+  """
+  Callback function to update learning rate.
+  """
+  def callback(env):
+    lr = learning_rate_schedule(round, num_boost_round, initial_lr, final_lr)
+    env.model.set_param('learning_rate', lr)
+  return callback
 
-  # Now df includes additional features that are permutation-invariant within each group
+class LearningRateScheduler(xgb.callback.TrainingCallback):
+  def __init__(self, num_boost_round, initial_lr=0.1, final_lr=0.01):
+    super().__init__()
+    self.num_boost_round = num_boost_round
+    self.initial_lr = initial_lr
+    self.final_lr = final_lr
+  
+  def before_iteration(self, model, epoch, dtrain, evals=(), obj=None):
+    """Adjust learning rate before each iteration. Updated to include missing 'obj' parameter."""
+    lr = self.learning_rate_schedule(epoch)
+    model.set_param('learning_rate', lr)
+    return False  # Return False to indicate training should not stop
 
-  # Prepare data for XGBoost
-  X = df.drop(columns=['target'])  # Assuming 'target' is your target variable
-  y = df['target']
+  def learning_rate_schedule(self, round):
+    """Calculate the learning rate for the current round."""
+    if round >= self.num_boost_round:
+      return self.final_lr
+    else:
+      lr = self.initial_lr - ((self.initial_lr - self.final_lr) / self.num_boost_round) * round
+      return lr

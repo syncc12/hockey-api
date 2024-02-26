@@ -5,7 +5,7 @@ from joblib import load
 import pandas as pd
 from constants.inputConstants import X_INPUTS, X_INPUTS_P, Y_OUTPUTS_P
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, balanced_accuracy_score, average_precision_score
-from constants.constants import FILE_VERSION, PROJECTED_LINEUP_FILE_VERSION, RANDOM_STATE
+from constants.constants import FILE_VERSION, PROJECTED_LINEUP_FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, RANDOM_STATE
 from sklearn.model_selection import KFold, cross_val_score, LeaveOneOut
 from sklearn.inspection import permutation_importance
 import xgboost as xgb
@@ -38,31 +38,31 @@ y = data [[OUTPUT]].values.ravel()
 
 # test_predictions = model.predict(x)
 
-class XGBWrapper:
-  def __init__(self, model):
-    self.model = model
+# class XGBWrapper:
+#   def __init__(self, model):
+#     self.model = model
 
-  def fit(self, X, y):
-    # Ensure X is not already a DMatrix
-    if not isinstance(X, xgb.DMatrix):
-      X = xgb.DMatrix(X, label=y)
-    self.model.fit(X, y)
+#   def fit(self, X, y):
+#     # Ensure X is not already a DMatrix
+#     if not isinstance(X, xgb.DMatrix):
+#       X = xgb.DMatrix(X, label=y)
+#     self.model.fit(X, y)
 
-  def predict(self, X):
-    # Check if X is a DMatrix; if not, convert it
-    if not isinstance(X, xgb.DMatrix):
-      X = xgb.DMatrix(X)
-    return self.model.predict(X)
+#   def predict(self, X):
+#     # Check if X is a DMatrix; if not, convert it
+#     if not isinstance(X, xgb.DMatrix):
+#       X = xgb.DMatrix(X)
+#     return self.model.predict(X)
 
-  def score(self, X, y):
-    # Generate predictions
-    predictions = self.predict(X)
-    # Calculate and return accuracy
-    return accuracy_score(y, (predictions > 0.5).astype(int))
+#   def score(self, X, y):
+#     # Generate predictions
+#     predictions = self.predict(X)
+#     # Calculate and return accuracy
+#     return accuracy_score(y, (predictions > 0.5).astype(int))
 
-model_wrapper = XGBClassifier(use_label_encoder=False, eval_metric='logloss', params=PARAMS, num_boost_round=500, n_jobs=-1, random_state=RANDOM_STATE, verbosity=0)
-# model_wrapper = XGBWrapper(xgb_model)
-model_wrapper.fit(x, y)
+# model_wrapper = XGBClassifier(use_label_encoder=False, eval_metric='logloss', params=PARAMS, num_boost_round=500, n_jobs=-1, random_state=RANDOM_STATE, verbosity=0)
+# # model_wrapper = XGBWrapper(xgb_model)
+# model_wrapper.fit(x, y)
 
 def accuracyScore(y_column, prediction, target_name=""):
   accuracy = accuracy_score(y_column, prediction)
@@ -138,11 +138,41 @@ def featureImportancesXGB(model):
 def isList(inVariable):
   return isinstance(inVariable, list)
 
-def test_model():
-  # crossValidationXGB(model_wrapper, x, y)
-  # leaveOneOutCrossValidationXGB(model_wrapper, x, y)
-  permutationImportancesXGB(model_wrapper, x, y)
-  featureImportancesXGB(model_wrapper)
+def partialFitXGB(model, x_train, y_train, x_test, y_test):
+  params = {
+    'max_depth': 23,  # the maximum depth of each tree
+    'eta': 0.18,  # the training step for each iteration
+    'objective': 'binary:logistic',  # binary classification
+    # 'objective': 'reg:logistic',  # binary classification
+    'eval_metric': 'logloss',  # evaluation metric
+    # 'eval_metric': 'aucpr',  # evaluation metric
+    'device': 'cuda',
+    'tree_method': 'hist',
+  }
+  epochs = 10  # the number of training iterations
+  dtrain = xgb.DMatrix(x_train, label=y_train)
+  dtest = xgb.DMatrix(x_test, label=y_test)
+  um = xgb.train(params, dtrain, epochs, xgb_model=model)
+  new_preds = um.predict(dtest)
+  new_predictions = [1 if i > 0.5 else 0 for i in new_preds]
+  new_accuracy = accuracy_score(y_test, new_predictions)
+  print("New Accuracy: %.2f%%" % (new_accuracy * 100.0))
+
+def test_model(x_test, y_test, model):
+  x = xgb.DMatrix(x_test, label=y_test)
+  preds = model.predict(x)
+  predictions = [1 if i > 0.5 else 0 for i in preds]
+  accuracyScore(y_test, predictions)
+
 
 if __name__ == "__main__":
-  test_model()
+  # test_model(x,y,model)
+  sorted_data = data.sort_values(by='id')
+  data_split = round(len(sorted_data)/2)
+  data_train = sorted_data.iloc[:data_split]
+  data_test = sorted_data.iloc[data_split:]
+  x_train = data_train[X_INPUTS]
+  y_train = data_train[[OUTPUT]].values.ravel()
+  x_test = data_test[X_INPUTS]
+  y_test = data_test[[OUTPUT]].values.ravel()
+  partialFitXGB(model, x_train, y_train, x_test, y_test)
