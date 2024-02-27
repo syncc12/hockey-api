@@ -232,13 +232,13 @@ def sampling(data):
   print(class_percentages)
 
 if __name__ == '__main__':
-  # db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
-  # # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
-  # client = MongoClient(db_url)
-  # db = client['hockey']
-  # model = MODELS['model_winnerB']
-  # data = test_calculation(db,model)
+  db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
+  # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
+  client = MongoClient(db_url)
+  db = client['hockey']
+  model = MODELS['model_winnerB']
+  data = test_calculation(db,model)
   # correct_vs_incorrect_team(data)
   # correct_vs_incorrect_matchup(data)
-  data = load(f'training_data/training_data_v{FILE_VERSION}_{START_SEASON}_{END_SEASON}.joblib')
-  sampling(data)
+  # data = load(f'training_data/training_data_v{FILE_VERSION}_{START_SEASON}_{END_SEASON}.joblib')
+  # sampling(data)
