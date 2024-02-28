@@ -675,3 +675,18 @@ def all_combinations(lst):
     for combo in combinations(lst, r):
       result.append(list(combo))
   return result
+
+def parse_utc_offset(inUTCOffset):
+  if inUTCOffset and inUTCOffset != -1:
+    return abs(int(inUTCOffset.split(':')[0]))
+  else:
+    return -1
+
+def parse_start_time(inStartTime):
+  if inStartTime and inStartTime != -1:
+    dt = datetime.strptime(str(inStartTime), "%Y-%m-%dT%H:%M:%SZ")
+    start_date = int(f'{dt.year}{dt.month}{dt.day}')
+    start_time = float(int(dt.hour) * ((int(dt.minute) * (int(dt.second)/60))/60))
+    return start_date, start_time
+  else:
+    return -1, -1

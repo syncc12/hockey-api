@@ -14,7 +14,7 @@ from util.training_data import season_training_data, game_training_data, update_
 from util.helpers import latestIDs
 from constants.constants import VERSION, FILE_VERSION, START_SEASON, END_SEASON
 
-dir_path = f'training_data/v{VERSION}_{START_SEASON}_{END_SEASON}'
+dir_path = f'training_data/v{VERSION}'
 if not os.path.exists(dir_path):
   os.makedirs(dir_path)
 
@@ -69,15 +69,15 @@ if __name__ == '__main__':
   result = np.concatenate(result).tolist()
   pool.close()
 
-  data = pd.DataFrame(result)
-  for column in data.columns:
-    class_counts = data[column].value_counts()
-    print(class_counts)
-    class_percentages = class_counts / len(data) * 100
-    print(class_percentages)
+  # data = pd.DataFrame(result)
+  # for column in data.columns:
+  #   class_counts = data[column].value_counts()
+  #   print(class_counts)
+  #   class_percentages = class_counts / len(data) * 100
+  #   print(class_percentages)
     
 
-  dump(result,f'training_data/training_data_v{FILE_VERSION}_{START_SEASON}_{END_SEASON}.joblib')
+  dump(result,f'training_data/training_data_v{FILE_VERSION}.joblib')
   f = open('training_data/training_data_text.txt', 'w')
   f.write(json.dumps(result[len(result)-200:len(result)]))
-  print('Games Collected')
+  print(f'Games Collected: v{VERSION}')

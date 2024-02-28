@@ -6,14 +6,16 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 import matplotlib.pyplot as plt
 import pandas as pd
 from inputs.inputs import master_inputs
+from sklearn.metrics import accuracy_score, roc_curve, auc
 from constants.inputConstants import X_INPUTS
-from constants.constants import VERSION, FILE_VERSION, START_SEASON, END_SEASON
+from constants.constants import VERSION, FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, TEST_DATA_FILE_VERSION, START_SEASON, END_SEASON
 from util.models import MODELS
 from pymongo import MongoClient
 import warnings
 import xgboost as xgb
 from collections import Counter
 from joblib import dump, load
+import shap
 
 # Suppress specific UserWarning from sklearn
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
@@ -231,14 +233,71 @@ def sampling(data):
   class_percentages = class_counts / len(df) * 100
   print(class_percentages)
 
+def predictions(model,dtest):
+  preds = model.predict(dtest)
+  return preds
+
+def model_accuracy(model,dtest):
+  preds = model.predict(dtest)
+  predictions = [1 if i > 0.5 else 0 for i in preds]
+  accuracy = accuracy_score(y_test, predictions)
+  # print(f"Accuracy:", accuracy)
+  return accuracy
+
+def model_confidences(model,dtest):
+  confidences = model.predict(dtest)
+  # print(f"Confidences:", confidences)
+  return confidences
+
+def roc_auc_curve(y_test, y_pred_prob):
+  fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob)
+  roc_auc = auc(fpr, tpr)
+
+  # Plot ROC curve
+  plt.figure()
+  plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+  plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+  plt.xlim([0.0, 1.0])
+  plt.ylim([0.0, 1.05])
+  plt.xlabel('False Positive Rate')
+  plt.ylabel('True Positive Rate')
+  plt.title('Receiver Operating Characteristic')
+  plt.legend(loc="lower right")
+  plt.show()
+
+def feature_importance(model, max_num_features=10):
+  xgb.plot_importance(model, max_num_features=max_num_features) # Plot the top 10 features
+  plt.show()
+
+def shap_values(model, x_test):
+  explainer = shap.TreeExplainer(model)
+  shap_values = explainer.shap_values(x_test)
+  shap.summary_plot(shap_values, x_test)
+
+def visualize_one_tree(model):
+  # xgb.to_graphviz(model, num_trees=0) # Visualize the first tree
+  xgb.plot_tree(model, num_trees=0)
+  plt.show()
+
 if __name__ == '__main__':
+  OUTPUT = 'winnerB'
+
   db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
   # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
   client = MongoClient(db_url)
   db = client['hockey']
-  model = MODELS['model_winnerB']
-  data = test_calculation(db,model)
-  # correct_vs_incorrect_team(data)
-  # correct_vs_incorrect_matchup(data)
-  # data = load(f'training_data/training_data_v{FILE_VERSION}_{START_SEASON}_{END_SEASON}.joblib')
-  # sampling(data)
+  TEST_DATA = load(f'test_data/test_data_v{TEST_DATA_FILE_VERSION}.joblib')
+  test_data = pd.DataFrame(TEST_DATA)
+  test_data = test_data.sort_values(by='id')
+  x_test = test_data [X_INPUTS]
+  y_test = test_data [[OUTPUT]].values.ravel()
+  dtest = xgb.DMatrix(x_test, label=y_test)
+  # model = MODELS['model_winnerB']
+  model = load(f'models/nhl_ai_v{XGB_FILE_VERSION}_xgboost_{OUTPUT}_1.joblib')
+  accuracy = model_accuracy(model,dtest)
+  print("Accuracy:", accuracy)
+  # confidence = model_confidences(model,dtest)
+  # roc_auc_curve(y_test, confidence)
+  # feature_importance(model)
+  # shap_values(model, x_test)
+  # visualize_one_tree(model)

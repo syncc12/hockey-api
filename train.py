@@ -19,13 +19,13 @@ from util.training_data import season_training_data, game_training_data, update_
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-from util.helpers import latestIDs
+from util.helpers import latestIDs, all_combinations
 import time
-from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON, VERBOSE
+from constants.constants import VERSION, FILE_VERSION, TEST_DATA_VERSION, TEST_DATA_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON, VERBOSE
 
 RE_PULL = False
 UPDATE = False
-TEST_DATA = False
+OVERRIDE = True
 
 def train(db, inData):
   imputer = SimpleImputer(strategy='constant', fill_value=-1)
@@ -39,6 +39,13 @@ def train(db, inData):
   y_totalGoals = data [['totalGoals']].values.ravel()
   y_goalDifferential = data [['goalDifferential']].values.ravel()
 
+  y_train_winner = y_winner
+  y_train_winnerB = y_winnerB
+  y_train_homeScore = y_homeScore
+  y_train_awayScore = y_awayScore
+  y_train_totalGoals = y_totalGoals
+  y_train_goalDifferential = y_goalDifferential
+
   imputer.fit(x)
   x = imputer.transform(x)
   x_winner = x
@@ -48,12 +55,35 @@ def train(db, inData):
   x_totalGoals = x
   x_goalDifferential = x
 
-  x_train_winner, x_test_winner, y_train_winner, y_test_winner = train_test_split(x_winner, y_winner, test_size=0.2, random_state=RANDOM_STATE)
-  x_train_winnerB, x_test_winnerB, y_train_winnerB, y_test_winnerB = train_test_split(x_winnerB, y_winnerB, test_size=0.2, random_state=RANDOM_STATE)
-  x_train_homeScore, x_test_homeScore, y_train_homeScore, y_test_homeScore = train_test_split(x_homeScore, y_homeScore, test_size=0.2, random_state=RANDOM_STATE)
-  x_train_awayScore, x_test_awayScore, y_train_awayScore, y_test_awayScore = train_test_split(x_awayScore, y_awayScore, test_size=0.2, random_state=RANDOM_STATE)
-  x_train_totalGoals, x_test_totalGoals, y_train_totalGoals, y_test_totalGoals = train_test_split(x_totalGoals, y_totalGoals, test_size=0.2, random_state=RANDOM_STATE)
-  x_train_goalDifferential, x_test_goalDifferential, y_train_goalDifferential, y_test_goalDifferential = train_test_split(x_goalDifferential, y_goalDifferential, test_size=0.2, random_state=RANDOM_STATE)
+  x_train_winner = x_winner
+  x_train_winnerB = x_winnerB
+  x_train_homeScore = x_homeScore
+  x_train_awayScore = x_awayScore
+  x_train_totalGoals = x_totalGoals
+  x_train_goalDifferential = x_goalDifferential
+
+  
+  TEST_DATA = load(f'test_data/test_data_v{TEST_DATA_FILE_VERSION}.joblib')
+  test_data = pd.DataFrame(TEST_DATA)
+  x_test_winner = test_data [X_INPUTS]
+  x_test_winnerB = test_data [X_INPUTS]
+  x_test_homeScore = test_data [X_INPUTS]
+  x_test_awayScore = test_data [X_INPUTS]
+  x_test_totalGoals = test_data [X_INPUTS]
+  x_test_goalDifferential = test_data [X_INPUTS]
+  y_test_winner = test_data [['winner']].values.ravel()
+  y_test_winnerB = test_data [['winnerB']].values.ravel()
+  y_test_homeScore = test_data [['homeScore']].values.ravel()
+  y_test_awayScore = test_data [['awayScore']].values.ravel()
+  y_test_totalGoals = test_data [['totalGoals']].values.ravel()
+  y_test_goalDifferential = test_data [['goalDifferential']].values.ravel()
+
+  # x_train_winner, x_test_winner, y_train_winner, y_test_winner = train_test_split(x_winner, y_winner, test_size=0.2, random_state=RANDOM_STATE)
+  # x_train_winnerB, x_test_winnerB, y_train_winnerB, y_test_winnerB = train_test_split(x_winnerB, y_winnerB, test_size=0.2, random_state=RANDOM_STATE)
+  # x_train_homeScore, x_test_homeScore, y_train_homeScore, y_test_homeScore = train_test_split(x_homeScore, y_homeScore, test_size=0.2, random_state=RANDOM_STATE)
+  # x_train_awayScore, x_test_awayScore, y_train_awayScore, y_test_awayScore = train_test_split(x_awayScore, y_awayScore, test_size=0.2, random_state=RANDOM_STATE)
+  # x_train_totalGoals, x_test_totalGoals, y_train_totalGoals, y_test_totalGoals = train_test_split(x_totalGoals, y_totalGoals, test_size=0.2, random_state=RANDOM_STATE)
+  # x_train_goalDifferential, x_test_goalDifferential, y_train_goalDifferential, y_test_goalDifferential = train_test_split(x_goalDifferential, y_goalDifferential, test_size=0.2, random_state=RANDOM_STATE)
   
   # clf = RandomForestClassifier(random_state=RANDOM_STATE)
   clf_winner = RandomForestClassifier(random_state=RANDOM_STATE)
@@ -141,11 +171,34 @@ if __name__ == '__main__':
   # client = MongoClient(db_url)
   client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
   db = client["hockey"]
-  if RE_PULL:
-    if USE_SEASONS:
-      if TEST_DATA:
-        seasons = [END_SEASON]
-      else:
+  if OVERRIDE:
+    SEASONS = [
+      # 20052006,
+      # 20062007,
+      # 20072008,
+      # 20082009,
+      # 20092010,
+      # 20102011,
+      # 20112012,
+      # 20122013,
+      # 20132014,
+      # 20142015,
+      # 20152016,
+      # 20162017,
+      # 20172018,
+      20182019,
+      20192020,
+      20202021,
+      20212022,
+      20222023,
+    ]
+    TRAINING_DATAS = [load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS]
+    TRAINING_DATA = np.concatenate(TRAINING_DATAS).tolist()
+    print('Seasons Loaded')
+    train(db, TRAINING_DATA)
+  else:
+    if RE_PULL:
+      if USE_SEASONS:
         seasons = list(db["dev_seasons"].find(
           {
             'seasonId': {
@@ -161,40 +214,35 @@ if __name__ == '__main__':
           for season in SKIP_SEASONS:
             seasons.remove(season)
           print(seasons)
-    else:
-      ids = latestIDs()
-      startID = ids['saved']['training']
-      endID = MAX_ID
-      games = list(db["dev_games"].find(
-        {'id':{'$gte':startID,'$lt':endID+1}},
-        # {'id':{'$lt':endID+1}},
-        {'id': 1, '_id': 0}
-      ))
-    
-    pool = Pool(processes=4)
-    if USE_SEASONS:
-      result = pool.map(season_training_data,seasons)
-    else:
-      result = pool.map(game_training_data,games)
-    if len(SKIP_SEASONS) > 0 and not TEST_DATA:
-      for skip_season in SKIP_SEASONS:
-        season_data = load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{skip_season}.joblib')
-        result.append(season_data)
-    result = np.concatenate(result).tolist()
-    pool.close()
-    if TEST_DATA:
-      dump(result,f'training_data/test_data_v{FILE_VERSION}.joblib')
-    else:
+      else:
+        ids = latestIDs()
+        startID = ids['saved']['training']
+        endID = MAX_ID
+        games = list(db["dev_games"].find(
+          {'id':{'$gte':startID,'$lt':endID+1}},
+          # {'id':{'$lt':endID+1}},
+          {'id': 1, '_id': 0}
+        ))
+      
+      pool = Pool(processes=4)
+      if USE_SEASONS:
+        result = pool.map(season_training_data,seasons)
+      else:
+        result = pool.map(game_training_data,games)
+      if len(SKIP_SEASONS) > 0:
+        for skip_season in SKIP_SEASONS:
+          season_data = load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{skip_season}.joblib')
+          result.append(season_data)
+      result = np.concatenate(result).tolist()
+      pool.close()
       dump(result,f'training_data/training_data_v{FILE_VERSION}.joblib')
       f = open('training_data/training_data_text.txt', 'w')
       f.write(json.dumps(result[len(result)-200:len(result)]))
-  else:
-    training_data_path = f'training_data/training_data_v{FILE_VERSION}.joblib'
-    print(training_data_path)
-    result = load(training_data_path)
-    f = open('training_data/training_data_text.txt', 'w')
-    f.write(json.dumps(result[len(result)-200:len(result)]))
-  print('Games Collected')
-  if not TEST_DATA:
+    else:
+      training_data_path = f'training_data/training_data_v{FILE_VERSION}.joblib'
+      print(training_data_path)
+      result = load(training_data_path)
+      f = open('training_data/training_data_text.txt', 'w')
+      f.write(json.dumps(result[len(result)-200:len(result)]))
+    print('Games Collected')
     train(db, result)
-    pass

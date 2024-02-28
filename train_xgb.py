@@ -33,7 +33,7 @@ SEASONS = [
   # 20142015,
   # 20152016,
   # 20162017,
-  20172018,
+  # 20172018,
   20182019,
   20192020,
   20202021,
@@ -56,8 +56,8 @@ TEST_DATA = load(f'test_data/test_data_v{TEST_DATA_FILE_VERSION}.joblib')
 
 OUTPUT = 'winnerB'
 
-TRIAL = False
-DRY_RUN = True
+TRIAL = True
+DRY_RUN = False
 
 NUM_BOOST_ROUND = 500
 N_TRIALS = 100
@@ -66,17 +66,17 @@ EARLY_STOPPING_ROUNDS = 10
 PARAMS = {
   # 'max_depth': 23,  # the maximum depth of each tree
   # 'eta': 0.18,  # the training step for each iteration
-  'max_depth': 28,  # the maximum depth of each tree
-  'eta': 0.32,  # the training step for each iteration
+  'max_depth': 8,  # the maximum depth of each tree
+  'eta': 0.08,  # the training step for each iteration
   'objective': 'binary:logistic',  # binary classification
   'eval_metric': 'logloss',  # evaluation metric
-  'sampling_method': 'gradient_based',  # 'uniform', 'gradient_based'
-  'subsample': 0.1,
+  # 'sampling_method': 'gradient_based',  # 'uniform', 'gradient_based'
+  # 'subsample': 0.1,
   # 'colsample_bytree': 1,
   # 'colsample_bylevel': 1,
   # 'colsample_bynode': 1,
-  'alpha': 0.00001,
-  'lambda': 1.1,
+  # 'alpha': 0.00001,
+  # 'lambda': 1.1,
   'device': 'cuda',
   'tree_method': 'hist',
 }
@@ -89,28 +89,30 @@ THRESHOLD = 0.5
 
 # f = open('records/xgboost_records.txt', 'a')
 
-def train(db,params,dtrain,dtest,trial=False,best_seasons=None):
+def train(db,params,dtrain,dtest,trial=False):
   if not trial:
     print('Inputs:', X_INPUTS)
     print('Output:', OUTPUT)
-    print('Best Seasons:', best_seasons)
     print('Params:', params)
-  
-  evallist = [(dtest, 'eval')]
-  evals_result = {}
-  bst = xgb.train(params, dtrain, EPOCHS, evals=[(dtest, 'test')], custom_metric=mcc_eval, evals_result=evals_result)
-  mcc = evals_result['test']['MCC']
-  max_mcc_index = mcc.index(max(mcc))+1
-  print('MCC:', sum(mcc)/len(mcc))
-  print('Max MCC:', max(mcc))
-  print('Max MCC Index:', max_mcc_index)
-  # evals_result = {}
-  # bst = xgb.train(params, dtrain, max_mcc_index, evals=[(dtest, 'test')], custom_metric=mcc_eval, evals_result=evals_result)
-  # mcc = evals_result['test']['MCC']
-  # max_mcc_index = mcc.index(max(mcc))+1
-  # print('MCC:', sum(mcc)/len(mcc))
-  # print('Max MCC:', max(mcc))
-  # print('Max MCC Index:', max_mcc_index)
+
+    # evallist = [(dtest, 'eval')]
+    # evals_result = {}
+    # bst = xgb.train(params, dtrain, EPOCHS, evals=[(dtest, 'test')], custom_metric=mcc_eval, evals_result=evals_result)
+    bst = xgb.train(params, dtrain, EPOCHS)
+    # mcc = evals_result['test']['MCC']
+    # max_mcc_index = mcc.index(max(mcc))+1
+    # print('MCC:', sum(mcc)/len(mcc))
+    # print('Max MCC:', max(mcc))
+    # print('Max MCC Index:', max_mcc_index)
+    # evals_result = {}
+    # bst = xgb.train(params, dtrain, max_mcc_index, evals=[(dtest, 'test')], custom_metric=mcc_eval, evals_result=evals_result)
+    # mcc = evals_result['test']['MCC']
+    # max_mcc_index = mcc.index(max(mcc))+1
+    # print('MCC:', sum(mcc)/len(mcc))
+    # print('Max MCC:', max(mcc))
+    # print('Max MCC Index:', max_mcc_index)
+  else:
+    bst = xgb.train(params, dtrain, EPOCHS)
 
   preds = bst.predict(dtest)
 
@@ -140,7 +142,7 @@ def train(db,params,dtrain,dtest,trial=False,best_seasons=None):
       'randomState': RANDOM_STATE,
       'startingSeason': START_SEASON,
       'finalSeason': END_SEASON,
-      'seasons': best_seasons,
+      'seasons': SEASONS,
       'model': 'XGBoost Classifier',
       'threshold': THRESHOLD,
       'params': PARAMS,
@@ -150,8 +152,9 @@ def train(db,params,dtrain,dtest,trial=False,best_seasons=None):
       },
     })
     if not DRY_RUN:
-      path_accuracy = ('%.2f%%' % (accuracy * 100.0)).replace('.','_')
-      save_path = f'models/nhl_ai_v{XGB_FILE_VERSION}_xgboost_{OUTPUT}{f"_{best_seasons}" if best_seasons else ""}_{path_accuracy}.joblib'
+      # path_accuracy = ('%.2f%%' % (accuracy * 100.0)).replace('.','_')
+      # save_path = f'models/nhl_ai_v{XGB_FILE_VERSION}_xgboost_{OUTPUT}_{path_accuracy}.joblib'
+      save_path = f'models/nhl_ai_v{XGB_FILE_VERSION}_xgboost_{OUTPUT}_1.joblib'
       dump(bst, save_path)
   return accuracy
 
@@ -218,6 +221,16 @@ if __name__ == '__main__':
   # y_train = data [[OUTPUT]].values.ravel()
   # dtrain = xgb.DMatrix(x_train, label=y_train)
 
+  TRAINING_DATAS = [load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS]
+  TRAINING_DATA = np.concatenate(TRAINING_DATAS).tolist()
+  data = pd.DataFrame(TRAINING_DATA)
+  # data = data.sort_values(by='id')
+  data = data.sample(frac=1, random_state=RANDOM_STATE)
+  data.reset_index(drop=True, inplace=True)
+  x_train = data [X_INPUTS]
+  y_train = data [[OUTPUT]].values.ravel()
+  dtrain = xgb.DMatrix(x_train, label=y_train)
+
   test_data = pd.DataFrame(TEST_DATA)
   test_data = test_data.sort_values(by='id')
   x_test = test_data [X_INPUTS]
@@ -239,40 +252,38 @@ if __name__ == '__main__':
       'eta': 0,
       'accuracy': 0,
       'training_data': '',
-      'seasons': print_seasons[0],
+      # 'seasons': print_seasons[0],
     }
     # for training_data in dtrains:
-    for seasons in ALL_SEASONS:
-      print(seasons)
-      training_data = np.concatenate([TRAINING_DATA_DICT[season] for season in seasons]).tolist()
-      data = pd.DataFrame(training_data)
-      data = data.sort_values(by='id')
-      x_train = data [X_INPUTS]
-      y_train = data [[OUTPUT]].values.ravel()
-      dtrain = xgb.DMatrix(x_train, label=y_train)
-      p_seasons = ','.join([str(season)[-2:] for season in seasons])
-      for max_depth in range(10,31):
-        for eta in np.arange(0.01, 0.36, 0.01):
-          params = {
-            'max_depth': max_depth,  # the maximum depth of each tree
-            'eta': eta,  # the training step for each iteration
-            'objective': 'binary:logistic',  # binary classification
-            'eval_metric': 'logloss',  # evaluation metric
-            'device': 'cuda',
-            'tree_method': 'hist',
-          }
-          accuracy = train(db,params,dtrain,dtest,trial=True)
-          if accuracy > best['accuracy']:
-            best['max_depth'] = max_depth
-            best['eta'] = eta
-            best['accuracy'] = accuracy
-            best['training_data'] = training_data
-            best['seasons'] = p_seasons
-          p_eta = f'{round(eta,2)}'.ljust(4)
-          p_best_eta = f'{round(best["eta"],2)}'.ljust(4)
-          p_accuracy = f'{OUTPUT} Accuracy:{(accuracy*100):.2f}%|eta:{p_eta}|max_depth:{max_depth}|seasons:{p_seasons}'
-          p_best = f'Best: Accuracy:{(best["accuracy"]*100):.2f}%|eta:{p_best_eta}|max_depth:{best["max_depth"]}|seasons:{best["seasons"]}'
-          print(f'{p_accuracy}||{p_best}')
+    # for seasons in ALL_SEASONS:
+    #   print(seasons)
+    #   training_data = np.concatenate([TRAINING_DATA_DICT[season] for season in seasons]).tolist()
+    #   data = pd.DataFrame(training_data)
+    #   data = data.sort_values(by='id')
+    #   x_train = data [X_INPUTS]
+    #   y_train = data [[OUTPUT]].values.ravel()
+    #   dtrain = xgb.DMatrix(x_train, label=y_train)
+    #   p_seasons = ','.join([str(season)[-2:] for season in seasons])
+    for max_depth in range(5,101):
+      for eta in np.arange(0.01, 1.0, 0.01):
+        params = {
+          'max_depth': max_depth,  # the maximum depth of each tree
+          'eta': eta,  # the training step for each iteration
+          'objective': 'binary:logistic',  # binary classification
+          'eval_metric': 'logloss',  # evaluation metric
+          'device': 'cuda',
+          'tree_method': 'hist',
+        }
+        accuracy = train(db,params,dtrain,dtest,trial=True)
+        if accuracy > best['accuracy']:
+          best['max_depth'] = max_depth
+          best['eta'] = eta
+          best['accuracy'] = accuracy
+        p_eta = f'{round(eta,2)}'.ljust(4)
+        p_best_eta = f'{round(best["eta"],2)}'.ljust(4)
+        p_accuracy = f'{OUTPUT} Accuracy:{(accuracy*100):.2f}%|eta:{p_eta}|max_depth:{max_depth}'
+        p_best = f'Best: Accuracy:{(best["accuracy"]*100):.2f}%|eta:{p_best_eta}|max_depth:{best["max_depth"]}'
+        print(f'{p_accuracy}||{p_best}')
     best_params = {
       'max_depth': best['max_depth'],
       'eta': best['eta'],
@@ -281,7 +292,7 @@ if __name__ == '__main__':
       'device': params['device'],
       'tree_method': params['tree_method'],
     }
-    train(db,best_params,best['training_data'],dtest,trial=False,best_seasons=best['seasons'])
+    train(db,best_params,dtrain,dtest,trial=False)
 
 
     # # Create a study object and optimize the objective function
@@ -296,8 +307,8 @@ if __name__ == '__main__':
     TRAINING_DATAS = [load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS]
     TRAINING_DATA = np.concatenate(TRAINING_DATAS).tolist()
     data = pd.DataFrame(TRAINING_DATA)
-    # data = data.sort_values(by='id')
-    data = data.sample(frac=1, random_state=RANDOM_STATE)
+    data = data.sort_values(by='id')
+    # data = data.sample(frac=1, random_state=RANDOM_STATE)
     data.reset_index(drop=True, inplace=True)
     x_train = data [X_INPUTS]
     y_train = data [[OUTPUT]].values.ravel()
