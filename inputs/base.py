@@ -29,6 +29,8 @@ def base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date):
     'easternOffset': parse_utc_offset(safe_chain(game,'easternUTCOffset')),
     'venueOffset':  parse_utc_offset(safe_chain(game,'venueUTCOffset')),
     'date': date,
+    'awayMoneyLine': safe_chain(game,'odds',awayId,'moneyline', default=0),
+    'homeMoneyLine': safe_chain(game,'odds',homeId,'moneyline', default=0),
     'awayHeadCoach': n2n(safe_chain(gi,'awayTeam','headCoach','default')),
     'awayHeadCoachT': str(safe_chain(gi,'awayTeam','headCoach','default',default=0)),
     'homeHeadCoach': n2n(safe_chain(gi,'homeTeam','headCoach','default')),

@@ -70,8 +70,8 @@ def errorAnalysis(model,validation_loader,device):
       all_labels.extend(labels.cpu().numpy())
 
   # Analyze misclassifications
-  misclassified = [(pred, label) for pred, label in zip(all_preds, all_labels) if pred != label]
-  print(misclassified)
+  # misclassified = [(pred, label) for pred, label in zip(all_preds, all_labels) if pred != label]
+  # print(misclassified)
 
   # Error analysis
   # Example: Confusion Matrix

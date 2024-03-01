@@ -6,6 +6,7 @@ from pymongo import MongoClient
 import pandas as pd
 import numpy as np
 import time
+import json
 from datetime import datetime
 from util.helpers import parse_utc_offset, parse_start_time
 
@@ -43,6 +44,8 @@ def filter_lookup_matchup(inLookup, homeId, awayId, startingGameId, include_star
 client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
 db = client["hockey"]
 Boxscores = db['dev_boxscores']
+Games = db['dev_games']
+Teams = db['dev_teams']
 
 def get_season_ids(seasonId):
   games = list(Boxscores.find({'season': seasonId}))
@@ -503,30 +506,126 @@ def update_boxscores(seasonId):
     print(f'{seasonId} Updated game: {game["id"]} | {i+1}/{len(games)}')
   print(f'{seasonId} DONE')
 
+def getTeamIds(seasonId):
+  boxscores = list(Boxscores.find({'season': seasonId}))
+  savedTeams = [team['id'] for team in list(Teams.find({},{'id': 1,'_id': 0}))]
+  teamIds = savedTeams
+  teams = []
+  for boxscore in boxscores:
+    awayTeamId = boxscore['awayTeam']['id']
+    homeTeamId = boxscore['homeTeam']['id']
+    if awayTeamId not in teamIds or homeTeamId not in teamIds:
+      game = Games.find_one({'id': boxscore['id']})
+      if awayTeamId not in teamIds:
+        awayTeam = {
+          'id': awayTeamId,
+          'name': boxscore['awayTeam']['name']['default'],
+          'placeName':safe_chain(game,'awayTeam','placeName','default'),
+          'abbrev': boxscore['awayTeam']['abbrev'],
+        }
+        teamIds.append(awayTeamId)
+        teams.append(awayTeam)
+      if homeTeamId not in teamIds:
+        homeTeam = {
+          'id': homeTeamId,
+          'name': boxscore['homeTeam']['name']['default'],
+          'placeName':safe_chain(game,'homeTeam','placeName','default'),
+          'abbrev': boxscore['homeTeam']['abbrev'],
+        }
+        teamIds.append(homeTeamId)
+        teams.append(homeTeam)
+  if len(teams) > 0:
+    Teams.insert_many(teams)
+  return teams
 
-SEASONS = [
-  # 20052006,
-  # 20062007,
-  # 20072008,
-  # 20082009,
-  # 20092010,
-  # 20102011,
-  # 20112012,
-  # 20122013,
-  # 20132014,
-  # 20142015,
-  # 20152016,
-  # 20162017,
-  # 20172018,
-  # 20182019,
-  # 20192020,
-  # 20202021,
-  # 20212022,
-  # 20222023,
-  20232024,
-]
-for season in SEASONS:
-  print(f'Updating season: {season}')
-  update_boxscores(season)
+def format_json():
+  with open('C:/Users/syncc/code/Hockey API/hockey_api/odds.json', 'r') as f:
+    odds = json.load(f)
+  for odd in odds:
+    odd['Open'] = int(odd['Open'])
+    odd['Close'] = int(odd['Close'])
+    odd['PuckLine'] = float(odd['PuckLine'])
+    odd['PuckLineOdds'] = int(odd['PuckLineOdds'])
+    odd['OpenOU'] = float(odd['OpenOU'])
+    odd['OpenOUOdds'] = int(odd['OpenOUOdds'])
+    odd['CloseOU'] = float(odd['CloseOU'])
+    odd['CloseOUOdds'] = int(odd['CloseOUOdds'])
+  print(odds[0])
+  with open('C:/Users/syncc/code/Hockey API/hockey_api/odds.json', 'w') as f:
+    json.dump(odds, f, indent=2)
 
-# print(time_between_games(2022030326, 20222023, 54, 25, games_back=5))
+def update_odds():
+  odds_json = 'C:/Users/syncc/code/Hockey API/hockey_api/odds.json'
+  with open(odds_json, 'r') as f:
+    odds = json.load(f)
+  for i, odd in enumerate(odds):
+    teamId = Teams.find_one({'$or':[{'name':odd['Team']},{'placeName':odd['Team']}]})
+    if teamId:
+      teamId = teamId['id']
+    else:
+      print(f'{odd["Season"]} SKIPPED game: {odd["Date"]}-{odd["Rot"]} | {i+1}/{len(odds)}')
+      continue
+    
+    season = odd['Season']
+    gameDate = odd['Date']
+    homeAway = 'away' if odd['VH'] == 'V' else 'home'
+    gameMonth = gameDate[:-2].rjust(2,"0")
+    gameDay = gameDate[-2:]
+    gameDate1 = f"{str(season)[:4]}-{gameMonth}-{gameDay}"
+    gameDate2 = f"{str(season)[4:]}-{gameMonth}-{gameDay}"
+    if odd['VH'] == 'N':
+      query = {
+        'season': season,
+        '$or': [{'gameDate': gameDate1}, {'gameDate': gameDate2}],
+        '$or': [{'homeTeam.id': teamId}, {'awayTeam.id': teamId}],
+      }
+    else:
+      query = {
+        'season': season,
+        '$or': [{'gameDate': gameDate1}, {'gameDate': gameDate2}],
+        f'{homeAway}Team.id': teamId,
+      }
+    boxscore = Boxscores.find_one(query)
+    if boxscore:
+      odds = {
+        'spread': odd['PuckLine'],
+        'spreadOdds': odd['PuckLineOdds'],
+        'moneyline': odd['Open'],
+      }
+      Boxscores.update_one({'id': boxscore['id']}, {'$set': {f'pregame.odds.{teamId}': odds}})
+      print(f'{season} Updated game: {boxscore["id"]} | {i+1}/{len(odds)}')
+    else:
+      print(f'{season} SKIPPED game: {odd["Date"]}-{odd["Rot"]} | {i+1}/{len(odds)}')
+  print(f'DONE')
+
+if __name__ == '__main__':
+  # SEASONS = [
+  #   # 20052006,
+  #   # 20062007,
+  #   20072008,
+  #   20082009,
+  #   20092010,
+  #   20102011,
+  #   20112012,
+  #   20122013,
+  #   20132014,
+  #   20142015,
+  #   20152016,
+  #   20162017,
+  #   20172018,
+  #   20182019,
+  #   20192020,
+  #   20202021,
+  #   20212022,
+  #   20222023,
+  #   # 20232024,
+  # ]
+  # for season in SEASONS:
+  #   # print(f'Updating season: {season}')
+  #   # update_boxscores(season)
+  #   pass
+
+  update_odds()
+  # format_json()
+
+  # print(time_between_games(2022030326, 20222023, 54, 25, games_back=5))

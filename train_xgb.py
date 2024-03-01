@@ -12,6 +12,7 @@ import time
 from sklearn.metrics import accuracy_score
 import xgboost as xgb
 from util.helpers import all_combinations
+from training_input import training_input, test_input
 from util.xgb_helpers import mcc_eval
 from itertools import combinations
 import json
@@ -33,17 +34,17 @@ SEASONS = [
   # 20142015,
   # 20152016,
   # 20162017,
-  # 20172018,
+  20172018,
   20182019,
   20192020,
   20202021,
   20212022,
-  20222023,
+  # 20222023,
 ]
-ALL_SEASONS = all_combinations(SEASONS)
-print_seasons = [','.join([str(season)[-2:] for season in seasons]) for seasons in ALL_SEASONS]
-TRAINING_DATA_DICT = {season: load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS}
-print('Seasons Loaded')
+# ALL_SEASONS = all_combinations(SEASONS)
+# print_seasons = [','.join([str(season)[-2:] for season in seasons]) for seasons in ALL_SEASONS]
+# TRAINING_DATA_DICT = {season: load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS}
+# print('Seasons Loaded')
 # TRAINING_DATAS = [load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS]
 # TRAINING_DATA = np.concatenate(TRAINING_DATAS).tolist()
 # ALL_TRAINING_DATAS = [[load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in seasons] for seasons in ALL_SEASONS]
@@ -51,7 +52,7 @@ print('Seasons Loaded')
 # print('Seasons Compiled')
 # ALL_TRAINING_DATA = [np.concatenate(datas).tolist() for datas in ALL_TRAINING_DATAS]
 # TRAINING_DATA = load(f'training_data/training_data_v{FILE_VERSION}.joblib')
-TEST_DATA = load(f'test_data/test_data_v{TEST_DATA_FILE_VERSION}.joblib')
+# TEST_DATA = load(f'test_data/test_data_v{TEST_DATA_FILE_VERSION}.joblib')
 
 
 OUTPUT = 'winnerB'
@@ -221,8 +222,11 @@ if __name__ == '__main__':
   # y_train = data [[OUTPUT]].values.ravel()
   # dtrain = xgb.DMatrix(x_train, label=y_train)
 
-  TRAINING_DATAS = [load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS]
-  TRAINING_DATA = np.concatenate(TRAINING_DATAS).tolist()
+
+
+  # TRAINING_DATAS = [load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS]
+  # TRAINING_DATA = np.concatenate(TRAINING_DATAS).tolist()
+  TRAINING_DATA = training_input(SEASONS)
   data = pd.DataFrame(TRAINING_DATA)
   # data = data.sort_values(by='id')
   data = data.sample(frac=1, random_state=RANDOM_STATE)
@@ -231,6 +235,7 @@ if __name__ == '__main__':
   y_train = data [[OUTPUT]].values.ravel()
   dtrain = xgb.DMatrix(x_train, label=y_train)
 
+  TEST_DATA = test_input(X_INPUTS,[OUTPUT],season=20222023,no_format=True)
   test_data = pd.DataFrame(TEST_DATA)
   test_data = test_data.sort_values(by='id')
   x_test = test_data [X_INPUTS]
@@ -304,8 +309,8 @@ if __name__ == '__main__':
     # print(f'Accuracy: {trial.value}')
     # print("Best hyperparameters: {}".format(trial.params))
   else:
-    TRAINING_DATAS = [load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS]
-    TRAINING_DATA = np.concatenate(TRAINING_DATAS).tolist()
+    # TRAINING_DATAS = [load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib') for season in SEASONS]
+    # TRAINING_DATA = np.concatenate(TRAINING_DATAS).tolist()
     data = pd.DataFrame(TRAINING_DATA)
     data = data.sort_values(by='id')
     # data = data.sample(frac=1, random_state=RANDOM_STATE)
