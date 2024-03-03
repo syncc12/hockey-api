@@ -690,3 +690,11 @@ def parse_start_time(inStartTime):
     return start_date, start_time
   else:
     return -1, -1
+
+def team_lookup(db):
+  Teams = db['dev_teams']
+  teams = list(Teams.find({},{'_id': 0}))
+  team_lookup = {}
+  for team in teams:
+    team_lookup[team['id']] = team
+  return team_lookup

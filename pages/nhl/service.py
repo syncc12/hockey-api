@@ -18,7 +18,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 # from util.training_data import save_training_data
 from util.helpers import false_chain, latestIDs, adjusted_winner, test_recommended_wagers, safe_chain
 from inputs.inputs import master_inputs
-from pages.nhl.nhl_helpers import ai, ai_return_dict, ai2, ai_receipt
+from pages.nhl.nhl_helpers import ai, ai_return_dict, ai2, ai_receipt, ai_teams
 from constants.constants import VERSION, FILE_VERSION
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from util.models import MODELS, TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP, winnersAgree
@@ -678,3 +678,27 @@ def predict_day_receipt(db,date,day,gamePick,projectedLineup,models):
 
 def analytics(db,date,day,gamePick,projectedLineup,models):
   pass
+
+def predict_team_day(db, date, day, gamePick, projectedLineup, wModels, lModels):
+  res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+  game_data = res['gameWeek'][day-1]
+  if gamePick > 0:
+    game_data['games'] = [game_data['games'][gamePick-1]]
+  projectedLineups = [projectedLineup]*len(game_data['games'])
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels)
+
+def predict_team_day_simple(db, date, day, gamePick, projectedLineup, wModels, lModels):
+  res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+  game_data = res['gameWeek'][day-1]
+  if gamePick > 0:
+    game_data['games'] = [game_data['games'][gamePick-1]]
+  projectedLineups = [projectedLineup]*len(game_data['games'])
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, simple=True)
+
+def predict_team_day_receipt(db, date, day, gamePick, projectedLineup, wModels, lModels):
+  res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+  game_data = res['gameWeek'][day-1]
+  if gamePick > 0:
+    game_data['games'] = [game_data['games'][gamePick-1]]
+  projectedLineups = [projectedLineup]*len(game_data['games'])
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, receipt=True)

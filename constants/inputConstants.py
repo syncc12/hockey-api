@@ -97,6 +97,31 @@ X_V6_INPUTS = [
 Y_V6_OUTPUTS = ['homeScore','awayScore','winner','totalGoals','goalDifferential']
 
 BASE_INPUTS = [
+  # 'id',
+  # 'season',
+  # 'gameType',
+  # 'venue',
+  # 'team',
+  # 'opponent',
+  # 'date',
+  # 'opponentHeadCoach',
+  # 'headCoach',
+  # # 'opponentMoneyLine',
+  # # 'MoneyLine',
+  # 'opponentForwardAverage',
+  # 'opponentDefenseAverage',
+  # 'opponentGoalieAverage',
+  # 'forwardAverage',
+  # 'defenseAverage',
+  # 'goalieAverage',
+  # 'opponentForwardAverageAge',
+  # 'opponentDefenseAverageAge',
+  # 'opponentGoalieAverageAge',
+  # 'forwardAverageAge',
+  # 'defenseAverageAge',
+  # 'goalieAverageAge',
+
+  'id',
   'season',
   'gameType',
   'venue',
@@ -262,6 +287,30 @@ P_BASE_INPUTS = [
   'defensePoolAverage',
   'goaliePoolAverage',
 ]
+T_BASE_INPUTS = [
+  'season',
+  'gameType',
+  'venue',
+  'team',
+  'opponent',
+  'date',
+  'opponentHeadCoach',
+  'headCoach',
+  # 'opponentMoneyLine',
+  # 'MoneyLine',
+  'opponentForwardAverage',
+  'opponentDefenseAverage',
+  'opponentGoalieAverage',
+  'forwardAverage',
+  'defenseAverage',
+  'goalieAverage',
+  'opponentForwardAverageAge',
+  'opponentDefenseAverageAge',
+  'opponentGoalieAverageAge',
+  'forwardAverageAge',
+  'defenseAverageAge',
+  'goalieAverageAge',
+]
 ANN_BASE_INPUTS = [
   'id','season','gameType','venueT','neutralSite','homeTeam','awayTeam','startTime',
   'date','awayHeadCoachT','homeHeadCoachT','ref1T','ref2T','linesman1T','linesman2T'
@@ -295,6 +344,7 @@ FORWARD_INPUTS_ZIP = [i for i in range(0,13)]
 DEFENSE_INPUTS_ZIP = [i for i in range(0,7)]
 
 X_INPUTS = BASE_INPUTS
+X_INPUTS_T = T_BASE_INPUTS
 X_INPUTS_P = P_BASE_INPUTS
 X_INPUTS_ANN = ANN_BASE_INPUTS
 Y_OUTPUTS = [

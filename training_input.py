@@ -36,9 +36,14 @@ def training_input(seasons, use_default_seasons=False):
 
 def test_input(inputs,outputs,season=False,no_format=False):
   if season:
-    test_data = load(f'training_data//v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib')
-    if no_format:
-      return test_data
+    if isinstance(season, list):
+      test_data = np.concatenate([load(f'test_data/test_data_v{TEST_DATA_FILE_VERSION}.joblib') if s == 20232024 else load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{s}.joblib') for s in season]).tolist()
+      if no_format:
+        return test_data
+    else:
+      test_data = load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{season}.joblib')
+      if no_format:
+        return test_data
   else:
     test_data = load(f'test_data/test_data_v{TEST_DATA_FILE_VERSION}.joblib')
     if no_format:

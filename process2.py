@@ -14,7 +14,7 @@ from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer,
 from inputs.inputs import master_inputs
 from util.query import get_last_game_team_stats
 from util.models import MODEL_NAMES
-from constants.inputConstants import X_INPUTS, Y_OUTPUTS
+from constants.inputConstants import X_INPUTS, Y_OUTPUTS, X_INPUTS_T
 
 REPLACE_VALUE = -1
 
@@ -275,7 +275,7 @@ def nhl_data(db,game,useProjectedLineup,message='',test=False):
 # print(data)
     
 
-def nhl_data2(db,games,useProjectedLineups=[],messages=[''],test=False):
+def nhl_data2(db,games,useProjectedLineups=[],messages=[''],test=False,no_df=False):
   input_data = []
   game_data = []
   extra_data = []
@@ -345,7 +345,10 @@ def nhl_data2(db,games,useProjectedLineups=[],messages=[''],test=False):
       'isProjectedLineup': inputs['options']['projectedLineup'],
       'message': message,
     })
-  data = pd.DataFrame(input_data)
+  if no_df:
+    data = input_data
+  else:
+    data = pd.DataFrame(input_data)
   return data, game_data, extra_data
 
 def nhl_test(db,boxscore,useProjectedLineup):

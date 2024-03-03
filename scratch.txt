@@ -1,38 +1,131 @@
-[
-  {"id": 25, "name": "Stars", "placeName": "Dallas", "abbrev": "DAL"},
-  {"id": 54, "name": "Golden Knights", "placeName": "Vegas", "abbrev": "VGK"},
-  {"id": 13, "name": "Panthers", "placeName": "Florida", "abbrev": "FLA"},
-  {"id": 16, "name": "Blackhawks", "placeName": "Chicago", "abbrev": "CHI"},
-  {"id": 2, "name": "Islanders", "placeName": "New York", "abbrev": "NYI"},
-  {"id": 12, "name": "Hurricanes", "placeName": "Carolina", "abbrev": "CAR"},
-  {"id": 10, "name": "Maple Leafs", "placeName": "Toronto", "abbrev": "TOR"},
-  {"id": 4, "name": "Flyers", "placeName": "Philadelphia", "abbrev": "PHI"},
-  {"id": 30, "name": "Wild", "placeName": "Minnesota", "abbrev": "MIN"},
-  {"id": 28, "name": "Sharks", "placeName": "San Jose", "abbrev": "SJS"},
-  {"id": 23, "name": "Canucks", "placeName": "Vancouver", "abbrev": "VAN"},
-  {"id": 22, "name": "Oilers", "placeName": "Edmonton", "abbrev": "EDM"},
-  {"id": 52, "name": "Jets", "placeName": "Winnipeg", "abbrev": "WPG"},
-  {"id": 55, "name": "Kraken", "placeName": "Seattle", "abbrev": "SEA"},
-  {"id": 6, "name": "Bruins", "placeName": "Boston", "abbrev": "BOS"},
-  {"id": 1, "name": "Devils", "placeName": "New Jersey", "abbrev": "NJD"},
-  {"id": 21, "name": "Avalanche", "placeName": "Colorado", "abbrev": "COL"},
-  {"id": 17, "name": "Red Wings", "placeName": "Detroit", "abbrev": "DET"},
-  {"id": 18, "name": "Predators", "placeName": "Nashville", "abbrev": "NSH"},
-  {"id": 19, "name": "Blues", "placeName": "St. Louis", "abbrev": "STL"},
-  {"id": 5, "name": "Penguins", "placeName": "Pittsburgh", "abbrev": "PIT"},
-  {"id": 3, "name": "Rangers", "placeName": "New York", "abbrev": "NYR"},
-  {"id": 26, "name": "Kings", "placeName": "Los Angeles", "abbrev": "LAK"},
-  {"id": 15, "name": "Capitals", "placeName": "Washington", "abbrev": "WSH"},
-  {"id": 9, "name": "Senators", "placeName": "Ottawa", "abbrev": "OTT"},
-  {"id": 8, "name": "Canadiens", "placeName": "Montréal", "abbrev": "MTL"},
-  {"id": 20, "name": "Flames", "placeName": "Calgary", "abbrev": "CGY"},
-  {"id": 24, "name": "Ducks", "placeName": "Anaheim", "abbrev": "ANA"},
-  {"id": 53, "name": "Coyotes", "placeName": "Arizona", "abbrev": "ARI"},
-  {"id": 14, "name": "Lightning", "placeName": "Tampa Bay", "abbrev": "TBL"},
-  {"id": 29, "name": "Blue Jackets", "placeName": "Columbus", "abbrev": "CBJ"},
-  {"id": 89, "name": "Central", "placeName": "Central", "abbrev": "CEN"},
-  {"id": 87, "name": "Atlantic", "placeName": "Atlantic", "abbrev": "ATL"},
-  {"id": 90, "name": "Pacific", "placeName": "Pacific", "abbrev": "PAC"},
-  {"id": 88, "name": "Metropolitan", "placeName": "Metropolitan", "abbrev": "MET"},
-  {"id": 7, "name": "Sabres", "placeName": "Buffalo", "abbrev": "BUF"}
-]
+NJD Win Binary Accuracy: 53.45%
+NJD Accuracy:            50.00%
+NYI Win Binary Accuracy: 46.55%
+NYI Accuracy:            55.17%
+NYR Win Binary Accuracy: 44.07%
+NYR Accuracy:            54.24%
+PHI Win Binary Accuracy: 50.00%
+PHI Accuracy:            51.67%
+PIT Win Binary Accuracy: 41.82%
+PIT Accuracy:            47.27%
+BOS Win Binary Accuracy: 56.67%
+BOS Accuracy:            56.67%
+BUF Win Binary Accuracy: 52.54%
+BUF Accuracy:            52.54%
+MTL Win Binary Accuracy: 52.54%
+MTL Accuracy:            52.54%
+OTT Win Binary Accuracy: 50.88%
+OTT Accuracy:            52.63%
+TOR Win Binary Accuracy: 60.34%
+TOR Accuracy:            56.90%
+CAR Win Binary Accuracy: 42.37%
+CAR Accuracy:            49.15%
+FLA Win Binary Accuracy: 70.69%
+FLA Accuracy:            60.34%
+TBL Win Binary Accuracy: 49.18%
+TBL Accuracy:            49.18%
+WSH Win Binary Accuracy: 53.45%
+WSH Accuracy:            55.17%
+CHI Win Binary Accuracy: 69.49%
+CHI Accuracy:            71.19%
+DET Win Binary Accuracy: 47.46%
+DET Accuracy:            44.07%
+NSH Win Binary Accuracy: 43.33%
+NSH Accuracy:            55.00%
+STL Win Binary Accuracy: 46.55%
+STL Accuracy:            46.55%
+CGY Win Binary Accuracy: 46.55%
+CGY Accuracy:            53.45%
+COL Win Binary Accuracy: 54.24%
+COL Accuracy:            49.15%
+EDM Win Binary Accuracy: 60.71%
+EDM Accuracy:            57.14%
+VAN Win Binary Accuracy: 53.33%
+VAN Accuracy:            43.33%
+ANA Win Binary Accuracy: 65.52%
+ANA Accuracy:            65.52%
+DAL Win Binary Accuracy: 55.00%
+DAL Accuracy:            50.00%
+LAK Win Binary Accuracy: 50.88%
+LAK Accuracy:            56.14%
+SJS Win Binary Accuracy: 73.21%
+SJS Accuracy:            73.21%
+CBJ Win Binary Accuracy: 68.42%
+CBJ Accuracy:            66.67%
+MIN Win Binary Accuracy: 54.24%
+MIN Accuracy:            54.24%
+WPG Win Binary Accuracy: 54.39%
+WPG Accuracy:            47.37%
+ARI Win Binary Accuracy: 60.34%
+ARI Accuracy:            58.62%
+VGK Win Binary Accuracy: 44.83%
+VGK Accuracy:            58.62%
+SEA Win Binary Accuracy: 58.62%
+SEA Accuracy:            53.45%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SEA Loss Binary Accuracy: 58.62%
+VGK Loss Binary Accuracy: 50.00%
+ARI Loss Binary Accuracy: 60.34%
+WPG Loss Binary Accuracy: 57.89%
+CBJ Loss Binary Accuracy: 68.42%
+SJS Loss Binary Accuracy: 71.43%
+LAK Loss Binary Accuracy: 50.88%
+DAL Loss Binary Accuracy: 55.00%
+ANA Loss Binary Accuracy: 65.52%
+VAN Loss Binary Accuracy: 58.33%
+EDM Loss Binary Accuracy: 60.71%
+COL Loss Binary Accuracy: 54.24%
+CGY Loss Binary Accuracy: 48.28%
+STL Loss Binary Accuracy: 48.28%
+NSH Loss Binary Accuracy: 45.00%
+DET Loss Binary Accuracy: 49.15%
+CHI Loss Binary Accuracy: 67.80%
+WSH Loss Binary Accuracy: 53.45%
+TBL Loss Binary Accuracy: 44.26%
+FLA Loss Binary Accuracy: 70.69%
+CAR Loss Binary Accuracy: 40.68%
+TOR Loss Binary Accuracy: 60.34%
+OTT Loss Binary Accuracy: 50.88%
+MTL Loss Binary Accuracy: 54.24%
+BUF Loss Binary Accuracy: 52.54%
+BOS Loss Binary Accuracy: 56.67%
+PIT Loss Binary Accuracy: 43.64%
+PHI Loss Binary Accuracy: 50.00%
+NYR Loss Binary Accuracy: 54.24%
+NYI Loss Binary Accuracy: 44.83%
+NJD Loss Binary Accuracy: 55.17%

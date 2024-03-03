@@ -18,10 +18,11 @@ import boto3
 import io
 from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE, MODEL_BATCH_PREDICT, MODEL_BATCH_CONFIDENCE, MODEL_PREDICT_CONFIDENCE_WINNER_B
+from util.team_models import PREDICT_H2H
 from util.returns import ai_return_dict_projectedLineup, ai_return_dict, ai_return_dict2
 from train_torch import predict_model
 import xgboost as xgb
-from constants.inputConstants import X_INPUTS
+from constants.inputConstants import X_INPUTS_T
 
 def ai(db, game_data, useProjectedLineup, models):
   # data = nhl_ai(game_data)
@@ -77,3 +78,38 @@ def ai_receipt(db, games, projectedLineups, models):
   for i in range(len(predictions)):
     receipt.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {confidences[i]}%')
   return receipt
+
+def ai_teams(db, games, projectedLineups, wModels, lModels, simple=False, receipt=False):
+  all_games = []
+  data, game_data, extra_data = nhl_data2(db, games, projectedLineups, no_df=True)
+  predictions,confidences,away_predictions,home_predictions,away_probabilities,home_probabilities,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probabilities_away,l_probabilities_away,w_probabilities_home,l_probabilities_home = PREDICT_H2H(data, wModels, lModels)
+  if simple:
+    for i, prediction in enumerate(predictions):
+      awayTeam = game_data[i]["away_team"]["name"]
+      homeTeam = game_data[i]["home_team"]["name"]
+      winner = homeTeam if prediction == 0 else awayTeam
+      confidence = confidences[i]
+      all_games.append({
+        'awayTeam': awayTeam,
+        'homeTeam': homeTeam,
+        'winningTeamB': f"{winner} - {(confidence*100):.2f}%",
+        'crosscheck': {
+          'awayWin': f"{w_predictions_away[i]} - {(w_probabilities_away[i]*100):.2f}%",
+          'awayLoss': f"{l_predictions_away[i]} - {(l_probabilities_away[i]*100):.2f}%",
+          'homeWin': f"{w_predictions_home[i]} - {(w_probabilities_home[i]*100):.2f}%",
+          'homeLoss': f"{l_predictions_home[i]} - {(l_probabilities_home[i]*100):.2f}%",
+        },
+        # 'message': extra_data['message'],
+        # 'id': game_data['game_id'],
+        # 'live': simple_live_data,
+      })
+    return all_games
+  elif receipt:
+    for i in range(len(predictions)):
+      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {confidences[i]}%')
+    return all_games
+  else:
+    return {
+      'predictions':predictions,
+      'confidences':confidences,
+    }

@@ -8,10 +8,11 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 from flask import Flask, request, jsonify, Response
 from joblib import load
 from pymongo import MongoClient
-from pages.nhl.service import debug, test_model, collect_boxscores, predict, predict_day, predict_day_simple, predict_week, get_day_ids, date_predict, now, game_date, metadata, save_boxscores, clean_boxscores, test_model_simple, predict_day_debug, predict_day_receipt, analytics
+from pages.nhl.service import debug, test_model, collect_boxscores, predict, predict_day, predict_day_simple, predict_week, get_day_ids, date_predict, now, game_date, metadata, save_boxscores, clean_boxscores, test_model_simple, predict_day_debug, predict_day_receipt, analytics, predict_team_day, predict_team_day_simple, predict_team_day_receipt
 from constants.constants import FILE_VERSION
 from util.helpers import recommended_wagers
 from util.models import MODELS
+from util.team_models import W_MODELS, L_MODELS
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -21,6 +22,8 @@ db = client['hockey']
 CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
 
 models = MODELS
+wModels = W_MODELS
+lModels = L_MODELS
 
 app = Flask(__name__)
 
@@ -97,13 +100,29 @@ def nhl_predict_day_receipt():
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   return predict_day_receipt(db, date, day, game, projectedLineup, models)
 
-@app.route('/nhl/day/debug', methods=['GET'])
-def nhl_predict_day_debug():
+@app.route('/nhl/team/day', methods=['GET'])
+def nhl_predict_team_day():
   date = request.args.get('date', default='now', type=str)
   day = request.args.get('day', default=1, type=int)
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
-  return predict_day_debug(db, date, day, game, projectedLineup, models)
+  return predict_team_day(db, date, day, game, projectedLineup, wModels, lModels)
+
+@app.route('/nhl/team/day/simple', methods=['GET'])
+def nhl_predict_team_day_simple():
+  date = request.args.get('date', default='now', type=str)
+  day = request.args.get('day', default=1, type=int)
+  game = request.args.get('game', default=-1, type=int)
+  projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
+  return predict_team_day_simple(db, date, day, game, projectedLineup, wModels, lModels)
+
+@app.route('/nhl/team/day/receipt', methods=['GET'])
+def nhl_predict_team_day_receipt():
+  date = request.args.get('date', default='now', type=str)
+  day = request.args.get('day', default=1, type=int)
+  game = request.args.get('game', default=-1, type=int)
+  projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
+  return predict_team_day_receipt(db, date, day, game, projectedLineup, wModels, lModels)
 
 @app.route('/nhl/week', methods=['GET'])
 def nhl_predict_week():
