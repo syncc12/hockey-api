@@ -648,6 +648,90 @@ def test_model_simple(db,startID,endID,models):
       },
     })
 
+def test_model_team(db,startID,endID,models):
+  Boxscores = db['dev_boxscores']
+
+
+  if startID == -1 or endID == -1:
+    md = metadata(db)
+    if startID == -1:
+      startID = md['saved']['training']+1
+    if endID == -1:
+      endID = min([md['saved']['boxscore'],md['saved']['game']])
+
+    
+  boxscore_list = list(Boxscores.find(
+    {'id': {'$gte':startID,'$lt':endID+1}}
+  ))
+
+  # winner_model = models['model_winner']
+  winnerB_model = models['model_winnerB']
+
+  # winner_results = []
+  winnerB_results = []
+  winnerB_correct_confidences = []
+  winnerB_incorrect_confidences = []
+  # winner_daily_percents = []
+  winnerB_daily_percents = []
+
+  test_results = {}
+
+  for boxscore in boxscore_list:
+    test_results[boxscore['gameDate']] = {}
+    test_results[boxscore['gameDate']] = {
+      'games': [],
+      'winnerPercent': 0,
+      'winnerBPercent': 0,
+      'winner_line_results': [],
+      'winnerB_line_results': [],
+    }
+
+  for boxscore in boxscore_list:
+
+    gameId = boxscore['id']
+    inputs = master_inputs(db,boxscore)
+    inputs = inputs['data']
+    df = pd.DataFrame([inputs])
+    data = df [X_INPUTS]
+
+    winnerB_probability = winnerB_model.predict(xgb.DMatrix(data))
+    # print('winnerB_probability',winnerB_probability)
+    # winner_prediction = winner_model.predict(data)[0]
+    winnerB_prediction = [1 if i > 0.5 else 0 for i in winnerB_probability]
+    # print('winnerB_prediction',winnerB_prediction)
+
+    # winner_true = inputs['winner']
+    winnerB_true = inputs['winnerB']
+    # winner_calculation = 1 if winner_prediction[0] == winner_true else 0
+    winnerB_calculation = 1 if winnerB_prediction[0] == winnerB_true else 0
+    # winner_results.append(winner_calculation)
+    winnerB_results.append(winnerB_calculation)
+    if winnerB_calculation == 1:
+      winnerB_correct_confidences.append(round(winnerB_probability[0] * 100))
+    else:
+      winnerB_incorrect_confidences.append(round(winnerB_probability[0] * 100))
+
+    # test_results[boxscore['gameDate']]['winner_line_results'].append(winner_calculation)
+    test_results[boxscore['gameDate']]['winnerB_line_results'].append(winnerB_calculation)
+    test_results[boxscore['gameDate']]['games'].append({
+      'id': gameId,
+      'home': inputs['homeTeam'],
+      'away': inputs['awayTeam'],
+      'homeScore': inputs['homeScore'],
+      'awayScore': inputs['awayScore'],
+      # 'winner': {
+      #   'prediction': winner_prediction[0],
+      #   'actual': winner_true,
+      #   'calculation': winner_calculation,
+      # },
+      'winnerB': {
+        'prediction': winnerB_prediction[0],
+        'actual': winnerB_true,
+        'calculation': winnerB_calculation,
+        'confidence': round(winnerB_probability[0] * 100),
+      },
+    })
+
 
   for date in test_results:
     # winnerPercent = (sum(test_results[date]['winner_line_results']) / len(test_results[date]['winner_line_results'])) * 100
