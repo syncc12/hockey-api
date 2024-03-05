@@ -22,6 +22,7 @@ from pages.nhl.nhl_helpers import ai, ai_return_dict, ai2, ai_receipt, ai_teams
 from constants.constants import VERSION, FILE_VERSION
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from util.models import MODELS, TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP, winnersAgree
+from util.team_models import PREDICT_SCORE_H2H
 from inputs.projectedLineup import testProjectedLineup
 import warnings
 import xgboost as xgb
@@ -648,7 +649,7 @@ def test_model_simple(db,startID,endID,models):
       },
     })
 
-def test_model_team(db,startID,endID,models):
+def test_model_team(db,startID,endID,wModels,lModels):
   Boxscores = db['dev_boxscores']
 
 
@@ -664,14 +665,11 @@ def test_model_team(db,startID,endID,models):
     {'id': {'$gte':startID,'$lt':endID+1}}
   ))
 
-  # winner_model = models['model_winner']
-  winnerB_model = models['model_winnerB']
+  # winnerB_model = models['model_winnerB']
 
-  # winner_results = []
   winnerB_results = []
   winnerB_correct_confidences = []
   winnerB_incorrect_confidences = []
-  # winner_daily_percents = []
   winnerB_daily_percents = []
 
   test_results = {}
@@ -680,9 +678,7 @@ def test_model_team(db,startID,endID,models):
     test_results[boxscore['gameDate']] = {}
     test_results[boxscore['gameDate']] = {
       'games': [],
-      'winnerPercent': 0,
       'winnerBPercent': 0,
-      'winner_line_results': [],
       'winnerB_line_results': [],
     }
 
@@ -691,27 +687,17 @@ def test_model_team(db,startID,endID,models):
     gameId = boxscore['id']
     inputs = master_inputs(db,boxscore)
     inputs = inputs['data']
-    df = pd.DataFrame([inputs])
-    data = df [X_INPUTS]
 
-    winnerB_probability = winnerB_model.predict(xgb.DMatrix(data))
-    # print('winnerB_probability',winnerB_probability)
-    # winner_prediction = winner_model.predict(data)[0]
-    winnerB_prediction = [1 if i > 0.5 else 0 for i in winnerB_probability]
-    # print('winnerB_prediction',winnerB_prediction)
+    winnerB_prediction, winnerB_probability = PREDICT_SCORE_H2H([inputs],wModels,lModels,simple_return=True)
 
-    # winner_true = inputs['winner']
     winnerB_true = inputs['winnerB']
-    # winner_calculation = 1 if winner_prediction[0] == winner_true else 0
     winnerB_calculation = 1 if winnerB_prediction[0] == winnerB_true else 0
-    # winner_results.append(winner_calculation)
     winnerB_results.append(winnerB_calculation)
     if winnerB_calculation == 1:
       winnerB_correct_confidences.append(round(winnerB_probability[0] * 100))
     else:
       winnerB_incorrect_confidences.append(round(winnerB_probability[0] * 100))
 
-    # test_results[boxscore['gameDate']]['winner_line_results'].append(winner_calculation)
     test_results[boxscore['gameDate']]['winnerB_line_results'].append(winnerB_calculation)
     test_results[boxscore['gameDate']]['games'].append({
       'id': gameId,
@@ -719,11 +705,6 @@ def test_model_team(db,startID,endID,models):
       'away': inputs['awayTeam'],
       'homeScore': inputs['homeScore'],
       'awayScore': inputs['awayScore'],
-      # 'winner': {
-      #   'prediction': winner_prediction[0],
-      #   'actual': winner_true,
-      #   'calculation': winner_calculation,
-      # },
       'winnerB': {
         'prediction': winnerB_prediction[0],
         'actual': winnerB_true,
@@ -734,19 +715,16 @@ def test_model_team(db,startID,endID,models):
 
 
   for date in test_results:
-    # winnerPercent = (sum(test_results[date]['winner_line_results']) / len(test_results[date]['winner_line_results'])) * 100
     winnerBPercent = (sum(test_results[date]['winnerB_line_results']) / len(test_results[date]['winnerB_line_results'])) * 100
-    # test_results[date]['winnerPercent'] = winnerPercent
     test_results[date]['winnerBPercent'] = winnerBPercent
-    # winner_daily_percents.append((winnerPercent,len(test_results[date]['winner_line_results'])))
     winnerB_daily_percents.append((winnerBPercent,len(test_results[date]['winnerB_line_results'])))
 
   # test_results['Winner Results'] = winner_results
   # test_results['WinnerB Results'] = winnerB_results
   # test_results['Winner Daily Percents'] = winner_daily_percents
-  # test_results['WinnerB Daily Percents'] = winnerB_daily_percents
-  test_results['WinnerB Correct Confidences'] = winnerB_correct_confidences
-  test_results['WinnerB Incorrect Confidences'] = winnerB_incorrect_confidences
+  test_results['WinnerB Daily Percents'] = winnerB_daily_percents
+  # test_results['WinnerB Correct Confidences'] = winnerB_correct_confidences
+  # test_results['WinnerB Incorrect Confidences'] = winnerB_incorrect_confidences
   # test_results['allWinnerPercent'] = (sum(winner_results) / len(winner_results)) * 100
   test_results['allWinnerBPercent'] = (sum(winnerB_results) / len(winnerB_results)) * 100
 

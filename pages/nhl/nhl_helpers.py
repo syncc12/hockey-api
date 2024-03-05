@@ -18,7 +18,7 @@ import boto3
 import io
 from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE, MODEL_BATCH_PREDICT, MODEL_BATCH_CONFIDENCE, MODEL_PREDICT_CONFIDENCE_WINNER_B
-from util.team_models import PREDICT_H2H
+from util.team_models import PREDICT_SCORE_H2H
 from util.returns import ai_return_dict_projectedLineup, ai_return_dict, ai_return_dict2
 from train_torch import predict_model
 import xgboost as xgb
@@ -82,7 +82,7 @@ def ai_receipt(db, games, projectedLineups, models):
 def ai_teams(db, games, projectedLineups, wModels, lModels, simple=False, receipt=False):
   all_games = []
   data, game_data, extra_data = nhl_data2(db, games, projectedLineups, no_df=True)
-  predictions,confidences,away_predictions,home_predictions,away_probabilities,home_probabilities,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probabilities_away,l_probabilities_away,w_probabilities_home,l_probabilities_home = PREDICT_H2H(data, wModels, lModels)
+  predictions,confidences,away_predictions,home_predictions,away_probabilities,home_probabilities,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probabilities_away,l_probabilities_away,w_probabilities_home,l_probabilities_home = PREDICT_SCORE_H2H(data, wModels, lModels)
   if simple:
     for i, prediction in enumerate(predictions):
       awayTeam = game_data[i]["away_team"]["name"]

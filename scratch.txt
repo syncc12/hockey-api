@@ -1,67 +1,36 @@
-NJD Win Binary Accuracy: 53.45%
-NJD Accuracy:            50.00%
-NYI Win Binary Accuracy: 46.55%
-NYI Accuracy:            55.17%
-NYR Win Binary Accuracy: 44.07%
-NYR Accuracy:            54.24%
-PHI Win Binary Accuracy: 50.00%
-PHI Accuracy:            51.67%
-PIT Win Binary Accuracy: 41.82%
-PIT Accuracy:            47.27%
-BOS Win Binary Accuracy: 56.67%
-BOS Accuracy:            56.67%
-BUF Win Binary Accuracy: 52.54%
-BUF Accuracy:            52.54%
-MTL Win Binary Accuracy: 52.54%
-MTL Accuracy:            52.54%
-OTT Win Binary Accuracy: 50.88%
-OTT Accuracy:            52.63%
-TOR Win Binary Accuracy: 60.34%
-TOR Accuracy:            56.90%
-CAR Win Binary Accuracy: 42.37%
-CAR Accuracy:            49.15%
-FLA Win Binary Accuracy: 70.69%
-FLA Accuracy:            60.34%
-TBL Win Binary Accuracy: 49.18%
-TBL Accuracy:            49.18%
-WSH Win Binary Accuracy: 53.45%
-WSH Accuracy:            55.17%
-CHI Win Binary Accuracy: 69.49%
-CHI Accuracy:            71.19%
-DET Win Binary Accuracy: 47.46%
-DET Accuracy:            44.07%
-NSH Win Binary Accuracy: 43.33%
-NSH Accuracy:            55.00%
-STL Win Binary Accuracy: 46.55%
-STL Accuracy:            46.55%
-CGY Win Binary Accuracy: 46.55%
-CGY Accuracy:            53.45%
-COL Win Binary Accuracy: 54.24%
-COL Accuracy:            49.15%
-EDM Win Binary Accuracy: 60.71%
-EDM Accuracy:            57.14%
-VAN Win Binary Accuracy: 53.33%
-VAN Accuracy:            43.33%
-ANA Win Binary Accuracy: 65.52%
-ANA Accuracy:            65.52%
-DAL Win Binary Accuracy: 55.00%
-DAL Accuracy:            50.00%
-LAK Win Binary Accuracy: 50.88%
-LAK Accuracy:            56.14%
-SJS Win Binary Accuracy: 73.21%
-SJS Accuracy:            73.21%
-CBJ Win Binary Accuracy: 68.42%
-CBJ Accuracy:            66.67%
-MIN Win Binary Accuracy: 54.24%
-MIN Accuracy:            54.24%
-WPG Win Binary Accuracy: 54.39%
-WPG Accuracy:            47.37%
-ARI Win Binary Accuracy: 60.34%
-ARI Accuracy:            58.62%
-VGK Win Binary Accuracy: 44.83%
-VGK Accuracy:            58.62%
-SEA Win Binary Accuracy: 58.62%
-SEA Accuracy:            53.45%
+[
+1:  {'winB':{'max_depth': 6, 'eta': 0.29000000000000004},'lossB': {'max_depth': 6, 'eta': 0.29000000000000004}},
+2:  {'winB':{'max_depth': 6, 'eta': 0.29000000000000004},'lossB': {'max_depth': 6, 'eta': 0.29000000000000004}},
+3:  {'winB':{'max_depth': 9, 'eta': 0.05},'lossB': {'max_depth': 5, 'eta': 0.01}},
+4:  {'winB':{'max_depth': 12, 'eta': 0.13},'lossB': {'max_depth': 12, 'eta': 0.13}},
+5:  {'winB':{'max_depth': 7, 'eta': 0.19},'lossB': {'max_depth': 7, 'eta': 0.19}},
+6:  {'winB':{'max_depth': 7, 'eta': 0.25},'lossB': {'max_depth': 7, 'eta': 0.25}},
+7:  {'winB':{'max_depth': 10, 'eta': 0.2},'lossB': {'max_depth': 10, 'eta': 0.2}},
+8:  {'winB':{'max_depth': 10, 'eta': 0.2},'lossB': {'max_depth': 10, 'eta': 0.2}},
+9:  {'winB':{'max_depth': 11, 'eta': 0.09},'lossB': {'max_depth': 11, 'eta': 0.09}},
+10: {'winB': {'max_depth': 7, 'eta': 0.27},'lossB': {'max_depth': 7, 'eta': 0.27}},
+12: {'winB': {'max_depth': 11, 'eta': 0.29000000000000004},'lossB': {'max_depth': 11, 'eta': 0.29000000000000004}},
+13: {'winB': {'max_depth': 6, 'eta': 0.26},'lossB': {'max_depth': 6, 'eta': 0.26}},
+14: {'winB': {'max_depth': 11, 'eta': 0.29000000000000004},'lossB': {'max_depth': 11, 'eta': 0.29000000000000004}},
+15: {'winB': {'max_depth': 6, 'eta': 0.18000000000000002},'lossB': {'max_depth': 6, 'eta': 0.18000000000000002}},
+16: {'winB': {'max_depth': 5, 'eta': 0.01},'lossB': {'max_depth': 5, 'eta': 0.01}},
+17: {'winB': {'max_depth': 8, 'eta': 0.21000000000000002},'lossB': {'max_depth': 8, 'eta': 0.21000000000000002}},
+18: {'winB': {'max_depth': 6, 'eta': 0.19},'lossB': {'max_depth': 6, 'eta': 0.19}},
+19: {'winB': {'max_depth': 5, 'eta': 0.22},'lossB': {'max_depth': 5, 'eta': 0.22}},
+20: {'winB': {'max_depth': 5, 'eta': 0.18000000000000002},'lossB': {'max_depth': 5, 'eta': 0.18000000000000002}},
+21: {'winB': {'max_depth': 7, 'eta': 0.26},'lossB': {'max_depth': 7, 'eta': 0.26}},
+22: {'winB': {'max_depth': 7, 'eta': 0.23},'lossB': {'max_depth': 7, 'eta': 0.23}},
+23: {'winB': {'max_depth': 5, 'eta': 0.060000000000000005},'lossB': {'max_depth': 5, 'eta': 0.060000000000000005}},
+24: {'winB': {'max_depth': 6, 'eta': 0.24000000000000002},'lossB': {'max_depth': 6, 'eta': 0.24000000000000002}},
+25: {'winB': {'max_depth': 6, 'eta': 0.29000000000000004},'lossB': {'max_depth': 6, 'eta': 0.29000000000000004}},
+26: {'winB': {'max_depth': 5, 'eta': 0.01},'lossB': {'max_depth': 5, 'eta': 0.01}},
+28: {'winB': {'max_depth': 6, 'eta': 0.14},'lossB': {'max_depth': 6, 'eta': 0.14}},
+29: {'winB': {'max_depth': 7, 'eta': 0.19},'lossB': {'max_depth': 7, 'eta': 0.19}},
+30: {'winB': {'max_depth': 6, 'eta': 0.27},'lossB': {'max_depth': 6, 'eta': 0.27}},
+52: {'winB': {'max_depth': 14, 'eta': 0.29000000000000004},'lossB': {'max_depth': 14, 'eta': 0.29000000000000004}},
+53: {'winB': {'max_depth': 10, 'eta': 0.23},'lossB': {'max_depth': 10, 'eta': 0.23}},
+54: {'winB': {'max_depth': 6, 'eta': 0.21000000000000002},'lossB': {'max_depth': 6, 'eta': 0.21000000000000002}},
+55: {'winB': {'max_depth': 5, 'eta': 0.28},'lossB': {'max_depth': 5, 'eta': 0.28}},
 
 
 
@@ -93,39 +62,3 @@ SEA Accuracy:            53.45%
 
 
 
-
-
-
-
-
-SEA Loss Binary Accuracy: 58.62%
-VGK Loss Binary Accuracy: 50.00%
-ARI Loss Binary Accuracy: 60.34%
-WPG Loss Binary Accuracy: 57.89%
-CBJ Loss Binary Accuracy: 68.42%
-SJS Loss Binary Accuracy: 71.43%
-LAK Loss Binary Accuracy: 50.88%
-DAL Loss Binary Accuracy: 55.00%
-ANA Loss Binary Accuracy: 65.52%
-VAN Loss Binary Accuracy: 58.33%
-EDM Loss Binary Accuracy: 60.71%
-COL Loss Binary Accuracy: 54.24%
-CGY Loss Binary Accuracy: 48.28%
-STL Loss Binary Accuracy: 48.28%
-NSH Loss Binary Accuracy: 45.00%
-DET Loss Binary Accuracy: 49.15%
-CHI Loss Binary Accuracy: 67.80%
-WSH Loss Binary Accuracy: 53.45%
-TBL Loss Binary Accuracy: 44.26%
-FLA Loss Binary Accuracy: 70.69%
-CAR Loss Binary Accuracy: 40.68%
-TOR Loss Binary Accuracy: 60.34%
-OTT Loss Binary Accuracy: 50.88%
-MTL Loss Binary Accuracy: 54.24%
-BUF Loss Binary Accuracy: 52.54%
-BOS Loss Binary Accuracy: 56.67%
-PIT Loss Binary Accuracy: 43.64%
-PHI Loss Binary Accuracy: 50.00%
-NYR Loss Binary Accuracy: 54.24%
-NYI Loss Binary Accuracy: 44.83%
-NJD Loss Binary Accuracy: 55.17%

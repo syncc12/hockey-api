@@ -30,6 +30,8 @@ L2=1e-4
 INPUT_DIM = len(X_INPUTS_T)
 OUTPUT_DIM = 1
 
+TEAM = 4
+
 OUTPUT = 'winB'
 
 class PredictionDataset(Dataset):
@@ -64,12 +66,7 @@ class CustomDataset(Dataset):
 HIDDEN_LAYERS = (
   len(X_INPUTS)*2,
   len(X_INPUTS)*4,
-  len(X_INPUTS)*6,
-  len(X_INPUTS)*8,
-  len(X_INPUTS)*10,
-  len(X_INPUTS)*8,
-  len(X_INPUTS)*6,
-  len(X_INPUTS)*4,
+  len(X_INPUTS)*2,
 )
 class Net(nn.Module):
   def __init__(self):
@@ -92,43 +89,43 @@ class Net(nn.Module):
     self.act3 = nn.ReLU()
 
     self.norm3 = nn.BatchNorm1d(HIDDEN_LAYERS[2])
-    self.dropout3 = nn.Dropout(0.3)
+    self.dropout3 = nn.Dropout(0.5)
 
-    self.linear4 = nn.Linear(HIDDEN_LAYERS[2], HIDDEN_LAYERS[3])
-    self.act4 = nn.ReLU()
+    # self.linear4 = nn.Linear(HIDDEN_LAYERS[2], HIDDEN_LAYERS[3])
+    # self.act4 = nn.ReLU()
     
-    self.norm4 = nn.BatchNorm1d(HIDDEN_LAYERS[3])
-    self.dropout4 = nn.Dropout(0.5)
+    # self.norm4 = nn.BatchNorm1d(HIDDEN_LAYERS[3])
+    # self.dropout4 = nn.Dropout(0.5)
 
-    self.linear5 = nn.Linear(HIDDEN_LAYERS[3], HIDDEN_LAYERS[4])
-    self.act5 = nn.ReLU()
+    # self.linear5 = nn.Linear(HIDDEN_LAYERS[3], HIDDEN_LAYERS[4])
+    # self.act5 = nn.ReLU()
     
-    self.norm5 = nn.BatchNorm1d(HIDDEN_LAYERS[4])
-    self.dropout5 = nn.Dropout(0.3)
+    # self.norm5 = nn.BatchNorm1d(HIDDEN_LAYERS[4])
+    # self.dropout5 = nn.Dropout(0.3)
 
-    self.linear6 = nn.Linear(HIDDEN_LAYERS[4], HIDDEN_LAYERS[5])
-    self.act6 = nn.ReLU()
+    # self.linear6 = nn.Linear(HIDDEN_LAYERS[4], HIDDEN_LAYERS[5])
+    # self.act6 = nn.ReLU()
     
-    self.norm6 = nn.BatchNorm1d(HIDDEN_LAYERS[5])
-    self.dropout6 = nn.Dropout(0.3)
+    # self.norm6 = nn.BatchNorm1d(HIDDEN_LAYERS[5])
+    # self.dropout6 = nn.Dropout(0.3)
 
-    self.linear7 = nn.Linear(HIDDEN_LAYERS[5], HIDDEN_LAYERS[6])
-    self.act7 = nn.ReLU()
+    # self.linear7 = nn.Linear(HIDDEN_LAYERS[5], HIDDEN_LAYERS[6])
+    # self.act7 = nn.ReLU()
     
-    self.norm7 = nn.BatchNorm1d(HIDDEN_LAYERS[6])
-    self.dropout7 = nn.Dropout(0.3)
+    # self.norm7 = nn.BatchNorm1d(HIDDEN_LAYERS[6])
+    # self.dropout7 = nn.Dropout(0.3)
 
-    self.linear8 = nn.Linear(HIDDEN_LAYERS[6], HIDDEN_LAYERS[7])
-    self.act8 = nn.ReLU()
+    # self.linear8 = nn.Linear(HIDDEN_LAYERS[6], HIDDEN_LAYERS[7])
+    # self.act8 = nn.ReLU()
 
-    self.norm8 = nn.BatchNorm1d(HIDDEN_LAYERS[7])
-    self.dropout8 = nn.Dropout(0.5)
+    # self.norm8 = nn.BatchNorm1d(HIDDEN_LAYERS[7])
+    # self.dropout8 = nn.Dropout(0.5)
 
-    self.linearEnd = nn.Linear(HIDDEN_LAYERS[7], OUTPUT_DIM)
+    self.linearEnd = nn.Linear(HIDDEN_LAYERS[2], OUTPUT_DIM)
 
   def forward(self, x):
     x = self.actStart(self.linearStart(x))
-    x = self.mm1(x)
+    # x = self.mm1(x)
     # x = self.ni1(x)
     # x = self.norm1(x)
     # x = self.dropout1(x)
@@ -136,23 +133,23 @@ class Net(nn.Module):
     # x = self.norm2(x)
     # x = self.dropout2(x)
     x = self.act3(self.linear3(x))
-    # x = self.norm3(x)
-    # x = self.dropout3(x)
-    x = self.act4(self.linear4(x))
-    x = self.norm4(x)
-    x = self.dropout4(x)
-    x = self.act5(self.linear5(x))
-    # x = self.norm5(x)
-    # x = self.dropout5(x)
-    x = self.act6(self.linear6(x))
-    # x = self.norm6(x)
-    # x = self.dropout6(x)
-    x = self.act7(self.linear7(x))
-    # x = self.norm7(x)
-    # x = self.dropout7(x)
-    x = self.act8(self.linear8(x))
-    x = self.norm8(x)
-    x = self.dropout8(x)
+    x = self.norm3(x)
+    x = self.dropout3(x)
+    # x = self.act4(self.linear4(x))
+    # x = self.norm4(x)
+    # x = self.dropout4(x)
+    # x = self.act5(self.linear5(x))
+    # # x = self.norm5(x)
+    # # x = self.dropout5(x)
+    # x = self.act6(self.linear6(x))
+    # # x = self.norm6(x)
+    # # x = self.dropout6(x)
+    # x = self.act7(self.linear7(x))
+    # # x = self.norm7(x)
+    # # x = self.dropout7(x)
+    # x = self.act8(self.linear8(x))
+    # x = self.norm8(x)
+    # x = self.dropout8(x)
     x = self.linearEnd(x)
     return x
 
@@ -165,14 +162,14 @@ def train():
     # 20062007,
     # 20072008,
     # 20082009,
-    20092010,
-    20102011,
-    20112012,
-    20122013,
-    20132014,
-    20142015,
-    20152016,
-    20162017,
+    # 20092010,
+    # 20102011,
+    # 20112012,
+    # 20122013,
+    # 20132014,
+    # 20142015,
+    # 20152016,
+    # 20162017,
     20172018,
     20182019,
     20192020,
@@ -193,6 +190,12 @@ def train():
   data = pd.concat([data1, data2], axis=0)
   data.reset_index(drop=True, inplace=True)
   teams = data.groupby('team')
+
+  seleceted_team = teams.get_group(TEAM)
+  print('winB',seleceted_team['winB'].value_counts())
+  print('lossB',seleceted_team['lossB'].value_counts())
+
+  teams = [(TEAM, seleceted_team)]
 
   dtrains = {}
   dtrains_winB = {}
@@ -217,6 +220,8 @@ def train():
   test_data = pd.concat([test_data1, test_data2], axis=0)
   test_data.reset_index(drop=True, inplace=True)
   test_teams = test_data.groupby('team')
+
+  test_teams = [(TEAM, test_teams.get_group(TEAM))]
 
   dtests = {}
   dtests_winB = {}
