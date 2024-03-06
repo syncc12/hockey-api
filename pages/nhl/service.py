@@ -718,11 +718,24 @@ def test_model_team(db,startID,endID,wModels,lModels):
     winnerBPercent = (sum(test_results[date]['winnerB_line_results']) / len(test_results[date]['winnerB_line_results'])) * 100
     test_results[date]['winnerBPercent'] = winnerBPercent
     winnerB_daily_percents.append((winnerBPercent,len(test_results[date]['winnerB_line_results'])))
+  
+  bins = {}
+  for p in winnerB_daily_percents:
+    if str(p[1]) in bins:
+      bins[str(p[1])].append(p[0])
+    else:
+      bins[str(p[1])] = [p[0]]
+  bin_averages = {}
+  for b in bins:
+    bin_averages[b] = sum(bins[b]) / len(bins[b])
+
 
   # test_results['Winner Results'] = winner_results
   # test_results['WinnerB Results'] = winnerB_results
   # test_results['Winner Daily Percents'] = winner_daily_percents
-  test_results['WinnerB Daily Percents'] = winnerB_daily_percents
+  # test_results['WinnerB Daily Percents'] = winnerB_daily_percents
+  test_results['Bins'] = bins
+  test_results['Bin Averages'] = bin_averages
   # test_results['WinnerB Correct Confidences'] = winnerB_correct_confidences
   # test_results['WinnerB Incorrect Confidences'] = winnerB_incorrect_confidences
   # test_results['allWinnerPercent'] = (sum(winner_results) / len(winner_results)) * 100
