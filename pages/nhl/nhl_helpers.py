@@ -106,7 +106,7 @@ def ai_teams(db, games, projectedLineups, wModels, lModels, simple=False, receip
     return all_games
   elif receipt:
     for i in range(len(predictions)):
-      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {confidences[i]}%')
+      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {round(confidences[i]*100)}%')
     return all_games
   else:
     return {
