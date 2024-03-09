@@ -649,7 +649,7 @@ def test_model_simple(db,startID,endID,models):
       },
     })
 
-def test_model_team(db,startID,endID,wModels,lModels):
+def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, projectedRoster=False, vote='hard'):
   Boxscores = db['dev_boxscores']
 
 
@@ -689,17 +689,19 @@ def test_model_team(db,startID,endID,wModels,lModels):
   for boxscore in boxscore_list:
 
     gameId = boxscore['id']
-    inputs = master_inputs(db,boxscore)
+    inputs = master_inputs(db,boxscore,isProjectedRoster=projectedRoster,isProjectedLineup=projectedLineup)
     inputs = inputs['data']
 
     winnerB_prediction, winnerB_probability = PREDICT_SCORE_H2H([inputs],wModels,lModels,simple_return=True)
     winnerB_other_prediction, winnerB_other_probability = PREDICT_H2H([inputs],wModels,lModels,simple_return=True)
 
     winnerB_true = inputs['winnerB']
-    winnerB_calculation = 1 if winnerB_prediction[0] == winnerB_true else 0
-    winnerB_other_calculation = 1 if winnerB_other_prediction[0] == winnerB_true else 0
-    agreement = 1 if winnerB_other_prediction[0] == winnerB_prediction[0] and winnerB_prediction[0] == winnerB_true  else 0
-    disagreement = 1 if winnerB_other_prediction[0] != winnerB_prediction[0] and winnerB_prediction[0] == winnerB_true  else 0
+    winnerB_use = winnerB_prediction[0] if vote == 'hard' else winnerB_other_prediction[0]
+    winnerB_other_use = winnerB_other_prediction[0] if vote == 'soft' else winnerB_prediction[0]
+    winnerB_calculation = 1 if winnerB_use == winnerB_true else 0
+    winnerB_other_calculation = 1 if winnerB_other_use == winnerB_true else 0
+    agreement = 1 if winnerB_other_use == winnerB_use and winnerB_use == winnerB_true  else 0
+    disagreement = 1 if winnerB_other_use != winnerB_use and winnerB_use == winnerB_true  else 0
     winnerB_results.append(winnerB_calculation)
     winnerB_other_results.append(winnerB_other_calculation)
     if winnerB_calculation == 1:
@@ -795,26 +797,29 @@ def predict_day_receipt(db,date,day,gamePick,projectedLineup,models):
 def analytics(db,date,day,gamePick,projectedLineup,models):
   pass
 
-def predict_team_day(db, date, day, gamePick, projectedLineup, wModels, lModels):
+def predict_team_day(db, date, day, gamePick, projectedLineup, wModels, lModels, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels)
+  projectedRosters = [projectedRoster]*len(game_data['games'])
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, projectedRosters, vote)
 
-def predict_team_day_simple(db, date, day, gamePick, projectedLineup, wModels, lModels):
+def predict_team_day_simple(db, date, day, gamePick, projectedLineup, wModels, lModels, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, simple=True)
+  projectedRosters = [projectedRoster]*len(game_data['games'])
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, projectedRosters, simple=True)
 
-def predict_team_day_receipt(db, date, day, gamePick, projectedLineup, wModels, lModels):
+def predict_team_day_receipt(db, date, day, gamePick, projectedLineup, wModels, lModels, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, receipt=True)
+  projectedRosters = [projectedRoster]*len(game_data['games'])
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, projectedRosters, receipt=True)

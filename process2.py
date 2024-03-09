@@ -10,7 +10,7 @@ from datetime import datetime
 import pandas as pd
 import os
 from joblib import dump
-from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup, projected_roster
+from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup, projectedRoster
 from inputs.inputs import master_inputs
 from util.query import get_last_game_team_stats
 from util.models import MODEL_NAMES
@@ -275,7 +275,7 @@ def nhl_data(db,game,useProjectedLineup,message='',test=False):
 # print(data)
     
 
-def nhl_data2(db,games,useProjectedLineups=[],messages=[''],test=False,no_df=False):
+def nhl_data2(db,games,useProjectedLineups=[],useProjectedRosters=[],messages=[''],test=False,no_df=False):
   input_data = []
   game_data = []
   extra_data = []
@@ -283,32 +283,52 @@ def nhl_data2(db,games,useProjectedLineups=[],messages=[''],test=False,no_df=Fal
     game = games[i]
     useProjectedLineup = useProjectedLineups[i]
     isProjectedLineup = useProjectedLineup
+    useProjectedRoster = useProjectedRosters[i]
+    isProjectedRoster = useProjectedRoster
     message = ''
 
     boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{game['id']}/boxscore").json()
     check_pbgs = false_chain(boxscore,'boxscore','playerByGameStats')
-    if not check_pbgs or useProjectedLineup:
-      isProjectedLineup = True
+    if not check_pbgs or useProjectedLineup or useProjectedRoster:
+      if useProjectedRoster:
+        isProjectedRoster = True
+        awayRoster, homeRoster, landing = projectedRoster(db,game['id'])
 
-      away_last_game, away_home_away = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'])
-      home_last_game, home_home_away = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'])
-      
-      away_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{away_last_game}/boxscore").json()
-      home_last_boxscore = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{home_last_game}/boxscore").json()
-      boxscore['boxscore'] = {
-        'playerByGameStats': {
-          'awayTeam': away_last_boxscore['boxscore']['playerByGameStats'][away_home_away],
-          'homeTeam': home_last_boxscore['boxscore']['playerByGameStats'][home_home_away],
-        },
-        'gameInfo': {
-          'awayTeam': away_last_boxscore['boxscore']['gameInfo'][away_home_away],
-          'homeTeam': home_last_boxscore['boxscore']['gameInfo'][home_home_away],
-        },
-      }
-      message = 'using projected lineup'
-      
+        boxscore['boxscore'] = {
+          'playerByGameStats': {
+            'awayTeam': awayRoster,
+            'homeTeam': homeRoster,
+          }
+        }
+        boxscore['boxscore']['gameInfo'] = {}
+        if false_chain(landing,'matchup'):
+          boxscore['boxscore']['gameInfo']['awayTeam'] = landing['matchup']['gameInfo']['awayTeam']
+          boxscore['boxscore']['gameInfo']['homeTeam'] = landing['matchup']['gameInfo']['homeTeam']
+        else:
+          away_last_boxscore, away_home_away = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'],last_boxscore=True)
+          home_last_boxscore, home_home_away = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'],last_boxscore=True)  
+          boxscore['boxscore']['gameInfo']['awayTeam'] = away_last_boxscore['boxscore']['gameInfo'][away_home_away]
+          boxscore['boxscore']['gameInfo']['homeTeam'] = home_last_boxscore['boxscore']['gameInfo'][home_home_away]
+        message = 'using projected lineup'
 
-    inputs = master_inputs(db=db,boxscore=boxscore,isProjectedLineup=isProjectedLineup)
+      else:
+        isProjectedLineup = True
+        away_last_boxscore, away_home_away = projectedLineup(boxscore['awayTeam']['abbrev'],game['id'], last_boxscore=True)
+        home_last_boxscore, home_home_away = projectedLineup(boxscore['homeTeam']['abbrev'],game['id'], last_boxscore=True)
+        
+        boxscore['boxscore'] = {
+          'playerByGameStats': {
+            'awayTeam': away_last_boxscore['boxscore']['playerByGameStats'][away_home_away],
+            'homeTeam': home_last_boxscore['boxscore']['playerByGameStats'][home_home_away],
+          },
+          'gameInfo': {
+            'awayTeam': away_last_boxscore['boxscore']['gameInfo'][away_home_away],
+            'homeTeam': home_last_boxscore['boxscore']['gameInfo'][home_home_away],
+          },
+        }
+        message = 'using projected lineup'
+      
+    inputs = master_inputs(db=db,boxscore=boxscore,isProjectedLineup=isProjectedLineup,isProjectedRoster=isProjectedRoster)
     
     line_input_data = {}
     if inputs:

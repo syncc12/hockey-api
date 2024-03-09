@@ -599,33 +599,33 @@ def update_odds():
   print(f'DONE')
 
 if __name__ == '__main__':
-  # SEASONS = [
-  #   # 20052006,
-  #   # 20062007,
-  #   20072008,
-  #   20082009,
-  #   20092010,
-  #   20102011,
-  #   20112012,
-  #   20122013,
-  #   20132014,
-  #   20142015,
-  #   20152016,
-  #   20162017,
-  #   20172018,
-  #   20182019,
-  #   20192020,
-  #   20202021,
-  #   20212022,
-  #   20222023,
-  #   # 20232024,
-  # ]
-  # for season in SEASONS:
-  #   # print(f'Updating season: {season}')
-  #   # update_boxscores(season)
-  #   pass
+  SEASONS = [
+    # 20052006,
+    # 20062007,
+    # 20072008,
+    # 20082009,
+    # 20092010,
+    # 20102011,
+    # 20112012,
+    # 20122013,
+    # 20132014,
+    # 20142015,
+    # 20152016,
+    # 20162017,
+    # 20172018,
+    # 20182019,
+    # 20192020,
+    # 20202021,
+    # 20212022,
+    # 20222023,
+    20232024,
+  ]
+  for season in SEASONS:
+    print(f'Updating season: {season}')
+    update_boxscores(season)
+    pass
 
-  update_odds()
+  # update_odds()
   # format_json()
 
   # print(time_between_games(2022030326, 20222023, 54, 25, games_back=5))

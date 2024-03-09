@@ -1,12 +1,12 @@
 
 PARAMS = {
   1:  {
-    'winB':{'max_depth': 6, 'eta': 0.29000000000000004},
-    'lossB': {'max_depth': 6, 'eta': 0.29000000000000004}
+    'winB':{'max_depth': 6, 'eta': 0.29},
+    'lossB': {'max_depth': 6, 'eta': 0.29}
   },
   2:  {
-    'winB':{'max_depth': 6, 'eta': 0.29000000000000004},
-    'lossB': {'max_depth': 6, 'eta': 0.29000000000000004}
+    'winB':{'max_depth': 6, 'eta': 0.29},
+    'lossB': {'max_depth': 6, 'eta': 0.29}
   },
   3:  {
     'winB':{'max_depth': 9, 'eta': 0.05},
@@ -41,28 +41,28 @@ PARAMS = {
     'lossB': {'max_depth': 7, 'eta': 0.27}
   },
   12: {
-    'winB': {'max_depth': 11, 'eta': 0.29000000000000004},
-    'lossB': {'max_depth': 11, 'eta': 0.29000000000000004}
+    'winB': {'max_depth': 11, 'eta': 0.29},
+    'lossB': {'max_depth': 11, 'eta': 0.29}
   },
   13: {
     'winB': {'max_depth': 6, 'eta': 0.26},
     'lossB': {'max_depth': 6, 'eta': 0.26}
   },
   14: {
-    'winB': {'max_depth': 11, 'eta': 0.29000000000000004},
-    'lossB': {'max_depth': 11, 'eta': 0.29000000000000004}
+    'winB': {'max_depth': 11, 'eta': 0.29},
+    'lossB': {'max_depth': 11, 'eta': 0.29}
   },
   15: {
-    'winB': {'max_depth': 6, 'eta': 0.18000000000000002},
-    'lossB': {'max_depth': 6, 'eta': 0.18000000000000002}
+    'winB': {'max_depth': 6, 'eta': 0.18},
+    'lossB': {'max_depth': 6, 'eta': 0.18}
   },
   16: {
     'winB': {'max_depth': 5, 'eta': 0.01},
     'lossB': {'max_depth': 5, 'eta': 0.01}
   },
   17: {
-    'winB': {'max_depth': 8, 'eta': 0.21000000000000002},
-    'lossB': {'max_depth': 8, 'eta': 0.21000000000000002}
+    'winB': {'max_depth': 8, 'eta': 0.21},
+    'lossB': {'max_depth': 8, 'eta': 0.21}
   },
   18: {
     'winB': {'max_depth': 6, 'eta': 0.19},
@@ -73,8 +73,8 @@ PARAMS = {
     'lossB': {'max_depth': 5, 'eta': 0.22}
   },
   20: {
-    'winB': {'max_depth': 5, 'eta': 0.18000000000000002},
-    'lossB': {'max_depth': 5, 'eta': 0.18000000000000002}
+    'winB': {'max_depth': 5, 'eta': 0.18},
+    'lossB': {'max_depth': 5, 'eta': 0.18}
   },
   21: {
     'winB': {'max_depth': 7, 'eta': 0.26},
@@ -85,16 +85,16 @@ PARAMS = {
     'lossB': {'max_depth': 7, 'eta': 0.23}
   },
   23: {
-    'winB': {'max_depth': 5, 'eta': 0.060000000000000005},
-    'lossB': {'max_depth': 5, 'eta': 0.060000000000000005}
+    'winB': {'max_depth': 5, 'eta': 0.06},
+    'lossB': {'max_depth': 5, 'eta': 0.06}
   },
   24: {
-    'winB': {'max_depth': 6, 'eta': 0.24000000000000002},
-    'lossB': {'max_depth': 6, 'eta': 0.24000000000000002}
+    'winB': {'max_depth': 6, 'eta': 0.24},
+    'lossB': {'max_depth': 6, 'eta': 0.24}
   },
   25: {
-    'winB': {'max_depth': 6, 'eta': 0.29000000000000004},
-    'lossB': {'max_depth': 6, 'eta': 0.29000000000000004}
+    'winB': {'max_depth': 6, 'eta': 0.29},
+    'lossB': {'max_depth': 6, 'eta': 0.29}
   },
   26: {
     'winB': {'max_depth': 5, 'eta': 0.01},
@@ -113,16 +113,16 @@ PARAMS = {
     'lossB': {'max_depth': 6, 'eta': 0.27}
   },
   52: {
-    'winB': {'max_depth': 14, 'eta': 0.29000000000000004},
-    'lossB': {'max_depth': 14, 'eta': 0.29000000000000004}
+    'winB': {'max_depth': 14, 'eta': 0.29},
+    'lossB': {'max_depth': 14, 'eta': 0.29}
   },
   53: {
     'winB': {'max_depth': 10, 'eta': 0.23},
     'lossB': {'max_depth': 10, 'eta': 0.23}
   },
   54: {
-    'winB': {'max_depth': 6, 'eta': 0.21000000000000002},
-    'lossB': {'max_depth': 6, 'eta': 0.21000000000000002}
+    'winB': {'max_depth': 6, 'eta': 0.21},
+    'lossB': {'max_depth': 6, 'eta': 0.21}
   },
   55: {
     'winB': {'max_depth': 5, 'eta': 0.28},

@@ -79,7 +79,7 @@ def formatDate(inDate):
   else:
     return inDate
 
-def getPlayerData (players, player_id):
+def getPlayerData(players, player_id):
   if not isNaN(players) and not isNaN(player_id):
     return next((player for player in players if player['playerId'] == player_id), REPLACE_VALUE)
   else:
@@ -131,7 +131,21 @@ def getPlayer(allPlayers,playerId):
   else:
     return REPLACE_VALUE
 
-def projectedLineup(team,gameId):
+def lastGameId(team,gameId):
+  TEAM_SEASON_SCHEDULE = f'https://api-web.nhle.com/v1/club-schedule-season/{team}/now'
+  data = requests.get(TEAM_SEASON_SCHEDULE).json()
+  gameIDs = [game['id'] for game in data['games'] if game['id'] < gameId]
+  return min(gameIDs, key=lambda x:abs(x-gameId))
+
+def lastGame(team,gameId):
+  TEAM_SEASON_SCHEDULE = f'https://api-web.nhle.com/v1/club-schedule-season/{team}/now'
+  data = requests.get(TEAM_SEASON_SCHEDULE).json()
+  gameIDs = [game['id'] for game in data['games'] if game['id'] < gameId]
+  last_game = min(gameIDs, key=lambda x:abs(x-gameId))
+  LAST_GAME_BOXSCORE = f'https://api-web.nhle.com/v1/gamecenter/{last_game}/boxscore'
+  return requests.get(LAST_GAME_BOXSCORE).json()
+
+def projectedLineup(team,gameId,last_boxscore=False):
   TEAM_SEASON_SCHEDULE = f'https://api-web.nhle.com/v1/club-schedule-season/{team}/now'
   data = requests.get(TEAM_SEASON_SCHEDULE).json()
   gameIDs = [game['id'] for game in data['games'] if game['id'] < gameId]
@@ -143,7 +157,10 @@ def projectedLineup(team,gameId):
     home_or_away = 'awayTeam'
   elif boxscore['homeTeam']['abbrev'] == team:
     home_or_away = 'homeTeam'
-  return last_game, home_or_away
+  if last_boxscore:
+    return boxscore, home_or_away
+  else:
+    return last_game, home_or_away
 
 def latestIDs(training_data=-1):
   client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
@@ -456,8 +473,6 @@ def getAllAges(db,playerIds=[],gameDate=-1):
     Players = db['dev_players']
     player_ages = {}
     ids = []
-
-
     allPlayers = Players.find({
       'playerId': {'$in': playerIds}
     })
@@ -698,3 +713,139 @@ def team_lookup(db):
   for team in teams:
     team_lookup[team['id']] = team
   return team_lookup
+
+def projectedRoster(db, gameId):
+  landing_url = f'https://api-web.nhle.com/v1_1/gamecenter/{gameId}/landing'
+  landing = requests.get(landing_url).json()
+  awayId = landing['awayTeam']['id']
+  homeId = landing['homeTeam']['id']
+  
+  af, ad, ag, hf, hd, hg = [], [], [], [], [], []
+  afIds, adIds, agIds, hfIds, hdIds, hgIds = [], [], [], [], [], []
+  afAges, adAges, agAges, hfAges, hdAges, hgAges = [], [], [], [], [], []
+  
+  if false_chain(landing,'matchup'):
+
+    for skater in landing['matchup']['skaterSeasonStats']:
+      skater_data = {'playerId':skater['playerId'], 'gamesPlayed':safe_chain(skater,'gamesPlayed',default=0)}
+      if skater['teamId'] == awayId:
+        if skater['position'].lower() == 'd':
+          ad.append(skater_data)
+          adIds.append(skater['playerId'])
+        else:
+          af.append(skater_data)
+          afIds.append(skater['playerId'])
+      elif skater['teamId'] == homeId:
+        if skater['position'].lower() == 'd':
+          hd.append(skater_data)
+          hdIds.append(skater['playerId'])
+        else:
+          hf.append(skater_data)
+          hfIds.append(skater['playerId'])
+    
+    for goalie in landing['matchup']['goalieSeasonStats']:
+      goalie_data = {'playerId':goalie['playerId'], 'gamesPlayed':safe_chain(goalie,'gamesPlayed',default=0)}
+      if goalie['teamId'] == awayId:
+        ag.append(goalie_data)
+        agIds.append(goalie['playerId'])
+      elif goalie['teamId'] == homeId:
+        hg.append(goalie_data)
+        hgIds.append(goalie['playerId'])
+
+  else:
+    teamLookup = team_lookup(db)
+    season = landing['season']
+    away_abbr = teamLookup[awayId]['abbrev']
+    home_abbr = teamLookup[homeId]['abbrev']
+    away_roster_url = f'https://api-web.nhle.com/v1/roster/{away_abbr}/{season}'
+    home_roster_url = f'https://api-web.nhle.com/v1/roster/{home_abbr}/{season}'
+    home_roster = requests.get(home_roster_url).json()
+    away_roster = requests.get(away_roster_url).json()
+
+    for player in away_roster['forwards']:
+      af.append({'playerId':player['id']})
+      afIds.append(player['id'])
+    for player in away_roster['defensemen']:
+      ad.append({'playerId':player['id']})
+      adIds.append(player['id'])
+    for player in away_roster['goalies']:
+      ag.append({'playerId':player['id']})
+      agIds.append(player['id'])
+    for player in home_roster['forwards']:
+      hf.append({'playerId':player['id']})
+      hfIds.append(player['id'])
+    for player in home_roster['defensemen']:
+      hd.append({'playerId':player['id']})
+      hdIds.append(player['id'])
+    for player in home_roster['goalies']:
+      hg.append({'playerId':player['id']})
+      hgIds.append(player['id'])
+
+  afAges = getAllAges(db,afIds,landing['gameDate'])
+  adAges = getAllAges(db,adIds,landing['gameDate'])
+  agAges = getAllAges(db,agIds,landing['gameDate'])
+  hfAges = getAllAges(db,hfIds,landing['gameDate'])
+  hdAges = getAllAges(db,hdIds,landing['gameDate'])
+  hgAges = getAllAges(db,hgIds,landing['gameDate'])
+
+  afAges = [v for k,v in afAges.items()]
+  adAges = [v for k,v in adAges.items()]
+  agAges = [v for k,v in agAges.items()]
+  hfAges = [v for k,v in hfAges.items()]
+  hdAges = [v for k,v in hdAges.items()]
+  hgAges = [v for k,v in hgAges.items()]
+  
+  if false_chain(landing,'matchup'):
+    af = sorted(af, key=lambda d: d['gamesPlayed'], reverse=True)
+    ad = sorted(ad, key=lambda d: d['gamesPlayed'], reverse=True)
+    ag = sorted(ag, key=lambda d: d['gamesPlayed'], reverse=True)
+    hf = sorted(hf, key=lambda d: d['gamesPlayed'], reverse=True)
+    hd = sorted(hd, key=lambda d: d['gamesPlayed'], reverse=True)
+    hg = sorted(hg, key=lambda d: d['gamesPlayed'], reverse=True)
+
+  af_final, ad_final, ag_final, hf_final, hd_final, hg_final = [], [], [], [], [], []
+  
+  af_len = 13 if len(af) >= 13 else len(af)
+  ad_len = 6 if len(ad) >= 6 else len(ad)
+  ag_len = 2 if len(ag) >= 2 else len(ag)
+  hf_len = 13 if len(hf) >= 13 else len(hf)
+  hd_len = 6 if len(hd) >= 6 else len(hd)
+  hg_len = 2 if len(hf) >= 2 else len(hf)
+  
+  # af_len, ad_len, ag_len, hf_len, hd_len, hg_len = len(af), len(ad), len(ag), len(hf), len(hd), len(hf)
+
+  for i in range(0,af_len):
+    af_final.append({'playerId': af[i]['playerId']})
+  for i in range(0,hf_len):
+    hf_final.append({'playerId': hf[i]['playerId']})
+  for i in range(0,ad_len):
+    ad_final.append({'playerId': ad[i]['playerId']})
+  for i in range(0,hd_len):
+    hd_final.append({'playerId': hd[i]['playerId']})
+  for i in range(0,ag_len):
+    ag_final.append({'playerId': ag[i]['playerId']})
+  for i in range(0,hg_len):
+    hg_final.append({'playerId': hg[i]['playerId']})
+  awayRoster = {
+    'forwards': af_final,
+    'defense': ad_final,
+    'goalies': ag_final,
+    'forwardAverage': [(sum(afIds)/len(afIds)) if len(afIds) > 0 else -1],
+    'defenseAverage': [(sum(adIds)/len(adIds)) if len(adIds) > 0 else -1],
+    'goalieAverage': [(sum(agIds)/len(agIds)) if len(agIds) > 0 else -1],
+    'forwardAverageAge': [(sum(afAges)/len(afAges)) if len(afAges) > 0 else -1],
+    'defenseAverageAge': [(sum(adAges)/len(adAges)) if len(adAges) > 0 else -1],
+    'goalieAverageAge': [(sum(agAges)/len(agAges)) if len(agAges) > 0 else -1],
+  }
+  homeRoster = {
+    'forwards': hf_final,
+    'defense': hd_final,
+    'goalies': hg_final,
+    'forwardAverage': [(sum(hfIds)/len(hfIds)) if len(hfIds) > 0 else -1],
+    'defenseAverage': [(sum(hdIds)/len(hdIds)) if len(hdIds) > 0 else -1],
+    'goalieAverage': [(sum(hgIds)/len(hgIds)) if len(hgIds) > 0 else -1],
+    'forwardAverageAge': [(sum(hfAges)/len(hfAges)) if len(hfAges) > 0 else -1],
+    'defenseAverageAge': [(sum(hdAges)/len(hdAges)) if len(hdAges) > 0 else -1],
+    'goalieAverageAge': [(sum(hgAges)/len(hgAges)) if len(hgAges) > 0 else -1],
+  }
+  return awayRoster, homeRoster, landing

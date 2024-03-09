@@ -18,7 +18,7 @@ import boto3
 import io
 from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE, MODEL_BATCH_PREDICT, MODEL_BATCH_CONFIDENCE, MODEL_PREDICT_CONFIDENCE_WINNER_B
-from util.team_models import PREDICT_SCORE_H2H
+from util.team_models import PREDICT_SCORE_H2H, PREDICT_H2H
 from util.returns import ai_return_dict_projectedLineup, ai_return_dict, ai_return_dict2
 from train_torch import predict_model
 import xgboost as xgb
@@ -66,23 +66,26 @@ def ai(db, game_data, useProjectedLineup, models):
     return ai_return_dict_projectedLineup(data,predictions,confidences)
 
 def ai2(db, games, projectedLineups, models):
-  data, game_data, extra_data = nhl_data2(db, games, projectedLineups)
+  data, game_data, extra_data = nhl_data2(db=db, games=games, useProjectedLineups=projectedLineups)
   predictions = MODEL_BATCH_PREDICT(models,data)
   confidences = MODEL_BATCH_CONFIDENCE(models,data)
   return ai_return_dict2(game_data,extra_data,predictions,confidences)
 
 def ai_receipt(db, games, projectedLineups, models):
-  data, game_data, extra_data = nhl_data2(db, games, projectedLineups)
+  data, game_data, extra_data = nhl_data2(db=db, games=games, useProjectedLineups=projectedLineups)
   predictions, confidences = MODEL_PREDICT_CONFIDENCE_WINNER_B(models,data)
   receipt = []
   for i in range(len(predictions)):
     receipt.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {confidences[i]}%')
   return receipt
 
-def ai_teams(db, games, projectedLineups, wModels, lModels, simple=False, receipt=False):
+def ai_teams(db, games, projectedLineups, wModels, lModels, projectedRosters, simple=False, receipt=False, vote='hard'):
   all_games = []
-  data, game_data, extra_data = nhl_data2(db, games, projectedLineups, no_df=True)
-  predictions,confidences,away_predictions,home_predictions,away_probabilities,home_probabilities,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probabilities_away,l_probabilities_away,w_probabilities_home,l_probabilities_home = PREDICT_SCORE_H2H(data, wModels, lModels)
+  data, game_data, extra_data = nhl_data2(db=db, games=games, useProjectedLineups=projectedLineups, useProjectedRosters=projectedRosters, no_df=True)
+  if vote == 'soft':
+    predictions,confidences,away_predictions,home_predictions,away_probabilities,home_probabilities,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probabilities_away,l_probabilities_away,w_probabilities_home,l_probabilities_home = PREDICT_H2H(data, wModels, lModels)
+  else:
+    predictions,confidences,away_predictions,home_predictions,away_probabilities,home_probabilities,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probabilities_away,l_probabilities_away,w_probabilities_home,l_probabilities_home = PREDICT_SCORE_H2H(data, wModels, lModels)
   if simple:
     for i, prediction in enumerate(predictions):
       awayTeam = game_data[i]["away_team"]["name"]

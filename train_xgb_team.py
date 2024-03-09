@@ -16,7 +16,7 @@ from xgboost import XGBClassifier
 from util.helpers import team_lookup
 from training_input import training_input, test_input
 from util.xgb_helpers import mcc_eval
-from util.team_helpers import away_rename, home_rename, XGBWrapper, XGBWrapperInverse
+from util.team_helpers import away_rename, home_rename
 from util.team_constants import PARAMS
 
 client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
@@ -45,25 +45,62 @@ SEASONS = [
 OUTPUT = 'winB'
 OUTPUTS = ['winB','lossB']
 
-TRIAL = True
-DRY_RUN = False
+TRIAL = False
+DRY_RUN = True
 TEAM = False
 
 NUM_BOOST_ROUND = 500
 N_TRIALS = 100
 EARLY_STOPPING_ROUNDS = 10
-CALIBRATION_METHOD = 'isotonic'
 EPOCHS = 10
 THRESHOLD = 0.5
+
+# WEIGHTS = {
+#   'season': 1,
+#   'gameType': 1,
+#   'venue': 1,
+#   'team': 0.5,
+#   'opponent': 1,
+#   'date': 1,
+#   'headCoach': 1,
+#   'forwardAverage': 2,
+#   'defenseAverage': 2,
+#   'goalieAverage': 2.5,
+#   'forwardAverageAge': 1,
+#   'defenseAverageAge': 1,
+#   'goalieAverageAge': 1,
+#   'opponentHeadCoach': 1,
+#   'opponentForwardAverage': 2,
+#   'opponentDefenseAverage': 2,
+#   'opponentGoalieAverage': 2.5,
+#   'opponentForwardAverageAge': 1,
+#   'opponentDefenseAverageAge': 1,
+#   'opponentGoalieAverageAge': 1,
+# }
+  
+WEIGHTS = [
+  [
+    'season',
+    'gameType',
+    'venue',
+    'date'
+  ],
+  [
+    'team',
+    'opponent'
+  ],
+  [
+    'headCoach','opponentHeadCoach',
+    'forwardAverage','defenseAverage','goalieAverage',
+    # 'forwardAverageAge','defenseAverageAge','goalieAverageAge',
+    'opponentForwardAverage','opponentDefenseAverage','opponentGoalieAverage',
+    # 'opponentForwardAverageAge','opponentDefenseAverageAge','opponentGoalieAverageAge',
+  ],
+]
 
 def train(db,params,dtrain,dtest,team_name,inverse=False,trial=False,output=OUTPUT):
 
   bst = xgb.train(params, dtrain['dm'], EPOCHS)
-  if not trial:
-    xgb_wrapper = XGBClassifier(max_depth=params['max_depth'], learning_rate=params['eta'],use_label_encoder=False, eval_metric='logloss', objective='binary:logistic', tree_method='hist', device='gpu')
-    xgb_wrapper.fit(dtrain['x_train'], dtrain['y_train'])
-    scaler = CalibratedClassifierCV(xgb_wrapper, method=CALIBRATION_METHOD, cv='prefit')
-    scaler.fit(dtrain['x_train'], dtrain['y_train'])
 
   preds = bst.predict(dtest['dm'])
   y_test = dtest['y_test']
@@ -72,7 +109,10 @@ def train(db,params,dtrain,dtest,team_name,inverse=False,trial=False,output=OUTP
 
   accuracy = accuracy_score(y_test, predictions)
   if not trial:
-    model_data = f"{team_name} {output} Accuracy: {'%.2f%%' % (accuracy * 100.0)}"
+    if accuracy < 0.5:
+      inverse = True
+      accuracy = 1 - accuracy
+    model_data = f"{team_name} {output} Accuracy: {'%.2f%%' % (accuracy * 100.0)}{' INVERSE' if inverse else ''}"
     print(model_data)
 
     if not DRY_RUN:
@@ -94,7 +134,6 @@ def train(db,params,dtrain,dtest,team_name,inverse=False,trial=False,output=OUTP
         'teamId': team,
         'model': 'XGBoost Classifier (Teams)',
         'file': 'train_xgb_team.py',
-        'calibrationMethod': CALIBRATION_METHOD,
         'threshold': THRESHOLD,
         'params': params,
         'epochs': EPOCHS,
@@ -106,9 +145,7 @@ def train(db,params,dtrain,dtest,team_name,inverse=False,trial=False,output=OUTP
       # path_accuracy = ('%.2f%%' % (accuracy * 100.0)).replace('.','_')
       # save_path = f'models/nhl_ai_v{XGB_FILE_VERSION}_xgboost_{team_name}_{OUTPUT}_{path_accuracy}.joblib'
       save_path = f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_{output}{"_F" if inverse else ""}.joblib'
-      save_path_calibrated = f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_{output}_CALIBRATED{"_F" if inverse else ""}.joblib'
-      # dump(bst, save_path)
-      dump(scaler, save_path_calibrated)
+      dump(bst, save_path)
   return accuracy
 
 if __name__ == '__main__':
@@ -137,9 +174,11 @@ if __name__ == '__main__':
     y_train = team_data [[OUTPUT]].values.ravel()
     y_train_winB = team_data [['winB']].values.ravel()
     y_train_lossB = team_data [['lossB']].values.ravel()
-    dtrains[team] = {'dm':xgb.DMatrix(x_train, label=y_train),'x_train':x_train,'y_train':y_train,'len':len(x_train)}
-    dtrains_winB[team] = {'dm':xgb.DMatrix(x_train, label=y_train_winB),'x_train':x_train,'y_train':y_train_winB,'len':len(x_train)}
-    dtrains_lossB[team] = {'dm':xgb.DMatrix(x_train, label=y_train_lossB),'x_train':x_train,'y_train':y_train_lossB,'len':len(x_train)}
+    interaction_constraints = [[x_train.columns.get_loc(j) for j in i] for i in WEIGHTS]
+    interaction_constraints_str = str(interaction_constraints).replace(' ','')
+    dtrains[team] = {'dm':xgb.DMatrix(x_train, label=y_train),'x_train':x_train,'y_train':y_train,'len':len(x_train),'ic':interaction_constraints_str}
+    dtrains_winB[team] = {'dm':xgb.DMatrix(x_train, label=y_train_winB),'x_train':x_train,'y_train':y_train_winB,'len':len(x_train),'ic':interaction_constraints_str}
+    dtrains_lossB[team] = {'dm':xgb.DMatrix(x_train, label=y_train_lossB),'x_train':x_train,'y_train':y_train_lossB,'len':len(x_train),'ic':interaction_constraints_str}
 
   TEST_DATA = test_input(X_INPUTS_T,[OUTPUT],no_format=True)
   test_data1 = pd.DataFrame(TEST_DATA)
@@ -168,6 +207,9 @@ if __name__ == '__main__':
     dtests_winB[team] = {'dm':xgb.DMatrix(x_test, label=y_test_winB),'x_test':x_test,'y_test':y_test_winB,'len':len(x_test)}
     dtests_lossB[team] = {'dm':xgb.DMatrix(x_test, label=y_test_lossB),'x_test':x_test,'y_test':y_test_lossB,'len':len(x_test)}
 
+  # INTERACTION_CONSTRAINTS = [[data.columns.get_loc(j) for j in i] for i in WEIGHTS]
+  # INTERACTION_CONSTRAINTS = f'[' + ", ".join(['[' + ', '.join(str(idx) for idx in group) + ']' for group in INTERACTION_CONSTRAINTS]) + ']'
+  # print(INTERACTION_CONSTRAINTS)
   if TRIAL:
     for output in OUTPUTS:
       team_bests = {}
@@ -245,7 +287,7 @@ if __name__ == '__main__':
     print('Output:', OUTPUT)
     for team, dtrain in dtrains.items():
       team_params = PARAMS[team]
-      print('Params:', team_params)
+      # print('Params:', team_params)
 
       dtest = dtests[team]
       team_name = teamLookup[team]['abbrev']
@@ -253,4 +295,5 @@ if __name__ == '__main__':
       team_params['eval_metric'] = 'logloss'
       team_params['device'] = 'cuda'
       team_params['tree_method'] = 'hist'
-      train(db,PARAMS[team],dtrain,dtest,team_name,trial=False)
+      # team_params['interaction_constraints'] = dtrain['ic']
+      train(db,team_params[OUTPUT],dtrain,dtest,team_name,trial=False)

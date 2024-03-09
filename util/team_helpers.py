@@ -24,6 +24,7 @@ home_rename = {
   'awayGoalieAverageAge': 'opponentGoalieAverageAge',
   'winner': 'win',
   'winnerB': 'winB',
+  'goalDifferential': 'spread',
 }
 away_rename = {
   'homeTeam': 'opponent',
@@ -46,6 +47,7 @@ away_rename = {
   'awayGoalieAverageAge': 'goalieAverageAge',
   'winner': 'win',
   'winnerB': 'winB',
+  'goalDifferential': 'spread',
 }
 
 team_score = {

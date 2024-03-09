@@ -38,7 +38,9 @@ def nhl_predict_team_day():
   day = request.args.get('day', default=1, type=int)
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
-  return predict_team_day(db, date, day, game, projectedLineup, wModels, lModels)
+  projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
+  vote = request.args.get('date', default='hard', type=str)
+  return predict_team_day(db, date, day, game, projectedLineup, wModels, lModels, projectedRoster, vote)
 
 @app.route('/nhl/team/day/simple', methods=['GET'])
 def nhl_predict_team_day_simple():
@@ -46,7 +48,9 @@ def nhl_predict_team_day_simple():
   day = request.args.get('day', default=1, type=int)
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
-  return predict_team_day_simple(db, date, day, game, projectedLineup, wModels, lModels)
+  projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
+  vote = request.args.get('date', default='hard', type=str)
+  return predict_team_day_simple(db, date, day, game, projectedLineup, wModels, lModels, projectedRoster, vote)
 
 @app.route('/nhl/team/day/receipt', methods=['GET'])
 def nhl_predict_team_day_receipt():
@@ -54,13 +58,18 @@ def nhl_predict_team_day_receipt():
   day = request.args.get('day', default=1, type=int)
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
-  return predict_team_day_receipt(db, date, day, game, projectedLineup, wModels, lModels)
+  projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
+  vote = request.args.get('date', default='hard', type=str)
+  return predict_team_day_receipt(db, date, day, game, projectedLineup, wModels, lModels, projectedRoster, vote)
 
 @app.route('/team/test', methods=['GET'])
 def nhl_test_model_team():
   startID = request.args.get('start', default=-1, type=int)
   endID = request.args.get('end', default=-1, type=int)
-  return test_model_team(db, startID,endID, wModels, lModels)
+  projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
+  projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
+  vote = request.args.get('date', default='hard', type=str)
+  return test_model_team(db, startID,endID, wModels, lModels, projectedLineup, projectedRoster, vote)
 
 @app.route('/db/update', methods=['GET'])
 def nhl_save_boxscores():
