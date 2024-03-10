@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, roc_curve, auc
 from training_input import training_input, test_input
 from constants.inputConstants import X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, TEST_DATA_FILE_VERSION, START_SEASON, END_SEASON
-from util.team_models import PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_CALIBRATED_H2H, PREDICT_CALIBRATED_SCORE_H2H, W_MODELS, L_MODELS
+from util.team_models import PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, W_MODELS, L_MODELS
 from util.helpers import team_lookup
 from util.team_helpers import away_rename, home_rename
 from pymongo import MongoClient
@@ -28,6 +28,8 @@ db = client['hockey']
 # Suppress specific UserWarning from sklearn
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
 warnings.filterwarnings("ignore", message="X has feature names")
+
+TEAM = 1
 
 SEASONS = [
   # 20052006,
@@ -62,6 +64,9 @@ training_data = pd.concat([training_data1, training_data2], axis=0)
 training_data.reset_index(drop=True, inplace=True)
 teams = training_data.groupby('team')
 
+if TEAM:
+  teams = [(TEAM, teams.get_group(TEAM))]
+
 OUTPUT = 'winnerB'
 TEST_DATA = test_input(X_INPUTS_T,[OUTPUT],no_format=True)
 test_df = pd.DataFrame(TEST_DATA)
@@ -77,6 +82,12 @@ test_df = pd.DataFrame(TEST_DATA)
 
 y_test = test_df [['winnerB']].values.ravel()
 
+def accuracy(test_data, y_test, wModels, lModels):
+  predictions, *other = PREDICT_SCORE_H2H(test_data, wModels, lModels)
+  accuracy = accuracy_score(y_test, predictions)
+  print(f'Accuracy: {accuracy}')
+  return accuracy
+
 def plot_confidences():
   predictions,confidences,away_predictions,home_predictions,away_probability,home_probability,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probability_away,l_probability_away,w_probability_home,l_probability_home = PREDICT_SCORE_H2H(TEST_DATA,W_MODELS,L_MODELS,test=True)
   correct_confidences = []
@@ -91,12 +102,12 @@ def plot_confidences():
   total_correct = len(correct_confidences)
   total_incorrect = len(incorrect_confidences)
   normal = total_incorrect / total_correct
-  step = 10
-  for j in range(0,100,step):
-    g = [i for i in confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+step).ljust(2,"0")}')]
-    c_g = [i for i in correct_confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+step).ljust(2,"0")}')]
-    i_g = [i for i in incorrect_confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+step).ljust(2,"0")}')]
-    print(f'{j}% - {j + (step-1)}%: {len(c_g)} ({(len(c_g)/len(g) if len(g) > 0 else 0)*100:.2f}%) {len(i_g)} ({(len(i_g)/len(g) if len(g) > 0 else 0)*100:.2f}%) {len(g)}')
+  bin = 1
+  for j in range(0,101,bin):
+    g = [i for i in confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    c_g = [i for i in correct_confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    i_g = [i for i in incorrect_confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    print(f'{j}% - {j + (bin-1)}%: {len(c_g)} ({(len(c_g)/len(g) if len(g) > 0 else 0)*100:.2f}%) {len(i_g)} ({(len(i_g)/len(g) if len(g) > 0 else 0)*100:.2f}%) {len(g)}')
   
   print(f'Total Correct: {total_correct}')
   print(f'Total Incorrect: {total_incorrect}')
@@ -111,23 +122,30 @@ def plot_confidences():
   plt.legend(loc="upper left")
   plt.show()
 
-def team_by_team_feature_importance(models, max_num_features=10):
-  teamLookup  = team_lookup(db)
-  for i in models:
-    model = models[i]['model']
-    plt.figure(figsize=(10, 8))
-    ax = plt.gca()  # Get current axis
-    xgb.plot_importance(model, max_num_features=max_num_features, ax=ax)
-    plt.title(teamLookup[i]['abbrev'])
-    plt.show()
+# def team_by_team_feature_importance(models, max_num_features=10):
+#   teamLookup  = team_lookup(db)
+#   for i in models:
+#     model = models[i]['model']
+#     plt.figure(figsize=(10, 8))
+#     ax = plt.gca()  # Get current axis
+#     xgb.plot_importance(model, max_num_features=max_num_features, ax=ax)
+#     plt.title(teamLookup[i]['abbrev'])
+#     plt.show()
 
 def team_by_team_class_count(class_label='winB'):
   teamLookup  = team_lookup(db)
   for team, team_data in teams:
     print(f'{teamLookup[team]["abbrev"]}:')
     class_counts = team_data.value_counts(class_label)
-    print(class_counts[0])
+    class_values = list(class_counts.values)
+    class_list = list(zip(class_counts.index,class_counts.values))
+    class_max = max(class_values)
+    class_list = [(i[0],i[1],round((1/(i[1]/class_max)))) for i in class_list]
+    print(class_counts)
+    print(class_list)
 
 if __name__ == '__main__':
+  # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
+  # plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)
-  team_by_team_class_count('winB')
+  team_by_team_class_count('spread')

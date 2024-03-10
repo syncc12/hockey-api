@@ -50,6 +50,11 @@ away_rename = {
   'goalDifferential': 'spread',
 }
 
+franchise_map = {
+  11:52,
+  27:53,
+}
+
 team_score = {
   1: {'team': 'NJD', 'winB': 0.6206896551724138, 'lossB': 0.6206896551724138, 'score': 0.6206896551724138, 'id': 1}, 
   2: {'team': 'NYI', 'winB': 0.6551724137931034, 'lossB': 0.6551724137931034, 'score': 0.6551724137931034, 'id': 2}, 
