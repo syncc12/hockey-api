@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, roc_curve, auc
 from training_input import training_input, test_input
 from constants.inputConstants import X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, TEST_DATA_FILE_VERSION, START_SEASON, END_SEASON
-from util.team_models import PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, W_MODELS, L_MODELS
+from util.team_models import PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, W_MODELS, L_MODELS, S_MODELS
 from util.helpers import team_lookup
 from util.team_helpers import away_rename, home_rename
 from pymongo import MongoClient
@@ -67,20 +67,21 @@ teams = training_data.groupby('team')
 if TEAM:
   teams = [(TEAM, teams.get_group(TEAM))]
 
-OUTPUT = 'winnerB'
+OUTPUT = 'spread'
 TEST_DATA = test_input(X_INPUTS_T,[OUTPUT],no_format=True)
 test_df = pd.DataFrame(TEST_DATA)
-# test_data1 = pd.DataFrame(TEST_DATA)
-# test_data2 = pd.DataFrame(TEST_DATA)
-# test_data1.rename(columns=home_rename, inplace=True)
-# test_data1['winB'] = 1 - test_data1['winB']
-# test_data1['lossB'] = 1 - test_data1['winB']
-# test_data2.rename(columns=away_rename, inplace=True)
-# test_data2['lossB'] = 1 - test_data2['winB']
-# test_data = pd.concat([test_data1, test_data2], axis=0)
-# test_data.reset_index(drop=True, inplace=True)
+test_data1 = pd.DataFrame(TEST_DATA)
+test_data2 = pd.DataFrame(TEST_DATA)
+test_data1.rename(columns=home_rename, inplace=True)
+test_data1['winB'] = 1 - test_data1['winB']
+test_data1['lossB'] = 1 - test_data1['winB']
+test_data2.rename(columns=away_rename, inplace=True)
+test_data2['lossB'] = 1 - test_data2['winB']
+test_data = pd.concat([test_data1, test_data2], axis=0)
+test_data.reset_index(drop=True, inplace=True)
 
-y_test = test_df [['winnerB']].values.ravel()
+x_test = test_data [X_INPUTS_T]
+y_test = test_df [['goalDifferential']].values.ravel()
 
 def accuracy(test_data, y_test, wModels, lModels):
   predictions, *other = PREDICT_SCORE_H2H(test_data, wModels, lModels)
@@ -88,8 +89,28 @@ def accuracy(test_data, y_test, wModels, lModels):
   print(f'Accuracy: {accuracy}')
   return accuracy
 
+def spread_scores(x_test, y_test, sModels):
+  teamLookup  = team_lookup(db)
+  scores = {}
+  for team in sModels:
+    predictions = sModels[team].predict(x_test)
+    accuracy = accuracy_score(y_test, predictions)
+    scores[team] = {
+      'team': teamLookup[team]['abbrev'],
+      'score': accuracy,
+      'id': team
+    }
+  print(scores)
+
+def spread_accuracies(test_data, y_test, sModels):
+  predictions, *other = PREDICT_SCORE_SPREAD(test_data, sModels)
+  accuracy = accuracy_score(y_test, predictions)
+  print(f'Accuracy: {accuracy}')
+  return accuracy
+
 def plot_confidences():
-  predictions,confidences,away_predictions,home_predictions,away_probability,home_probability,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probability_away,l_probability_away,w_probability_home,l_probability_home = PREDICT_SCORE_H2H(TEST_DATA,W_MODELS,L_MODELS,test=True)
+  # predictions,confidences = PREDICT_SCORE_H2H(TEST_DATA,W_MODELS,L_MODELS,test=True,simple_return=True)
+  predictions,confidences = PREDICT_SCORE_SPREAD(TEST_DATA,S_MODELS,simple_return=True)
   correct_confidences = []
   incorrect_confidences = []
   for i in range(0,len(predictions)):
@@ -102,7 +123,7 @@ def plot_confidences():
   total_correct = len(correct_confidences)
   total_incorrect = len(incorrect_confidences)
   normal = total_incorrect / total_correct
-  bin = 1
+  bin = 10
   for j in range(0,101,bin):
     g = [i for i in confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+bin).ljust(2,"0")}')]
     c_g = [i for i in correct_confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+bin).ljust(2,"0")}')]
@@ -145,7 +166,9 @@ def team_by_team_class_count(class_label='winB'):
     print(class_list)
 
 if __name__ == '__main__':
+  # spread_scores(x_test, y_test, S_MODELS)
+  # spread_accuracies(TEST_DATA, y_test, S_MODELS)
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
-  # plot_confidences()
+  plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)
-  team_by_team_class_count('spread')
+  # team_by_team_class_count('spread')

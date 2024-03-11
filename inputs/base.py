@@ -23,6 +23,8 @@ def base_inputs(db,awayTeam,homeTeam,game,gi,startTime,date):
     'awayScore': safe_chain(awayTeam,'score'),
     'totalGoals': safe_chain(homeTeam,'score') + safe_chain(awayTeam,'score'),
     'goalDifferential': safe_chain(homeTeam,'score') - safe_chain(awayTeam,'score') if safe_chain(homeTeam,'score') >= safe_chain(awayTeam,'score') else safe_chain(awayTeam,'score') - safe_chain(homeTeam,'score'),
+    'spread': safe_chain(homeTeam,'score') - safe_chain(awayTeam,'score') if safe_chain(homeTeam,'score') >= safe_chain(awayTeam,'score') else safe_chain(awayTeam,'score') - safe_chain(homeTeam,'score'),
+    'puckLine': safe_chain(homeTeam,'score') - safe_chain(awayTeam,'score'),
     'winner': homeId if safe_chain(homeTeam,'score') > safe_chain(awayTeam,'score') else awayId,
     'winnerB': 0 if safe_chain(homeTeam,'score') > safe_chain(awayTeam,'score') else 1,
     'startTime': startTime,

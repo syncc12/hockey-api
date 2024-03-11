@@ -3,6 +3,8 @@ import xgboost as xgb
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.multiclass import unique_labels
 
+TEAM_IDS = [1,2,3,4,5,6,7,8,9,10,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28,29,30,52,53,54,55]
+
 home_rename = {
   'homeTeam': 'team',
   'awayTeam': 'opponent',
@@ -24,7 +26,6 @@ home_rename = {
   'awayGoalieAverageAge': 'opponentGoalieAverageAge',
   'winner': 'win',
   'winnerB': 'winB',
-  'goalDifferential': 'spread',
 }
 away_rename = {
   'homeTeam': 'opponent',
@@ -47,7 +48,6 @@ away_rename = {
   'awayGoalieAverageAge': 'goalieAverageAge',
   'winner': 'win',
   'winnerB': 'winB',
-  'goalDifferential': 'spread',
 }
 
 franchise_map = {
@@ -88,6 +88,41 @@ team_score = {
   53: {'team': 'ARI', 'winB': 0.6724137931034483, 'lossB': 0.6724137931034483, 'score': 0.6724137931034483, 'id': 53}, 
   54: {'team': 'VGK', 'winB': 0.6206896551724138, 'lossB': 0.6206896551724138, 'score': 0.6206896551724138, 'id': 54}, 
   55: {'team': 'SEA', 'winB': 0.6379310344827587, 'lossB': 0.6379310344827587, 'score': 0.6379310344827587, 'id': 55},
+}
+
+team_spread_score = {
+  1: {'team': 'NJD', 'score': 0.30198019801980197, 'id': 1},
+  2: {'team': 'NYI', 'score': 0.3712871287128713, 'id': 2},
+  3: {'team': 'NYR', 'score': 0.37673267326732673, 'id': 3},
+  4: {'team': 'PHI', 'score': 0.2079207920792079, 'id': 4},
+  5: {'team': 'PIT', 'score': 0.33910891089108913, 'id': 5},
+  6: {'team': 'BOS', 'score': 0.4, 'id': 6},
+  7: {'team': 'BUF', 'score': 0.38712871287128714, 'id': 7},
+  8: {'team': 'MTL', 'score': 0.35198019801980196, 'id': 8},
+  9: {'team': 'OTT', 'score': 0.29405940594059404, 'id': 9},
+  10: {'team': 'TOR', 'score': 0.31435643564356436, 'id': 10},
+  12: {'team': 'CAR', 'score': 0.3910891089108911, 'id': 12},
+  13: {'team': 'FLA', 'score': 0.37475247524752475, 'id': 13},
+  14: {'team': 'TBL', 'score': 0.2024752475247525, 'id': 14},
+  15: {'team': 'WSH', 'score': 0.3801980198019802, 'id': 15},
+  16: {'team': 'CHI', 'score': 0.27722772277227725, 'id': 16},
+  17: {'team': 'DET', 'score': 0.35297029702970295, 'id': 17},
+  18: {'team': 'NSH', 'score': 0.1316831683168317, 'id': 18},
+  19: {'team': 'STL', 'score': 0.22574257425742575, 'id': 19},
+  20: {'team': 'CGY', 'score': 0.25445544554455446, 'id': 20},
+  21: {'team': 'COL', 'score': 0.3995049504950495, 'id': 21},
+  22: {'team': 'EDM', 'score': 0.24306930693069306, 'id': 22},
+  23: {'team': 'VAN', 'score': 0.28465346534653463, 'id': 23},
+  24: {'team': 'ANA', 'score': 0.35297029702970295, 'id': 24},
+  25: {'team': 'DAL', 'score': 0.35247524752475246, 'id': 25},
+  26: {'team': 'LAK', 'score': 0.39455445544554457, 'id': 26},
+  28: {'team': 'SJS', 'score': 0.347029702970297, 'id': 28},
+  29: {'team': 'CBJ', 'score': 0.3811881188118812, 'id': 29},
+  30: {'team': 'MIN', 'score': 0.29158415841584157, 'id': 30},
+  52: {'team': 'WPG', 'score': 0.3668316831683168, 'id': 52},
+  53: {'team': 'ARI', 'score': 0.12475247524752475, 'id': 53},
+  54: {'team': 'VGK', 'score': 0.2732673267326733, 'id': 54},
+  55: {'team': 'SEA', 'score': 0.4, 'id': 55},
 }
 
 def team_lookup(db):

@@ -21,6 +21,7 @@ if not os.path.exists(dir_path):
 tdList = os.listdir(dir_path)
 
 USE_SEASONS = True
+UPDATE = True
 SKIP_SEASONS = [int(td.replace(f'training_data_v{FILE_VERSION}_','').replace('.joblib','')) for td in tdList] if len(tdList) > 0 and not f'training_data_v{FILE_VERSION}.joblib' in os.listdir('training_data') else []
 
 LATEST_SEASON = 20232024
@@ -43,10 +44,11 @@ if __name__ == '__main__':
       ))
       seasons = [int(season['seasonId']) for season in seasons]
       print(seasons)
-      if (len(SKIP_SEASONS) > 0):
-        for season in SKIP_SEASONS:
-          seasons.remove(season)
-        print(seasons)
+      if not UPDATE:
+        if (len(SKIP_SEASONS) > 0):
+          for season in SKIP_SEASONS:
+            seasons.remove(season)
+          print(seasons)
   else:
     ids = latestIDs()
     startID = ids['saved']['training']
