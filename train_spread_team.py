@@ -175,15 +175,16 @@ if __name__ == '__main__':
 
   accuracies = []
   if OPTIMIZE:
+    MAX_EVALS = 5000
     for team, dtrain in dtrains.items():
       dtrain = dtrains[team]
       dtest = dtests[team]
       team_name = teamLookup[team]['abbrev']
       print(f'Starting {team_name} Optimization')
       class_keys = list(dtrain['data'].value_counts(OUTPUT).keys())
-      space = {f'class_weight_{i}': hp.uniform(f'class_weight_{i}',1, 50) for i in class_keys}
+      space = {f'class_weight_{i}': hp.uniform(f'class_weight_{i}',1, 100) for i in class_keys}
       space['max_iter'] = hp.quniform('max_iter', 10, 1000, 1)
-      space['C'] = hp.uniform('C', 0.01, 50)
+      space['C'] = hp.uniform('C', 0.01, 100)
 
       def objective(params):
         class_weight = {i: params[f'class_weight_{i}'] for i in class_keys}
@@ -204,7 +205,7 @@ if __name__ == '__main__':
         return {'loss': -accuracy, 'status': STATUS_OK}
       
       trials = Trials()
-      best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=500, trials=trials)
+      best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=MAX_EVALS, trials=trials)
       print(f"{team_name} Best parameters: {best}")
       exclude_keys = {'max_iter','C'}
       class_weights = {int(k.split('_')[-1]): v for k,v in best.items() if k not in exclude_keys}
