@@ -1,32 +1,76 @@
-NJD winB Accuracy: 47.62%
-NYI winB Accuracy: 45.16%
-NYR winB Accuracy: 46.77%
-PHI winB Accuracy: 57.81%
-PIT winB Accuracy: 47.54%
-BOS winB Accuracy: 63.08%
-BUF winB Accuracy: 50.00%
-MTL winB Accuracy: 50.79%
-OTT winB Accuracy: 60.66%
-TOR winB Accuracy: 52.38%
-CAR winB Accuracy: 54.84%
-FLA winB Accuracy: 52.38%
-TBL winB Accuracy: 53.12%
-WSH winB Accuracy: 54.10%
-CHI winB Accuracy: 74.60%
-DET winB Accuracy: 45.16%
-NSH winB Accuracy: 46.88%
-STL winB Accuracy: 47.62%
-CGY winB Accuracy: 51.61%
-COL winB Accuracy: 53.12%
-EDM winB Accuracy: 62.30%
-VAN winB Accuracy: 38.46%
-ANA winB Accuracy: 61.29%
-DAL winB Accuracy: 51.56%
-LAK winB Accuracy: 51.61%
-SJS winB Accuracy: 58.06%
-CBJ winB Accuracy: 61.90%
-MIN winB Accuracy: 60.32%
-WPG winB Accuracy: 45.90%
-ARI winB Accuracy: 58.73%
-VGK winB Accuracy: 46.77%
-SEA winB Accuracy: 46.77%
+PS C:\Users\syncc\code\Hockey API\hockey_api> python3 ./train_spread_team.py
+Seasons Loaded
+Starting BOS Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [38:29<00:00,  2.17trial/s, best loss: -0.48484848484848486]
+BOS Best parameters: {'C': 53.81480457585678, 'class_weight_1': 39.78457635804824, 'class_weight_2': 34.90860222026356, 'class_weight_3': 51.88601552350045, 'class_weight_4': 29.538974489279465, 'class_weight_5': 21.582912929206252, 'class_weight_6': 42.736169499868566, 'class_weight_7': 78.89008828702012, 'max_iter': 744.0, 'solver': 'saga'}
+BOS spread Accuracy: 45.45% | 66
+Starting BUF Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [36:09<00:00,  2.30trial/s, best loss: -0.4]
+BUF Best parameters: {'C': 59.93878092379869, 'class_weight_1': 68.63556648752234, 'class_weight_2': 26.317846270893202, 'class_weight_3': 4.522640775420132, 'class_weight_4': 43.97994566484322, 'class_weight_5': 19.152434103422365, 'class_weight_6': 31.48090548762989, 'class_weight_7': 81.99735726777924, 'max_iter': 232.0, 'solver': 'lbfgs'}
+BUF spread Accuracy: 23.08% | 65
+Starting MTL Optimization
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [35:21<00:00,  2.36trial/s, best loss: -0.578125]
+MTL Best parameters: {'C': 31.987954657702485, 'class_weight_1': 57.571453864297006, 'class_weight_2': 73.01140947349528, 'class_weight_3': 85.30152046753203, 'class_weight_4': 51.14525394587908, 'class_weight_5': 21.705096756426357, 'class_weight_6': 74.85243456719265, 'class_weight_7': 43.91195839116098, 'class_weight_8': 17.392357478256272, 'class_weight_9': 59.20809591035682, 'max_iter': 163.0, 'solver': 'lbfgs'}
+MTL spread Accuracy: 20.31% | 64
+Starting OTT Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [33:11<00:00,  2.51trial/s, best loss: -0.43548387096774194]
+OTT Best parameters: {'C': 0.3565352258774226, 'class_weight_1': 72.27093025714427, 'class_weight_2': 98.93894522266456, 'class_weight_3': 99.84335535819362, 'class_weight_4': 82.39875469450787, 'class_weight_5': 72.04683875207563, 'class_weight_6': 88.5605034605681, 'class_weight_7': 14.104633127096234, 'max_iter': 605.0, 'solver': 'lbfgs'}
+OTT spread Accuracy: 25.81% | 62
+Starting TOR Optimization
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [30:02<00:00,  2.77trial/s, best loss: -0.515625]
+TOR Best parameters: {'C': 32.14666602826941, 'class_weight_1': 36.9078460044444, 'class_weight_2': 35.54895100686393, 'class_weight_3': 66.57518085135892, 'class_weight_4': 49.449092245520546, 'class_weight_5': 25.683248259481424, 'class_weight_6': 53.91154088760336, 'class_weight_7': 10.719486826216912, 'max_iter': 50.0, 'solver': 'lbfgs'}
+TOR spread Accuracy: 43.75% | 64
+Starting CAR Optimization
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [24:43<00:00,  3.37trial/s, best loss: -0.4375]
+CAR Best parameters: {'C': 12.597181902402601, 'class_weight_1': 50.06884867795948, 'class_weight_2': 30.937892686274946, 'class_weight_3': 46.00891820570159, 'class_weight_4': 3.338274272264478, 'class_weight_5': 59.993924166951665, 'class_weight_6': 41.98113646359827, 'class_weight_7': 84.08554328176764, 'max_iter': 507.0, 'solver': 'lbfgs'}
+CAR spread Accuracy: 28.12% | 64
+Starting FLA Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [36:56<00:00,  2.26trial/s, best loss: -0.40625]
+FLA Best parameters: {'C': 31.775348514403966, 'class_weight_1': 73.3672180237899, 'class_weight_2': 75.80832857410066, 'class_weight_3': 82.50522237654594, 'class_weight_4': 62.9837900352599, 'class_weight_5': 26.52057864429419, 'class_weight_6': 43.60000417038296, 'class_weight_7': 97.05899289003133, 'class_weight_8': 88.22579464152332, 'max_iter': 651.0, 'solver': 'lbfgs'}
+FLA spread Accuracy: 21.88% | 64
+Starting TBL Optimization
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [27:43<00:00,  3.01trial/s, best loss: -0.2923076923076923]
+TBL Best parameters: {'C': 57.796928403790325, 'class_weight_1': 4.811839198605161, 'class_weight_2': 90.39738223774602, 'class_weight_3': 86.1258184045937, 'class_weight_4': 63.47789443982935, 'class_weight_5': 24.78031116229972, 'class_weight_6': 59.1045038057967, 'class_weight_7': 99.0159675253103, 'class_weight_8': 48.151130885837176, 'max_iter': 679.0, 'solver': 'liblinear'}
+TBL spread Accuracy: 29.23% | 65
+Starting WSH Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [28:36<00:00,  2.91trial/s, best loss: -0.45161290322580644]
+WSH Best parameters: {'C': 64.89711383073009, 'class_weight_1': 37.02686885674734, 'class_weight_2': 49.785700333184764, 'class_weight_3': 3.126933121694006, 'class_weight_4': 65.66486277975574, 'class_weight_5': 87.73055190491526, 'class_weight_6': 36.59752744096546, 'class_weight_7': 23.447850919355247, 'max_iter': 52.0, 'solver': 'lbfgs'}
+WSH spread Accuracy: 40.32% | 62
+Starting CHI Optimization
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [37:30<00:00,  2.22trial/s, best loss: -0.4307692307692308]
+CHI Best parameters: {'C': 16.84496106166472, 'class_weight_1': 77.3132822383334, 'class_weight_2': 19.065645488655452, 'class_weight_3': 94.42631088205984, 'class_weight_4': 70.43382546763462, 'class_weight_5': 61.04695756016775, 'class_weight_6': 32.563431998719714, 'class_weight_9': 48.83763972056059, 'max_iter': 612.0, 'solver': 'saga'}
+CHI spread Accuracy: 35.38% | 65
+Starting DET Optimization
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [32:19<00:00,  2.58trial/s, best loss: -0.4375]
+DET Best parameters: {'C': 88.49143545528334, 'class_weight_1': 86.29017251481756, 'class_weight_2': 5.670675234441233, 'class_weight_3': 9.535835861606085, 'class_weight_4': 35.67719607517229, 'class_weight_5': 72.85610499699058, 'class_weight_6': 89.80812788397996, 'class_weight_7': 63.998889999995285, 'class_weight_9': 62.21518429924803, 'max_iter': 213.0, 'solver': 'saga'}
+DET spread Accuracy: 37.50% | 64
+Starting NSH Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [41:25<00:00,  2.01trial/s, best loss: -0.42424242424242425]
+NSH Best parameters: {'C': 82.04778836214946, 'class_weight_1': 84.13436755590523, 'class_weight_2': 41.10064811646083, 'class_weight_3': 95.40242306047045, 'class_weight_4': 20.47306959158368, 'class_weight_5': 26.00988552337232, 'class_weight_6': 40.137187737388956, 'class_weight_7': 55.19190733003527, 'class_weight_8': 64.6308729984906, 'max_iter': 389.0, 'solver': 'saga'}
+NSH spread Accuracy: 37.88% | 66
+Starting STL Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [25:09<00:00,  3.31trial/s, best loss: -0.40625]
+STL Best parameters: {'C': 77.94714640090376, 'class_weight_1': 86.71474788895196, 'class_weight_2': 90.83108801872112, 'class_weight_3': 98.12980844102732, 'class_weight_4': 61.4618725835004, 'class_weight_5': 38.54002256818261, 'class_weight_6': 45.090527820880226, 'class_weight_8': 86.96048559929376, 'max_iter': 111.0, 'solver': 'saga'}
+STL spread Accuracy: 15.62% | 64
+Starting CGY Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [20:34<00:00,  4.05trial/s, best loss: -0.40625]
+CGY Best parameters: {'C': 69.43840099341917, 'class_weight_1': 65.68184656333291, 'class_weight_2': 8.34638769094219, 'class_weight_3': 94.20014477744117, 'class_weight_4': 64.48488868321965, 'class_weight_5': 71.58427889407747, 'class_weight_6': 4.6879545274568875, 'class_weight_8': 14.934709844512717, 'max_iter': 32.0, 'solver': 'liblinear'}
+CGY spread Accuracy: 40.62% | 64
+Starting COL Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [41:58<00:00,  1.99trial/s, best loss: -0.38461538461538464]
+COL Best parameters: {'C': 14.651963383425514, 'class_weight_1': 40.12984905787012, 'class_weight_2': 30.655847389595564, 'class_weight_3': 81.36664892736323, 'class_weight_4': 81.11978905378975, 'class_weight_5': 34.33385586914552, 'class_weight_6': 62.48874921058363, 'class_weight_7': 55.2649307240915, 'class_weight_8': 53.772969843311174, 'max_iter': 689.0, 'solver': 'saga'}
+COL spread Accuracy: 27.69% | 65
+Starting EDM Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [36:03<00:00,  2.31trial/s, best loss: -0.36507936507936506]
+EDM Best parameters: {'C': 90.82137382019303, 'class_weight_1': 66.0932085378031, 'class_weight_2': 19.956116094961892, 'class_weight_3': 84.22231807096134, 'class_weight_4': 13.722597235500892, 'class_weight_5': 7.224250354246555, 'class_weight_6': 56.53680420962537, 'max_iter': 746.0, 'solver': 'saga'}
+EDM spread Accuracy: 28.57% | 63
+Starting VAN Optimization
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [27:47<00:00,  3.00trial/s, best loss: -0.4090909090909091]
+VAN Best parameters: {'C': 34.507426684788996, 'class_weight_1': 79.86835020737252, 'class_weight_2': 11.004210244285506, 'class_weight_3': 43.93344400991469, 'class_weight_4': 24.445357273076446, 'class_weight_5': 7.728586014340044, 'class_weight_6': 82.43800869829222, 'class_weight_7': 37.403807566970194, 'max_iter': 55.0, 'solver': 'lbfgs'}
+VAN spread Accuracy: 40.91% | 66
+Starting ANA Optimization
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [37:09<00:00,  2.24trial/s, best loss: -0.47619047619047616] 
+ANA Best parameters: {'C': 57.15043693358845, 'class_weight_1': 92.1371855908725, 'class_weight_2': 58.447302395210855, 'class_weight_3': 11.350965215898109, 'class_weight_4': 68.41256639703647, 'class_weight_5': 34.26981643410305, 'class_weight_6': 67.7892625190051, 'class_weight_7': 62.66560062422724, 'max_iter': 743.0, 'solver': 'saga'}
+ANA spread Accuracy: 9.52% | 63
+Starting DAL Optimization
+ 94%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊        | 4715/5000 [28:57<02:20,  2.03trial/s, best loss: -0.5454545454545454]

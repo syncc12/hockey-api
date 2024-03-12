@@ -12,10 +12,12 @@ import time
 from sklearn.metrics import accuracy_score, mean_absolute_error, confusion_matrix
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.exceptions import ConvergenceWarning
 from util.helpers import team_lookup
 from training_input import training_input, test_input
 from util.team_helpers import away_rename, home_rename, franchise_map, TEAM_IDS
 from hyperopt import hp, fmin, tpe, Trials, STATUS_OK
+import warnings
 
 # scikit-learn==1.3.2
 
@@ -53,10 +55,10 @@ TRIAL = False
 OPTIMIZE = True
 DRY_RUN = False
 TEAM = False
-START_TEAM = False
+START_TEAM = 26
 
 
-def train(db,dtrain,dtest,team_name='',params={},class_weight={},max_iter=MAX_ITER,c=C,tol=TOL,trial=False,optimize=False,output=OUTPUT):
+def train(db,dtrain,dtest,team_name='',params={},solver=SOLVER,class_weight={},max_iter=MAX_ITER,c=C,tol=TOL,trial=False,optimize=False,output=OUTPUT):
 
   # class_counts = dtrain['data'].value_counts(output)
   # class_max = max(list(class_counts))
@@ -73,9 +75,8 @@ def train(db,dtrain,dtest,team_name='',params={},class_weight={},max_iter=MAX_IT
   # model = LinearRegression()
   model.fit(dtrain['x'], dtrain['y'])
 
-  preds = model.predict(dtest['x'])
+  predictions = model.predict(dtest['x'])
   y_test = dtest['y']
-  predictions = [round(i) for i in preds]
   accuracy = accuracy_score(y_test, predictions)
 
   if not trial and not optimize:
@@ -166,7 +167,7 @@ if __name__ == '__main__':
   
   if START_TEAM and not TEAM:
     start_index = TEAM_IDS.index(START_TEAM)
-    test_teams = [(team,teams.get_group(test_teams)) for team in TEAM_IDS[start_index:]]
+    test_teams = [(team,test_teams.get_group(team)) for team in TEAM_IDS[start_index:]]
 
   for team, team_data in test_teams:
     x_test = team_data [X_INPUTS_T]
@@ -175,41 +176,46 @@ if __name__ == '__main__':
 
   accuracies = []
   if OPTIMIZE:
-    MAX_EVALS = 5000
-    for team, dtrain in dtrains.items():
-      dtrain = dtrains[team]
-      dtest = dtests[team]
-      team_name = teamLookup[team]['abbrev']
-      print(f'Starting {team_name} Optimization')
-      class_keys = list(dtrain['data'].value_counts(OUTPUT).keys())
-      space = {f'class_weight_{i}': hp.uniform(f'class_weight_{i}',1, 100) for i in class_keys}
-      space['max_iter'] = hp.quniform('max_iter', 10, 1000, 1)
-      space['C'] = hp.uniform('C', 0.01, 100)
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore", ConvergenceWarning)
+      MAX_EVALS = 5000
+      for team, dtrain in dtrains.items():
+        dtrain = dtrains[team]
+        dtest = dtests[team]
+        team_name = teamLookup[team]['abbrev']
+        print(f'Starting {team_name} Optimization')
+        class_keys = list(dtrain['data'].value_counts(OUTPUT).keys())
+        space = {f'class_weight_{i}': hp.uniform(f'class_weight_{i}',1, 100) for i in class_keys}
+        space['max_iter'] = hp.quniform('max_iter', 10, 1000, 1)
+        space['C'] = hp.uniform('C', 0.01, 100)
+        solvers = ['lbfgs', 'liblinear', 'saga']
+        space['solver'] = hp.choice('solver', solvers)
 
-      def objective(params):
-        class_weight = {i: params[f'class_weight_{i}'] for i in class_keys}
-        params['max_iter'] = int(params['max_iter'])
-        model = LogisticRegression(
-          max_iter=params['max_iter'],
-          C=params['C'],
-          tol=TOL,
-          solver=SOLVER,
-          class_weight=class_weight,
-          random_state=RANDOM_STATE
-        )
-        model.fit(dtrain['x'], dtrain['y'])
-        preds = model.predict(dtest['x'])
-        y_test = dtest['y']
-        predictions = [round(i) for i in preds]
-        accuracy = accuracy_score(y_test, predictions)
-        return {'loss': -accuracy, 'status': STATUS_OK}
-      
-      trials = Trials()
-      best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=MAX_EVALS, trials=trials)
-      print(f"{team_name} Best parameters: {best}")
-      exclude_keys = {'max_iter','C'}
-      class_weights = {int(k.split('_')[-1]): v for k,v in best.items() if k not in exclude_keys}
-      train(db,dtrain,dtest,team_name=team_name,class_weight=class_weights,params=best,max_iter=int(best['max_iter']),c=best['C'],optimize=False,output=OUTPUT)
+        def objective(params):
+          class_weight = {i: params[f'class_weight_{i}'] for i in class_keys}
+          params['max_iter'] = int(params['max_iter'])
+          model = LogisticRegression(
+            max_iter=params['max_iter'],
+            C=params['C'],
+            tol=TOL,
+            solver=params['solver'],
+            class_weight=class_weight,
+            random_state=RANDOM_STATE
+          )
+          model.fit(dtrain['x'], dtrain['y'])
+          preds = model.predict(dtest['x'])
+          y_test = dtest['y']
+          predictions = [round(i) for i in preds]
+          accuracy = accuracy_score(y_test, predictions)
+          return {'loss': -accuracy, 'status': STATUS_OK}
+        
+        trials = Trials()
+        best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=MAX_EVALS, trials=trials)
+        best['solver'] = solvers[best['solver']]
+        print(f"{team_name} Best parameters: {best}")
+        exclude_keys = {'max_iter','C','solver'}
+        class_weights = {int(k.split('_')[-1]): v for k,v in best.items() if k not in exclude_keys}
+        train(db,dtrain,dtest,team_name=team_name,solver=best['solver'],class_weight=class_weights,params=best,max_iter=int(best['max_iter']),c=best['C'],optimize=False,output=OUTPUT)
   elif TRIAL:
     best = {}
     for i, (team, dtrain) in enumerate(dtrains.items()):

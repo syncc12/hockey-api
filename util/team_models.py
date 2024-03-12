@@ -10,6 +10,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS, X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_TEAM_VERSION, XGB_TEAM_FILE_VERSION, TEAM_VERSION, TEAM_FILE_VERSION, TORCH_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 from team_helpers import away_rename, home_rename, team_score, team_spread_score, TEAM_IDS
+from sklearn.metrics import accuracy_score
 import xgboost as xgb
 import warnings
 
@@ -56,6 +57,35 @@ for team in TEAM_IDS:
 
 # W_MODELS = {team: load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB.joblib') for team in TEAM_IDS}
 # L_MODELS = {team: load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB.joblib') for team in TEAM_IDS}
+
+
+def get_team_score(test_teams, teamLookup, models=(), score_type='moneyline'):
+  accuracies = {}
+  for team, team_data in test_teams:
+    team_name = teamLookup[team]['abbrev']
+    x_test = team_data [X_INPUTS_T]
+    if score_type == 'moneyline':
+      y_test_winB = team_data [['winB']].values.ravel()
+      y_test_lossB = team_data [['lossB']].values.ravel()
+      dtests_winB = xgb.DMatrix(x_test, label=y_test_winB)
+      dtests_lossB = xgb.DMatrix(x_test, label=y_test_lossB)
+      wModels = models[0]
+      lModels = models[1]
+      preds_w = wModels[team]['model'].predict(dtests_winB)
+      preds_l = lModels[team]['model'].predict(dtests_lossB)
+      predictions_w = [1 if i < 0.5 else 0 for i in preds_w] if wModels[team]['inverse'] else [1 if i > 0.5 else 0 for i in preds_w]
+      predictions_l = [1 if i < 0.5 else 0 for i in preds_l] if lModels[team]['inverse'] else [1 if i > 0.5 else 0 for i in preds_l]
+      accuracy_w = accuracy_score(y_test_winB, predictions_w)
+      accuracy_l = accuracy_score(y_test_lossB, predictions_l)
+      wl = (accuracy_w + accuracy_l) / 2
+      accuracies[team] = {'team':team_name,'winB':accuracy_w,'lossB':accuracy_l,'score':wl,'id':team}
+    elif score_type == 'spread':
+      y_test = team_data [['spread']].values.ravel()
+      sModels = models
+      predictions = sModels[team].predict(x_test)
+      accuracy = accuracy_score(y_test, predictions)
+      accuracies[team] = {'team':team_name,'spread':accuracy,'score':accuracy,'id':team}
+  return accuracies
 
 def PREDICT(data, team, wModels, lModels):
   wm = wModels[team]['model']
@@ -281,8 +311,8 @@ def PREDICT_SCORE_SPREAD(datas, sModels, simple_return=False):
   home_data = []
   scores = []
   for data in datas:
-    away_score = team_score[data['awayTeam']]['score']
-    home_score = team_score[data['homeTeam']]['score']
+    away_score = team_spread_score[data['awayTeam']]['score']
+    home_score = team_spread_score[data['homeTeam']]['score']
     if away_score > home_score:
       score_type = 'away'
       use_score = away_score

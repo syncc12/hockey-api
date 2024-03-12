@@ -5,12 +5,13 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from inputs.inputs import master_inputs
 from sklearn.metrics import accuracy_score, roc_curve, auc
 from training_input import training_input, test_input
 from constants.inputConstants import X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, TEST_DATA_FILE_VERSION, START_SEASON, END_SEASON
-from util.team_models import PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, W_MODELS, L_MODELS, S_MODELS
+from util.team_models import get_team_score, PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, W_MODELS, L_MODELS, S_MODELS
 from util.helpers import team_lookup
 from util.team_helpers import away_rename, home_rename
 from pymongo import MongoClient
@@ -24,6 +25,8 @@ db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
 client = MongoClient(db_url)
 db = client['hockey']
+
+teamLookup  = team_lookup(db)
 
 # Suppress specific UserWarning from sklearn
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
@@ -63,6 +66,7 @@ training_data2['lossB'] = 1 - training_data2['winB']
 training_data = pd.concat([training_data1, training_data2], axis=0)
 training_data.reset_index(drop=True, inplace=True)
 teams = training_data.groupby('team')
+teams_group = training_data.groupby('team')
 
 if TEAM:
   teams = [(TEAM, teams.get_group(TEAM))]
@@ -79,6 +83,8 @@ test_data2.rename(columns=away_rename, inplace=True)
 test_data2['lossB'] = 1 - test_data2['winB']
 test_data = pd.concat([test_data1, test_data2], axis=0)
 test_data.reset_index(drop=True, inplace=True)
+test_teams = test_data.groupby('team')
+test_teams_group = test_data.groupby('team')
 
 x_test = test_data [X_INPUTS_T]
 y_test = test_df [['goalDifferential']].values.ravel()
@@ -90,7 +96,6 @@ def accuracy(test_data, y_test, wModels, lModels):
   return accuracy
 
 def spread_scores(x_test, y_test, sModels):
-  teamLookup  = team_lookup(db)
   scores = {}
   for team in sModels:
     predictions = sModels[team].predict(x_test)
@@ -144,7 +149,6 @@ def plot_confidences():
   plt.show()
 
 # def team_by_team_feature_importance(models, max_num_features=10):
-#   teamLookup  = team_lookup(db)
 #   for i in models:
 #     model = models[i]['model']
 #     plt.figure(figsize=(10, 8))
@@ -154,7 +158,6 @@ def plot_confidences():
 #     plt.show()
 
 def team_by_team_class_count(class_label='winB'):
-  teamLookup  = team_lookup(db)
   for team, team_data in teams:
     print(f'{teamLookup[team]["abbrev"]}:')
     class_counts = team_data.value_counts(class_label)
@@ -165,10 +168,107 @@ def team_by_team_class_count(class_label='winB'):
     print(class_counts)
     print(class_list)
 
+def team_by_team_spread_prediction_breakdown():
+  for team, team_data in test_teams:
+    team_name = teamLookup[team]['abbrev']
+    x_test = team_data [X_INPUTS_T]
+    y_test = team_data [['spread']].values.ravel()
+    class_counts = Counter(y_test)
+    predictions = S_MODELS[team].predict(x_test)
+    prediction_counts = Counter(predictions)
+    print(f'{team_name}: {prediction_counts} | {len(predictions)} || {class_counts} | {len(y_test)}')
+
+def team_by_team_plot_confidences(team=1,output='winB'):
+  team_data = test_teams_group.get_group(team)
+  team_name = teamLookup[team]['abbrev']
+  if output == 'winB':
+    model = W_MODELS[team]
+  else:
+    model = L_MODELS[team]
+  x_test = team_data [X_INPUTS_T]
+  y_test = team_data [[output]].values.ravel()
+  dtest = xgb.DMatrix(x_test, label=y_test)
+  confidences = model['model'].predict(dtest)
+  predictions = [1 if i < 0.5 else 0 for i in confidences] if model['inverse'] else [1 if i > 0.5 else 0 for i in confidences]
+  correct_confidences = []
+  incorrect_confidences = []
+  for i in range(0,len(predictions)):
+    if predictions[i] == y_test[i]:
+      # correct_confidences.append(1 - abs(0.5 - confidences[i]))
+      correct_confidences.append(confidences[i])
+    else:
+      # incorrect_confidences.append(1 - abs(0.5 - confidences[i]))
+      incorrect_confidences.append(confidences[i])
+  total_correct = len(correct_confidences)
+  total_incorrect = len(incorrect_confidences)
+  bin = 10
+  for j in range(0,101,bin):
+    g = [i for i in confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    c_g = [i for i in correct_confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    i_g = [i for i in incorrect_confidences if i >= float(f'0.{str(j).ljust(2,"0")}') and i < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    print(f'{j}% - {j + (bin-1)}%: {len(c_g)} ({(len(c_g)/len(g) if len(g) > 0 else 0)*100:.2f}%) {len(i_g)} ({(len(i_g)/len(g) if len(g) > 0 else 0)*100:.2f}%) {len(g)}')
+  
+  print(f'Breakdown: {Counter(predictions)}')
+  print(f'Total Correct: {total_correct} ({(total_correct/len(confidences))*100:.2f}%)')
+  print(f'Total Incorrect: {total_incorrect} ({(total_incorrect/len(confidences))*100:.2f}%)')
+  print(f'Total: {len(confidences)}')
+  plt.hist(correct_confidences, bins=bin, alpha=0.5, label='Correct', color='blue')
+  plt.hist(incorrect_confidences, bins=bin, alpha=0.5, label='Incorrect', color='red')
+  # plt.hist(confidences, bins='auto', alpha=0.5, label='All', color='green')
+  plt.xlabel('Confidence')
+  plt.ylabel('Count')
+  plt.title(f'{team_name} {output[:-1].capitalize()}B{" F" if model["inverse"] else ""} Confidence Count')
+  plt.legend(loc="upper left")
+  plt.show()
+
+def team_by_team_spread_plot_confidences(team=1):
+  team_data = test_teams_group.get_group(team)
+  team_name = teamLookup[team]['abbrev']
+  model = S_MODELS[team]
+  x_test = team_data [X_INPUTS_T]
+  y_test = team_data [['spread']].values.ravel()
+  predictions = model.predict(x_test)
+  confidences = model.predict_proba(x_test)
+  correct_confidences = []
+  incorrect_confidences = []
+  for i in range(0,len(predictions)):
+    if predictions[i] == y_test[i]:
+      correct_confidences.append(np.max(confidences[i]))
+    else:
+      incorrect_confidences.append(np.max(confidences[i]))
+  total_correct = len(correct_confidences)
+  total_incorrect = len(incorrect_confidences)
+  bin = 10
+  for j in range(0,101,bin):
+    g = [np.max(i) for i in confidences if np.max(i) >= float(f'0.{str(j).ljust(2,"0")}') and np.max(i) < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    c_g = [np.max(i) for i in correct_confidences if np.max(i) >= float(f'0.{str(j).ljust(2,"0")}') and np.max(i) < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    i_g = [np.max(i) for i in incorrect_confidences if np.max(i) >= float(f'0.{str(j).ljust(2,"0")}') and np.max(i) < float(f'0.{str(j+bin).ljust(2,"0")}')]
+    print(f'{j}% - {j + (bin-1)}%: {len(c_g)} ({(len(c_g)/len(g) if len(g) > 0 else 0)*100:.2f}%) {len(i_g)} ({(len(i_g)/len(g) if len(g) > 0 else 0)*100:.2f}%) {len(g)}')
+  
+  print(f'Breakdown: {Counter(predictions)}')
+  print(f'Total Correct: {total_correct}')
+  print(f'Total Incorrect: {total_incorrect}')
+  print(f'Total: {len(confidences)}')
+  plt.hist(correct_confidences, bins='auto', alpha=0.5, label='Correct', color='blue')
+  plt.hist(incorrect_confidences, bins='auto', alpha=0.5, label='Incorrect', color='red')
+  # plt.hist(confidences, bins='auto', alpha=0.5, label='All', color='green')
+  plt.xlabel('Confidence')
+  plt.ylabel('Count')
+  plt.title(f'{team_name} Spread Confidence Count')
+  plt.legend(loc="upper left")
+  plt.show()
+
 if __name__ == '__main__':
   # spread_scores(x_test, y_test, S_MODELS)
   # spread_accuracies(TEST_DATA, y_test, S_MODELS)
+  # team_by_team_spread_prediction_breakdown()
+  # team_by_team_plot_confidences(team=5,output='winB')
+  team_by_team_spread_plot_confidences(team=8)
+  # team_spread_score = get_team_score(test_teams=test_teams, teamLookup=teamLookup, models=(S_MODELS), score_type='spread')
+  # print(team_spread_score)
+  # team_score = get_team_score(test_teams=test_df, teamLookup=teamLookup, models=(W_MODELS, L_MODELS), score_type='moneyline')
+  # print(team_score)
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
-  plot_confidences()
+  # plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)
   # team_by_team_class_count('spread')

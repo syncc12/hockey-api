@@ -12,7 +12,7 @@ from constants.inputConstants import X_INPUTS, Y_OUTPUTS, X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_TEAM_VERSION, XGB_TEAM_FILE_VERSION, TORCH_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 import xgboost as xgb
 import warnings
-from util.team_models import PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_CALIBRATED_H2H, PREDICT_CALIBRATED_SCORE_H2H, W_MODELS, L_MODELS, W_MODELS_C, L_MODELS_C
+from util.team_models import PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, W_MODELS, L_MODELS, S_MODELS
 from util.team_helpers import away_rename, home_rename
 from util.helpers import team_lookup
 from training_input import test_input
@@ -62,21 +62,15 @@ def team_by_team_accuracies():
 
   print(accuracies)
 
-def team_by_team_calibrated_accuracies():
+def team_by_team_spread_accuracies():
   accuracies = {}
   for team, team_data in test_teams:
     team_name = teamLookup[team]['abbrev']
     x_test = team_data [X_INPUTS_T]
-    y_test_winB = team_data [['winB']].values.ravel()
-    y_test_lossB = team_data [['lossB']].values.ravel()
-    preds_w = W_MODELS_C[team]['model'].predict_proba(x_test)
-    preds_l = L_MODELS_C[team]['model'].predict_proba(x_test)
-    predictions_w = [1 if max(i) < 0.5 else 0 for i in preds_w] if W_MODELS_C[team]['inverse'] else [1 if max(i) > 0.5 else 0 for i in preds_w]
-    predictions_l = [1 if max(i) < 0.5 else 0 for i in preds_l] if L_MODELS_C[team]['inverse'] else [1 if max(i) > 0.5 else 0 for i in preds_l]
-    accuracy_w = accuracy_score(y_test_winB, predictions_w)
-    accuracy_l = accuracy_score(y_test_lossB, predictions_l)
-    wl = (accuracy_w + accuracy_l) / 2
-    accuracies[team] = {'team':team_name,'winB':accuracy_w,'lossB':accuracy_l,'score':wl,'id':team}
+    y_test = team_data [['spread']].values.ravel()
+    predictions = S_MODELS[team].predict(x_test)
+    accuracy = accuracy_score(y_test, predictions)
+    accuracies[team] = {'team':team_name,'spread':accuracy,'score':accuracy,'id':team}
 
   print(accuracies)
   for i in accuracies.items():
@@ -86,18 +80,12 @@ def overall_accuracies():
 
   # prediction,confidences, *other = PREDICT_H2H(TEST_DATA, W_MODELS, L_MODELS, test=True)
   # score_prediction,score_confidences, *other = PREDICT_SCORE_H2H(TEST_DATA, W_MODELS, L_MODELS, test=True)
-  calibrated_prediction,calibrated_confidences, *other = PREDICT_CALIBRATED_H2H(TEST_DATA, W_MODELS_C, L_MODELS_C, test=True)
-  # calibrated_score_prediction,calibrated_score_confidences, *other = PREDICT_CALIBRATED_SCORE_H2H(TEST_DATA, W_MODELS_C, L_MODELS_C, test=True)
   y_test = test_df [[OUTPUT]].values.ravel()
 
   # accuracy = accuracy_score(y_test, prediction)
   # score_accuracy = accuracy_score(y_test, score_prediction)
-  calibrated_accuracy = accuracy_score(y_test, calibrated_prediction)
-  # calibrated_score_accuracy = accuracy_score(y_test, calibrated_score_prediction)
   # print(f'Accuracy: {(accuracy*100):.2f}% - {len(y_test)} games')
   # print(f'Score Accuracy: {(score_accuracy*100):.2f}% - {len(y_test)} games')
-  print(f'Calibrated Accuracy: {(calibrated_accuracy*100):.2f}% - {len(y_test)} games')
-  # print(f'Calibrated Score Accuracy: {(calibrated_score_accuracy*100):.2f}% - {len(y_test)} games')
 
 def debug():
   # print(TEST_DATA)
@@ -107,6 +95,6 @@ def debug():
 
 if __name__ == '__main__':
   # team_by_team_accuracies()
-  # team_by_team_calibrated_accuracies()
+  # team_by_team_accuracSPREAD()
   overall_accuracies()
   # debug()
