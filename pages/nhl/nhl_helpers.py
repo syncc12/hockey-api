@@ -18,7 +18,7 @@ import boto3
 import io
 from inputs.inputs import master_inputs
 from util.models import MODEL_PREDICT, MODEL_CONFIDENCE, MODEL_BATCH_PREDICT, MODEL_BATCH_CONFIDENCE, MODEL_PREDICT_CONFIDENCE_WINNER_B
-from util.team_models import PREDICT_SCORE_H2H, PREDICT_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD
+from util.team_models import PREDICT_SCORE_H2H, PREDICT_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, PREDICT_COVERS, PREDICT_SCORE_COVERS
 from util.returns import ai_return_dict_projectedLineup, ai_return_dict, ai_return_dict2
 from train_torch import predict_model
 import xgboost as xgb
@@ -79,15 +79,17 @@ def ai_receipt(db, games, projectedLineups, models):
     receipt.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {confidences[i]}%')
   return receipt
 
-def ai_teams(db, games, projectedLineups, wModels, lModels, sModels, projectedRosters, simple=False, receipt=False, vote='hard'):
+def ai_teams(db, games, projectedLineups, wModels, lModels, sModels, cModels, projectedRosters, simple=False, receipt=False, vote='hard'):
   all_games = []
   data, game_data, extra_data = nhl_data2(db=db, games=games, useProjectedLineups=projectedLineups, useProjectedRosters=projectedRosters, no_df=True)
   if vote == 'soft':
     predictions,confidences,away_predictions,home_predictions,away_probabilities,home_probabilities,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probabilities_away,l_probabilities_away,w_probabilities_home,l_probabilities_home = PREDICT_H2H(data, wModels, lModels)
     spread_predictions,spread_confidences = PREDICT_SPREAD(data, sModels,simple_return=True)
+    covers_predictions,covers_confidences = PREDICT_COVERS(data, cModels,simple_return=True)
   else:
     predictions,confidences,away_predictions,home_predictions,away_probabilities,home_probabilities,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probabilities_away,l_probabilities_away,w_probabilities_home,l_probabilities_home = PREDICT_SCORE_H2H(data, wModels, lModels)
-    spread_predictions,spread_confidences = PREDICT_SPREAD(data, sModels,simple_return=True)
+    spread_predictions,spread_confidences = PREDICT_SCORE_SPREAD(data, sModels,simple_return=True)
+    covers_predictions,covers_confidences = PREDICT_SCORE_COVERS(data, cModels,simple_return=True)
   if simple:
     for i, prediction in enumerate(predictions):
       awayTeam = game_data[i]["away_team"]["name"]
@@ -98,6 +100,7 @@ def ai_teams(db, games, projectedLineups, wModels, lModels, sModels, projectedRo
         'homeTeam': homeTeam,
         'winningTeamB': f"{winner} - {(confidences[i]*100):.2f}%",
         'spread': f'{spread_predictions[i]} - {(spread_confidences[i]*100):.2f}%',
+        'covers': f'{covers_predictions[i]} - {(covers_confidences[i]*100):.2f}%',
         'crosscheck': {
           'awayWin': f"{w_predictions_away[i]} - {(w_probabilities_away[i]*100):.2f}%",
           'awayLoss': f"{l_predictions_away[i]} - {(l_probabilities_away[i]*100):.2f}%",
@@ -111,7 +114,8 @@ def ai_teams(db, games, projectedLineups, wModels, lModels, sModels, projectedRo
     return all_games
   elif receipt:
     for i in range(len(predictions)):
-      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {round(confidences[i]*100)}% | {spread_predictions[i]} - {round(spread_confidences[i]*100)}%')
+      p_covers = f' | COVERS - {round(covers_confidences[i]*100)}%' if covers_predictions[i] != 1 else ''
+      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {round(confidences[i]*100)}%{p_covers} | {spread_predictions[i]} - {round(spread_confidences[i]*100)}%')
     return all_games
   else:
     return {

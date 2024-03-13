@@ -797,29 +797,29 @@ def predict_day_receipt(db,date,day,gamePick,projectedLineup,models):
 def analytics(db,date,day,gamePick,projectedLineup,models):
   pass
 
-def predict_team_day(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, projectedRoster, vote):
+def predict_team_day(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
   projectedRosters = [projectedRoster]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, projectedRosters, vote)
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, cModels, projectedRosters, vote)
 
-def predict_team_day_simple(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, projectedRoster, vote):
+def predict_team_day_simple(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
   projectedRosters = [projectedRoster]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, projectedRosters, simple=True)
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, cModels, projectedRosters, simple=True)
 
-def predict_team_day_receipt(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, projectedRoster, vote):
+def predict_team_day_receipt(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
   projectedRosters = [projectedRoster]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, projectedRosters, receipt=True)
+  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, cModels, projectedRosters, receipt=True)

@@ -4,6 +4,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 import requests
+from joblib import dump
 # from util.helpers import safe_chain, false_chain
 
 def safe_chain(obj, *keys, default=-1):
@@ -27,6 +28,7 @@ db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
 client = MongoClient(db_url)
 db = client['mlb']
+Boxscores = db['boxscores']
 
 def collect_games():
   Games = db['games']
@@ -40,22 +42,39 @@ def collect_games():
       print(day['date'],day['totalGames'])
       Games.insert_many(day['games'])
 
-def collect_boxscores():
-  Games = db['games']
-  Boxscores = db['boxscores']
-  gamePks = list(Games.find(
-    {},
-    {'_id':0,'gamePk':1}
-  ))
-  gamePks = [pk['gamePk'] for pk in gamePks]
-  print(gamePks[0])
-  for pk in gamePks:
+def collect_boxscores(gamePks):
+  pk_len = len(gamePks)
+  data = []
+  for i, pk in enumerate(gamePks):
     try:
       boxscore_data = requests.get(f"https://statsapi.mlb.com/api/v1.1/game/{pk}/feed/live").json()
-      print(safe_chain(boxscore_data,'gameData','game','season'), safe_chain(boxscore_data,'gameData','datetime','officialDate'), pk)
-      Boxscores.insert_one(boxscore_data)
+      # print(safe_chain(boxscore_data,'gameData','game','season'), safe_chain(boxscore_data,'gameData','datetime','officialDate'), pk)
+      # Boxscores.insert_one(boxscore_data)
+      data.append(boxscore_data)
+      print(f"{safe_chain(boxscore_data,'gameData','game','season')} {pk} {i+1}/{pk_len}")
     except DuplicateKeyError:
       print('DUPLICATE - boxscore', pk)
       pass
+  return data
+# def collect_boxscores(pk):
+#   try:
+#     boxscore_data = requests.get(f"https://statsapi.mlb.com/api/v1.1/game/{pk}/feed/live").json()
+#     Boxscores.insert_one(boxscore_data)
+#     print(safe_chain(boxscore_data,'gameData','game','season'), safe_chain(boxscore_data,'gameData','datetime','officialDate'), pk)
+#   except DuplicateKeyError:
+#     print('DUPLICATE - boxscore', pk)
+#     pass
 
-collect_boxscores()
+if __name__ == "__main__":
+  Games = db['games']
+  seasons = [2020,2019,2018,2017]
+  for season in seasons:
+    gamePks = list(Games.find(
+      {'season': str(season)},
+      {'_id':0,'gamePk':1}
+    ))
+    gamePks = [pk['gamePk'] for pk in gamePks]
+    # print(gamePks)
+    boxscore_season_data = collect_boxscores(gamePks)
+    dump(boxscore_season_data, f'pages/mlb/data/boxscore_data_{season}.joblib')
+  print('done')

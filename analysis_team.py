@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score, roc_curve, auc
 from training_input import training_input, test_input
 from constants.inputConstants import X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, TEST_DATA_FILE_VERSION, START_SEASON, END_SEASON
-from util.team_models import get_team_score, PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, W_MODELS, L_MODELS, S_MODELS
+from util.team_models import get_team_score, PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, PREDICT_COVERS, PREDICT_SCORE_COVERS, W_MODELS, L_MODELS, S_MODELS, C_MODELS
 from util.helpers import team_lookup
 from util.team_helpers import away_rename, home_rename
 from pymongo import MongoClient
@@ -32,7 +32,7 @@ teamLookup  = team_lookup(db)
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
 warnings.filterwarnings("ignore", message="X has feature names")
 
-TEAM = 1
+TEAM = False
 
 SEASONS = [
   # 20052006,
@@ -71,7 +71,7 @@ teams_group = training_data.groupby('team')
 if TEAM:
   teams = [(TEAM, teams.get_group(TEAM))]
 
-OUTPUT = 'spread'
+OUTPUT = 'covers'
 TEST_DATA = test_input(X_INPUTS_T,[OUTPUT],no_format=True)
 test_df = pd.DataFrame(TEST_DATA)
 test_data1 = pd.DataFrame(TEST_DATA)
@@ -87,7 +87,7 @@ test_teams = test_data.groupby('team')
 test_teams_group = test_data.groupby('team')
 
 x_test = test_data [X_INPUTS_T]
-y_test = test_df [['goalDifferential']].values.ravel()
+y_test = test_df [['covers']].values.ravel()
 
 def accuracy(test_data, y_test, wModels, lModels):
   predictions, *other = PREDICT_SCORE_H2H(test_data, wModels, lModels)
@@ -109,6 +109,16 @@ def spread_scores(x_test, y_test, sModels):
 
 def spread_accuracies(test_data, y_test, sModels):
   predictions, *other = PREDICT_SCORE_SPREAD(test_data, sModels)
+  accuracy = accuracy_score(y_test, predictions)
+  print(f'Accuracy: {accuracy}')
+  return accuracy
+
+def covers_accuracies(test_data, y_test, cModels):
+  class_counts = test_df.value_counts('covers')
+  print(class_counts)
+  predictions, *other = PREDICT_SCORE_COVERS(test_data, cModels)
+  prediction_counts = Counter(predictions)
+  print(prediction_counts)
   accuracy = accuracy_score(y_test, predictions)
   print(f'Accuracy: {accuracy}')
   return accuracy
@@ -261,14 +271,22 @@ def team_by_team_spread_plot_confidences(team=1):
 if __name__ == '__main__':
   # spread_scores(x_test, y_test, S_MODELS)
   # spread_accuracies(TEST_DATA, y_test, S_MODELS)
+  covers_accuracies(TEST_DATA, y_test, C_MODELS)
   # team_by_team_spread_prediction_breakdown()
   # team_by_team_plot_confidences(team=5,output='winB')
-  team_by_team_spread_plot_confidences(team=8)
+  # team_by_team_spread_plot_confidences(team=8)
   # team_spread_score = get_team_score(test_teams=test_teams, teamLookup=teamLookup, models=(S_MODELS), score_type='spread')
-  # print(team_spread_score)
+  # # print(team_spread_score)
+  # for k,v in team_spread_score.items():
+  #   print(str(k) + ': ' + str(v) + ',')
+  # team_covers_score = get_team_score(test_teams=test_teams, teamLookup=teamLookup, models=(C_MODELS), score_type='covers')
+  # # print(team_covers_score)
+  # for k,v in team_covers_score.items():
+  #   print(str(k) + ': ' + str(v) + ',')
   # team_score = get_team_score(test_teams=test_df, teamLookup=teamLookup, models=(W_MODELS, L_MODELS), score_type='moneyline')
   # print(team_score)
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
   # plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)
-  # team_by_team_class_count('spread')
+  # team_by_team_class_count('covers')
+  pass

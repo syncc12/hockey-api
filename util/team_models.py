@@ -9,7 +9,7 @@ import os
 from sklearn.calibration import CalibratedClassifierCV
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS, X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_TEAM_VERSION, XGB_TEAM_FILE_VERSION, TEAM_VERSION, TEAM_FILE_VERSION, TORCH_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
-from team_helpers import away_rename, home_rename, team_score, team_spread_score, TEAM_IDS
+from team_helpers import away_rename, home_rename, team_score, team_spread_score, team_covers_score, TEAM_IDS
 from sklearn.metrics import accuracy_score
 import xgboost as xgb
 import warnings
@@ -22,6 +22,7 @@ warnings.filterwarnings("ignore", message="X has feature names")
 W_MODELS = {}
 L_MODELS = {}
 S_MODELS = {}
+C_MODELS = {}
 # W_MODELS_C = {}
 # L_MODELS_C = {}
 for team in TEAM_IDS:
@@ -41,22 +42,12 @@ for team in TEAM_IDS:
 
   S_MODELS[team] = load(f'models/nhl_ai_v{TEAM_FILE_VERSION}_team{team}_spread.joblib')
 
-  # if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_CALIBRATED.joblib'):
-  #   W_MODELS_C[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_CALIBRATED.joblib'), 'inverse': False}
-  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_CALIBRATED_F.joblib'):
-  #   W_MODELS_C[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_CALIBRATED_F.joblib'), 'inverse': True}
-  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_CALIBRATED_I.joblib'):
-  #   W_MODELS_C[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_CALIBRATED_I.joblib'), 'inverse': True}
-
-  # if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_CALIBRATED.joblib'):
-  #   L_MODELS_C[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_CALIBRATED.joblib'), 'inverse': False}
-  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_CALIBRATED_F.joblib'):
-  #   L_MODELS_C[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_CALIBRATED_F.joblib'), 'inverse': True}
-  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_CALIBRATED_I.joblib'):
-  #   L_MODELS_C[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_CALIBRATED_I.joblib'), 'inverse': True}
-
-# W_MODELS = {team: load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB.joblib') for team in TEAM_IDS}
-# L_MODELS = {team: load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB.joblib') for team in TEAM_IDS}
+  if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers.joblib'):
+    C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers.joblib'), 'inverse': False}
+  elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_F.joblib'):
+    C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_F.joblib'), 'inverse': True}
+  elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_I.joblib'):
+    C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_I.joblib'), 'inverse': True}
 
 
 def get_team_score(test_teams, teamLookup, models=(), score_type='moneyline'):
@@ -85,6 +76,14 @@ def get_team_score(test_teams, teamLookup, models=(), score_type='moneyline'):
       predictions = sModels[team].predict(x_test)
       accuracy = accuracy_score(y_test, predictions)
       accuracies[team] = {'team':team_name,'spread':accuracy,'score':accuracy,'id':team}
+    elif score_type == 'covers':
+      y_test = team_data [['covers']].values.ravel()
+      dtests = xgb.DMatrix(x_test, label=y_test)
+      cModels = models
+      preds = cModels[team]['model'].predict(dtests)
+      predictions = [1 if i < 0.5 else 0 for i in preds] if cModels[team]['inverse'] else [1 if i > 0.5 else 0 for i in preds]
+      accuracy = accuracy_score(y_test, predictions)
+      accuracies[team] = {'team':team_name,'covers':accuracy,'score':accuracy,'id':team}
   return accuracies
 
 def PREDICT(data, team, wModels, lModels):
@@ -166,7 +165,6 @@ def PREDICT_H2H(datas, wModels, lModels, test=False, simple_return=False):
 
   return predictions,confidences,away_predictions,home_predictions,away_probability,home_probability,w_predictions_away,l_predictions_away,w_predictions_home,l_predictions_home,w_probability_away,l_probability_away,w_probability_home,l_probability_home
 
-THRESHOLD = 0.5
 def PREDICT_SCORE_H2H(datas, wModels, lModels, test=False, simple_return=False):
   w_probability_away = []
   l_probability_away = []
@@ -228,13 +226,13 @@ def PREDICT_SCORE_H2H(datas, wModels, lModels, test=False, simple_return=False):
   for i in range(0,len(w_probability_home)):
     home_probability.append({'probability':(w_probability_home[i]['probability'] + (1 - l_probability_home[i]['probability'])) / 2,'score_type':w_probability_home[i]['score_type']})
 
-  w_predictions_away = [{'prediction':1 if i['probability'] > THRESHOLD else 0, 'score_type':i['score_type']} for i in w_probability_away]
-  l_predictions_away = [{'prediction':1 if i['probability'] > THRESHOLD else 0, 'score_type':i['score_type']} for i in l_probability_away]
-  w_predictions_home = [{'prediction':1 if i['probability'] > THRESHOLD else 0, 'score_type':i['score_type']} for i in w_probability_home]
-  l_predictions_home = [{'prediction':1 if i['probability'] > THRESHOLD else 0, 'score_type':i['score_type']} for i in l_probability_home]
+  w_predictions_away = [{'prediction':1 if i['probability'] > 0.5 else 0, 'score_type':i['score_type']} for i in w_probability_away]
+  l_predictions_away = [{'prediction':1 if i['probability'] > 0.5 else 0, 'score_type':i['score_type']} for i in l_probability_away]
+  w_predictions_home = [{'prediction':1 if i['probability'] > 0.5 else 0, 'score_type':i['score_type']} for i in w_probability_home]
+  l_predictions_home = [{'prediction':1 if i['probability'] > 0.5 else 0, 'score_type':i['score_type']} for i in l_probability_home]
 
-  away_predictions = [{'prediction':1 if i['probability'] > THRESHOLD else 0,'score_type':i['score_type']} for i in away_probability]
-  home_predictions = [{'prediction':1 if i['probability'] > THRESHOLD else 0,'score_type':i['score_type']} for i in home_probability]
+  away_predictions = [{'prediction':1 if i['probability'] > 0.5 else 0,'score_type':i['score_type']} for i in away_probability]
+  home_predictions = [{'prediction':1 if i['probability'] > 0.5 else 0,'score_type':i['score_type']} for i in home_probability]
   predictions = []
   for i in range(0,len(away_predictions)):
     if away_predictions[i]['score_type'] == 'away':
@@ -364,6 +362,117 @@ def PREDICT_SCORE_SPREAD(datas, sModels, simple_return=False):
   home_probability = [i['probability'] for i in home_data]
   away_predictions = [i['prediction'] for i in away_data]
   home_predictions = [i['prediction'] for i in home_data]
+
+  if simple_return:
+    return predictions,confidences
+  return predictions,confidences,away_predictions,home_predictions,away_probability,home_probability
+
+
+
+def PREDICT_COVERS(datas, cModels, simple_return=False):
+  away_probability = []
+  home_probability = []
+  for data in datas:
+    cmAway = cModels[data['awayTeam']]['model']
+    cmHome = cModels[data['homeTeam']]['model']
+    cmAwayInverse = cModels[data['awayTeam']]['inverse']
+    cmHomeInverse = cModels[data['homeTeam']]['inverse']
+
+    awayData = pd.DataFrame(data, index=[0])
+    homeData = pd.DataFrame(data, index=[0])
+    awayData.rename(columns=away_rename, inplace=True)
+    homeData.rename(columns=home_rename, inplace=True)
+
+    awayData = awayData[X_INPUTS_T]
+    homeData = homeData[X_INPUTS_T]
+
+    daway = xgb.DMatrix(awayData)
+    dhome = xgb.DMatrix(homeData)
+
+    cmAP = cmAway.predict(daway)
+    cmHP = cmHome.predict(dhome)
+    away_probability.append(1-cmAP[0] if cmAwayInverse else cmAP[0])
+    home_probability.append(1-cmHP[0] if cmHomeInverse else cmHP[0])
+
+  away_predictions = [1 if i > 0.5 else 0 for i in away_probability]
+  home_predictions = [1 if i > 0.5 else 0 for i in home_probability]
+
+  predictions = [1 if away_predictions[i] > home_predictions[i] else 0 for i in range(0,len(away_predictions))]
+  confidences = [away_probability[i] if prediction == 1 else home_probability[i] for i, prediction in enumerate(predictions)]
+
+  if simple_return:
+    return predictions,confidences
+
+  return predictions,confidences,away_predictions,home_predictions,away_probability,home_probability
+
+def PREDICT_SCORE_COVERS(datas, cModels, simple_return=False):
+  away_probability = []
+  home_probability = []
+  scores = []
+  for data in datas:
+    away_score = team_covers_score[data['awayTeam']]['score']
+    home_score = team_covers_score[data['homeTeam']]['score']
+    if away_score > home_score:
+      score_type = 'away'
+      use_score = away_score
+    elif home_score > away_score:
+      score_type = 'home'
+      use_score = home_score
+    elif away_score == home_score:
+      score_type = 'both'
+      use_score = away_score
+    scores.append({'away':away_score,'home':home_score,'use':use_score})
+    cmAway = cModels[data['awayTeam']]['model']
+    cmHome = cModels[data['homeTeam']]['model']
+    cmAwayInverse = cModels[data['awayTeam']]['inverse']
+    cmHomeInverse = cModels[data['homeTeam']]['inverse']
+
+    awayData = pd.DataFrame(data, index=[0])
+    homeData = pd.DataFrame(data, index=[0])
+
+    awayData.rename(columns=away_rename, inplace=True)
+    homeData.rename(columns=home_rename, inplace=True)
+
+    awayData = awayData[X_INPUTS_T]
+    homeData = homeData[X_INPUTS_T]
+
+    daway = xgb.DMatrix(awayData)
+    dhome = xgb.DMatrix(homeData)
+
+    cmAP = cmAway.predict(daway)
+    cmHP = cmHome.predict(dhome)
+    away_probability.append({'probability':1-cmAP[0] if cmAwayInverse else cmAP[0],'score_type':score_type})
+    home_probability.append({'probability':1-cmHP[0] if cmHomeInverse else cmHP[0],'score_type':score_type})
+  
+  away_predictions = [{'prediction':1 if i['probability'] > 0.5 else 0, 'score_type':i['score_type']} for i in away_probability]
+  home_predictions = [{'prediction':1 if i['probability'] > 0.5 else 0, 'score_type':i['score_type']} for i in home_probability]
+  
+  predictions = []
+  for i in range(0,len(away_predictions)):
+    if away_predictions[i]['score_type'] == 'away':
+      predictions.append(away_predictions[i]['prediction'])
+    elif away_predictions[i]['score_type'] == 'home':
+      predictions.append(home_predictions[i]['prediction'])
+    elif away_predictions[i]['score_type'] == 'both':
+      predictions.append(away_predictions[i]['prediction'])
+  
+  confidences = []
+  for i in range(0,len(predictions)):
+    if away_predictions[i]['score_type'] == 'away':
+      confidences.append(away_probability[i]['probability'])
+    elif away_predictions[i]['score_type'] == 'home':
+      confidences.append(home_probability[i]['probability'])
+    elif away_predictions[i]['score_type'] == 'both':
+      confidences.append(away_probability[i]['probability'])
+
+  # confidences = [confidence * scores[i]['use'] for i, confidence in enumerate(confidences)]
+  # confidences = [1 - abs(0.5 - i) for i in confidences]
+  # confidences = [1 - abs(0.8 - i) for i in confidences]
+  
+  away_probability = [i['probability'] for i in away_probability]
+  home_probability = [i['probability'] for i in home_probability]
+  away_predictions = [i['prediction'] for i in away_predictions]
+  home_predictions = [i['prediction'] for i in home_predictions]
 
   if simple_return:
     return predictions,confidences

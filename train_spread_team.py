@@ -16,6 +16,7 @@ from sklearn.exceptions import ConvergenceWarning
 from util.helpers import team_lookup
 from training_input import training_input, test_input
 from util.team_helpers import away_rename, home_rename, franchise_map, TEAM_IDS
+from util.team_constants import SPREAD_PARAMS
 from hyperopt import hp, fmin, tpe, Trials, STATUS_OK
 import warnings
 
@@ -55,7 +56,8 @@ TRIAL = False
 OPTIMIZE = True
 DRY_RUN = False
 TEAM = False
-START_TEAM = 26
+START_TEAM = 3
+END_TEAM = 5
 
 
 def train(db,dtrain,dtest,team_name='',params={},solver=SOLVER,class_weight={},max_iter=MAX_ITER,c=C,tol=TOL,trial=False,optimize=False,output=OUTPUT):
@@ -68,14 +70,15 @@ def train(db,dtrain,dtest,team_name='',params={},solver=SOLVER,class_weight={},m
     max_iter=max_iter,
     C=c,
     tol=tol,
-    solver=SOLVER,
+    solver=solver,
     class_weight=class_weight if len(class_weight) > 0 else params,
     random_state=RANDOM_STATE
   )
   # model = LinearRegression()
   model.fit(dtrain['x'], dtrain['y'])
 
-  predictions = model.predict(dtest['x'])
+  preds = model.predict(dtest['x'])
+  predictions = [round(i) for i in preds]
   y_test = dtest['y']
   accuracy = accuracy_score(y_test, predictions)
 
@@ -142,9 +145,18 @@ if __name__ == '__main__':
   if TEAM:
     teams = [(TEAM, teams.get_group(TEAM))]
   
-  if START_TEAM and not TEAM:
+  if START_TEAM and not END_TEAM and not TEAM:
     start_index = TEAM_IDS.index(START_TEAM)
     teams = [(team,teams.get_group(team)) for team in TEAM_IDS[start_index:]]
+  
+  if END_TEAM and not START_TEAM and not TEAM:
+    end_index = TEAM_IDS.index(END_TEAM)
+    teams = [(team,teams.get_group(team)) for team in TEAM_IDS[:end_index]]
+  
+  if START_TEAM and END_TEAM and not TEAM:
+    start_index = TEAM_IDS.index(START_TEAM)
+    end_index = TEAM_IDS.index(END_TEAM)
+    teams = [(team,teams.get_group(team)) for team in TEAM_IDS[start_index:end_index]]
 
   dtrains = {}
   dtests = {}
@@ -178,7 +190,7 @@ if __name__ == '__main__':
   if OPTIMIZE:
     with warnings.catch_warnings():
       warnings.simplefilter("ignore", ConvergenceWarning)
-      MAX_EVALS = 5000
+      MAX_EVALS = 3500
       for team, dtrain in dtrains.items():
         dtrain = dtrains[team]
         dtest = dtests[team]
@@ -255,8 +267,15 @@ if __name__ == '__main__':
     for team, dtrain in dtrains.items():
       if team in franchise_map:
         team = franchise_map[team]
+      team_params = SPREAD_PARAMS[team]
+      if len(team_params) == 0:
+        continue
       dtest = dtests[team]
       team_name = teamLookup[team]['abbrev']
-      accuracy = train(db,dtrain,dtest,team_name=team_name)
+      class_weights = team_params['class_weights']
+      c = team_params['C']
+      max_iter = int(team_params['max_iter'])
+      solver = team_params['solver']
+      accuracy = train(db,dtrain,dtest,team_name=team_name,class_weight=class_weights,max_iter=max_iter,c=c,solver=solver,trial=False,output=OUTPUT)
       accuracies.append(accuracy)
     print('Average Accuracy:', f'{round((np.mean(accuracies)*100),2)}%')

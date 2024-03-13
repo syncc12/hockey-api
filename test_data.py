@@ -35,4 +35,4 @@ if __name__ == '__main__':
     result = season_test_data(LATEST_SEASON)
     dump(result,f'test_data/test_data_v{USE_FILE_VERSION}.joblib')
 
-  print('Test Data Collected')
+  print(f'Test Data Collected v{USE_VERSION}')

@@ -10,3 +10,4 @@ training_data.txt
 training_data*.txt
 training_data.csv
 training_data*.csv
+pages/mlb/data/*

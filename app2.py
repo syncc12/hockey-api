@@ -11,7 +11,7 @@ from pymongo import MongoClient
 from pages.nhl.service import predict_team_day, predict_team_day_simple, predict_team_day_receipt, test_model_team, save_boxscores, clean_boxscores
 from constants.constants import FILE_VERSION
 from util.helpers import recommended_wagers
-from util.team_models import W_MODELS, L_MODELS, S_MODELS
+from util.team_models import W_MODELS, L_MODELS, S_MODELS, C_MODELS
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -23,6 +23,7 @@ CURRENT_SEASON = db["dev_seasons"].find_one(sort=[("seasonId", -1)])['seasonId']
 wModels = W_MODELS
 lModels = L_MODELS
 sModels = S_MODELS
+cModels = C_MODELS
 
 app = Flask(__name__)
 
@@ -41,7 +42,7 @@ def nhl_predict_team_day():
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
   vote = request.args.get('date', default='hard', type=str)
-  return predict_team_day(db, date, day, game, projectedLineup, wModels, lModels, sModels, projectedRoster, vote)
+  return predict_team_day(db, date, day, game, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote)
 
 @app.route('/nhl/team/day/simple', methods=['GET'])
 def nhl_predict_team_day_simple():
@@ -51,7 +52,7 @@ def nhl_predict_team_day_simple():
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
   vote = request.args.get('date', default='hard', type=str)
-  return predict_team_day_simple(db, date, day, game, projectedLineup, wModels, lModels, sModels, projectedRoster, vote)
+  return predict_team_day_simple(db, date, day, game, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote)
 
 @app.route('/nhl/team/day/receipt', methods=['GET'])
 def nhl_predict_team_day_receipt():
@@ -61,7 +62,7 @@ def nhl_predict_team_day_receipt():
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
   vote = request.args.get('date', default='hard', type=str)
-  return predict_team_day_receipt(db, date, day, game, projectedLineup, wModels, lModels, sModels, projectedRoster, vote)
+  return predict_team_day_receipt(db, date, day, game, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote)
 
 @app.route('/team/test', methods=['GET'])
 def nhl_test_model_team():
