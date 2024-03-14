@@ -114,8 +114,8 @@ def ai_teams(db, games, projectedLineups, wModels, lModels, sModels, cModels, pr
     return all_games
   elif receipt:
     for i in range(len(predictions)):
-      p_covers = f' | COVERS - {round(covers_confidences[i]*100)}%' if covers_predictions[i] != 1 else ''
-      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["name"] if predictions[i] == 0 else game_data[i]["away_team"]["name"]} {round(confidences[i]*100)}%{p_covers} | {spread_predictions[i]} - {round(spread_confidences[i]*100)}%')
+      p_covers = f' | C - {round(covers_confidences[i]*100)}%' if covers_predictions[i] == 1 else ''
+      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["abbreviation"] if predictions[i] == 0 else game_data[i]["away_team"]["abbreviation"]} {round(confidences[i]*100)}%{p_covers} | {spread_predictions[i]} - {round(spread_confidences[i]*100)}%')
     return all_games
   else:
     return {

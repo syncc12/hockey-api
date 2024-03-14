@@ -125,7 +125,8 @@ def covers_accuracies(test_data, y_test, cModels):
 
 def plot_confidences():
   # predictions,confidences = PREDICT_SCORE_H2H(TEST_DATA,W_MODELS,L_MODELS,test=True,simple_return=True)
-  predictions,confidences = PREDICT_SCORE_SPREAD(TEST_DATA,S_MODELS,simple_return=True)
+  # predictions,confidences = PREDICT_SCORE_SPREAD(TEST_DATA,S_MODELS,simple_return=True)
+  predictions,confidences = PREDICT_SCORE_COVERS(TEST_DATA,C_MODELS,simple_return=True)
   correct_confidences = []
   incorrect_confidences = []
   for i in range(0,len(predictions)):
@@ -271,7 +272,7 @@ def team_by_team_spread_plot_confidences(team=1):
 if __name__ == '__main__':
   # spread_scores(x_test, y_test, S_MODELS)
   # spread_accuracies(TEST_DATA, y_test, S_MODELS)
-  covers_accuracies(TEST_DATA, y_test, C_MODELS)
+  # covers_accuracies(TEST_DATA, y_test, C_MODELS)
   # team_by_team_spread_prediction_breakdown()
   # team_by_team_plot_confidences(team=5,output='winB')
   # team_by_team_spread_plot_confidences(team=8)
@@ -286,7 +287,7 @@ if __name__ == '__main__':
   # team_score = get_team_score(test_teams=test_df, teamLookup=teamLookup, models=(W_MODELS, L_MODELS), score_type='moneyline')
   # print(team_score)
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
-  # plot_confidences()
+  plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)
   # team_by_team_class_count('covers')
   pass

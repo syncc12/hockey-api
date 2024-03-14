@@ -70,8 +70,7 @@ def nhl_test_model_team():
   endID = request.args.get('end', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
-  vote = request.args.get('date', default='hard', type=str)
-  return test_model_team(db, startID,endID, wModels, lModels, sModels, projectedLineup, projectedRoster, vote)
+  return test_model_team(db, startID,endID, wModels, lModels, cModels, projectedLineup, projectedRoster)
 
 @app.route('/db/update', methods=['GET'])
 def nhl_save_boxscores():

@@ -22,7 +22,7 @@ from pages.nhl.nhl_helpers import ai, ai_return_dict, ai2, ai_receipt, ai_teams
 from constants.constants import VERSION, FILE_VERSION
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from util.models import MODELS, TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP, winnersAgree
-from util.team_models import PREDICT_SCORE_H2H, PREDICT_H2H
+from util.team_models import PREDICT_SCORE_H2H, PREDICT_H2H, PREDICT_COVERS, PREDICT_SCORE_COVERS
 from inputs.projectedLineup import testProjectedLineup
 import warnings
 import xgboost as xgb
@@ -649,7 +649,7 @@ def test_model_simple(db,startID,endID,models):
       },
     })
 
-def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, projectedRoster=False, vote='hard'):
+def test_model_team(db,startID,endID,wModels,lModels,cModels, projectedLineup=False, projectedRoster=False):
   Boxscores = db['dev_boxscores']
 
 
@@ -665,14 +665,17 @@ def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, pro
   ))
 
   winnerB_results = []
-  winnerB_other_results = []
-  winnerB_agreement = []
-  winnerB_disagreement = []
-  winnerB_daily_agreement = []
-  winnerB_daily_disagreement = []
+  winner_covers_agreement = []
+  winner_covers_disagreement = []
+  winner_covers_daily_agreement = []
+  winner_covers_daily_disagreement = []
   winnerB_correct_confidences = []
   winnerB_incorrect_confidences = []
   winnerB_daily_percents = []
+  covers_results = []
+  covers_correct_confidences = []
+  covers_incorrect_confidences = []
+  covers_daily_percents = []
 
   test_results = {}
 
@@ -684,6 +687,9 @@ def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, pro
       'winnerB_line_results': [],
       'agrees': [],
       'disagrees': [],
+      'agrees_false': [],
+      'coversPercent': 0,
+      'covers_line_results': [],
     }
 
   for boxscore in boxscore_list:
@@ -693,33 +699,47 @@ def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, pro
     inputs = inputs['data']
 
     winnerB_prediction, winnerB_probability = PREDICT_SCORE_H2H([inputs],wModels,lModels,simple_return=True)
-    winnerB_other_prediction, winnerB_other_probability = PREDICT_H2H([inputs],wModels,lModels,simple_return=True)
+    covers_prediction, covers_probability = PREDICT_SCORE_COVERS([inputs],cModels,simple_return=True)
 
     winnerB_true = inputs['winnerB']
-    winnerB_use = winnerB_prediction[0] if vote == 'hard' else winnerB_other_prediction[0]
-    winnerB_other_use = winnerB_other_prediction[0] if vote == 'soft' else winnerB_prediction[0]
-    winnerB_calculation = 1 if winnerB_use == winnerB_true else 0
-    winnerB_other_calculation = 1 if winnerB_other_use == winnerB_true else 0
-    agreement = 1 if winnerB_other_use == winnerB_use and winnerB_use == winnerB_true  else 0
-    disagreement = 1 if winnerB_other_use != winnerB_use and winnerB_use == winnerB_true  else 0
+    covers_true = inputs['covers']
+    winnerB_calculation = 1 if winnerB_prediction[0] == winnerB_true else 0
+    covers_calculation = 1 if covers_prediction[0] == covers_true else 0
+    w_c_agree_true = 1 if winnerB_prediction[0] == covers_prediction[0] and winnerB_prediction[0] == winnerB_true and covers_prediction[0] == covers_true else 0
+    w_c_agree_false = 1 if winnerB_prediction[0] != covers_prediction[0] and winnerB_prediction[0] != winnerB_true and covers_prediction[0] != covers_true else 0
+    w_c_disagree = 1 if winnerB_prediction[0] != covers_prediction[0] else 0
+    agreement = w_c_agree_true
+    disagreement = w_c_disagree
     winnerB_results.append(winnerB_calculation)
-    winnerB_other_results.append(winnerB_other_calculation)
     if winnerB_calculation == 1:
       winnerB_correct_confidences.append(round(winnerB_probability[0] * 100))
     else:
       winnerB_incorrect_confidences.append(round(winnerB_probability[0] * 100))
+    covers_results.append(covers_calculation)
+    if covers_calculation == 1:
+      covers_correct_confidences.append(round(covers_probability[0] * 100))
+    else:
+      covers_incorrect_confidences.append(round(covers_probability[0] * 100))
 
-    winnerB_agreement.append(agreement)
-    winnerB_disagreement.append(disagreement)
+    winner_covers_agreement.append(agreement)
+    winner_covers_disagreement.append(disagreement)
     test_results[boxscore['gameDate']]['winnerB_line_results'].append(winnerB_calculation)
+    test_results[boxscore['gameDate']]['covers_line_results'].append(covers_calculation)
     test_results[boxscore['gameDate']]['agrees'].append(agreement)
     test_results[boxscore['gameDate']]['disagrees'].append(disagreement)
+    test_results[boxscore['gameDate']]['agrees_false'].append(w_c_agree_false)
     test_results[boxscore['gameDate']]['games'].append({
       'id': gameId,
       'home': inputs['homeTeam'],
       'away': inputs['awayTeam'],
       'homeScore': inputs['homeScore'],
       'awayScore': inputs['awayScore'],
+      'covers': {
+        'prediction': covers_prediction[0],
+        'actual': covers_true,
+        'calculation': 1 if covers_prediction[0] == covers_true else 0,
+        'confidence': round(covers_probability[0] * 100),
+      },
       'winnerB': {
         'prediction': winnerB_prediction[0],
         'actual': winnerB_true,
@@ -731,27 +751,42 @@ def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, pro
 
   for date in test_results:
     winnerBPercent = (sum(test_results[date]['winnerB_line_results']) / len(test_results[date]['winnerB_line_results'])) * 100
+    coversPercent = (sum(test_results[date]['covers_line_results']) / len(test_results[date]['covers_line_results'])) * 100
     test_results[date]['winnerBPercent'] = winnerBPercent
+    test_results[date]['coversPercent'] = coversPercent
     winnerB_daily_percents.append((winnerBPercent,len(test_results[date]['winnerB_line_results'])))
+    covers_daily_percents.append((coversPercent,len(test_results[date]['covers_line_results'])))
     agreement_percent = (sum(test_results[date]['agrees']) / len(test_results[date]['agrees'])) * 100
     disagreement_percent = (sum(test_results[date]['disagrees']) / len(test_results[date]['disagrees'])) * 100
+    false_agreement_percent = (sum(test_results[date]['agrees_false']) / len(test_results[date]['agrees_false'])) * 100
     test_results[date]['agreement'] = agreement_percent
     test_results[date]['disagreement'] = disagreement_percent
-    winnerB_daily_agreement.append((agreement_percent,len(test_results[date]['agrees'])))
+    test_results[date]['agrees_false'] = false_agreement_percent
+    winner_covers_daily_agreement.append((agreement_percent,len(test_results[date]['agrees'])))
 
   
-  accuracy_bins = {}
+  winnerB_accuracy_bins = {}
   for p in winnerB_daily_percents:
-    if str(p[1]) in accuracy_bins:
-      accuracy_bins[str(p[1])].append(p[0])
+    if str(p[1]) in winnerB_accuracy_bins:
+      winnerB_accuracy_bins[str(p[1])].append(p[0])
     else:
-      accuracy_bins[str(p[1])] = [p[0]]
-  accuracy_bin_averages = {}
-  for b in accuracy_bins:
-    accuracy_bin_averages[b] = sum(accuracy_bins[b]) / len(accuracy_bins[b])
+      winnerB_accuracy_bins[str(p[1])] = [p[0]]
+  winnerB_accuracy_bin_averages = {}
+  for b in winnerB_accuracy_bins:
+    winnerB_accuracy_bin_averages[b] = sum(winnerB_accuracy_bins[b]) / len(winnerB_accuracy_bins[b])
+
+  covers_accuracy_bins = {}
+  for p in covers_daily_percents:
+    if str(p[1]) in covers_accuracy_bins:
+      covers_accuracy_bins[str(p[1])].append(p[0])
+    else:
+      covers_accuracy_bins[str(p[1])] = [p[0]]
+  covers_accuracy_bin_averages = {}
+  for b in covers_accuracy_bins:
+    covers_accuracy_bin_averages[b] = sum(covers_accuracy_bins[b]) / len(covers_accuracy_bins[b])
 
   agreement_bins = {}
-  for p in winnerB_daily_agreement:
+  for p in winner_covers_daily_agreement:
     if str(p[1]) in agreement_bins:
       agreement_bins[str(p[1])].append(p[0])
     else:
@@ -761,7 +796,7 @@ def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, pro
     agreement_bin_averages[b] = sum(agreement_bins[b]) / len(agreement_bins[b])
   
   disagreement_bins = {}
-  for p in winnerB_daily_disagreement:
+  for p in winner_covers_daily_disagreement:
     if str(p[1]) in disagreement_bins:
       disagreement_bins[str(p[1])].append(p[0])
     else:
@@ -772,8 +807,10 @@ def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, pro
 
   # test_results['WinnerB Results'] = winnerB_results
   # test_results['WinnerB Daily Percents'] = winnerB_daily_percents
-  test_results['Daily Accuracy Bins'] = accuracy_bins
-  test_results['Daily Accuracy Bin Averages'] = accuracy_bin_averages
+  test_results['Daily WinnerB Accuracy Bins'] = winnerB_accuracy_bins
+  test_results['Daily WinnerB Accuracy Bin Averages'] = winnerB_accuracy_bin_averages
+  test_results['Daily Covers Accuracy Bins'] = covers_accuracy_bins
+  test_results['Daily Covers Accuracy Bin Averages'] = covers_accuracy_bin_averages
   test_results['Daily Agreement Bins'] = agreement_bins
   test_results['Daily Agreement Bin Averages'] = agreement_bin_averages
   test_results['Daily Disagreement Bins'] = disagreement_bins
@@ -781,9 +818,9 @@ def test_model_team(db,startID,endID,wModels,lModels, projectedLineup=False, pro
   # test_results['WinnerB Correct Confidences'] = winnerB_correct_confidences
   # test_results['WinnerB Incorrect Confidences'] = winnerB_incorrect_confidences
   test_results['allWinnerBPercent'] = (sum(winnerB_results) / len(winnerB_results)) * 100
-  test_results['allAgreementPercent'] = (sum(winnerB_agreement) / len(winnerB_agreement)) * 100
-  test_results['allDisagreementPercent'] = (sum(winnerB_disagreement) / len(winnerB_disagreement)) * 100
-
+  test_results['allCoversPercent'] = (sum(covers_results) / len(covers_results)) * 100
+  test_results['allAgreementPercent'] = (sum(winner_covers_agreement) / len(winner_covers_agreement)) * 100
+  test_results['allDisagreementPercent'] = (sum(winner_covers_disagreement) / len(winner_covers_disagreement)) * 100
   return test_results
 
 def predict_day_receipt(db,date,day,gamePick,projectedLineup,models):
