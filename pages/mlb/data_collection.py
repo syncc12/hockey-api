@@ -5,6 +5,8 @@ from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 import requests
 from joblib import dump
+from inputs import base_inputs
+import pandas as pd
 # from util.helpers import safe_chain, false_chain
 
 def safe_chain(obj, *keys, default=-1):
@@ -50,7 +52,8 @@ def collect_boxscores(gamePks):
       boxscore_data = requests.get(f"https://statsapi.mlb.com/api/v1.1/game/{pk}/feed/live").json()
       # print(safe_chain(boxscore_data,'gameData','game','season'), safe_chain(boxscore_data,'gameData','datetime','officialDate'), pk)
       # Boxscores.insert_one(boxscore_data)
-      data.append(boxscore_data)
+      base_data = base_inputs(boxscore_data)
+      data.append(base_data)
       print(f"{safe_chain(boxscore_data,'gameData','game','season')} {pk} {i+1}/{pk_len}")
     except DuplicateKeyError:
       print('DUPLICATE - boxscore', pk)
@@ -67,7 +70,7 @@ def collect_boxscores(gamePks):
 
 if __name__ == "__main__":
   Games = db['games']
-  seasons = [2020,2019,2018,2017]
+  seasons = [2023,2022,2021,2020,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010,2009,2008,2007,2006,2005,2004,2003,2002,2001,2000]
   for season in seasons:
     gamePks = list(Games.find(
       {'season': str(season)},
@@ -76,5 +79,5 @@ if __name__ == "__main__":
     gamePks = [pk['gamePk'] for pk in gamePks]
     # print(gamePks)
     boxscore_season_data = collect_boxscores(gamePks)
-    dump(boxscore_season_data, f'pages/mlb/data/boxscore_data_{season}.joblib')
+    dump(boxscore_season_data, f'pages/mlb/data/training_data_{season}.joblib')
   print('done')
