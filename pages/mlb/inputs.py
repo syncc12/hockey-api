@@ -1,4 +1,5 @@
-# Description: This file contains the inputs for the MLB model.
+import numpy as np
+from joblib import load
 
 def safe_chain(obj, *keys, default=-1):
   for key in keys:
@@ -18,20 +19,20 @@ def safe_chain(obj, *keys, default=-1):
   return obj
 
 def base_inputs(game):
-  homeId = safe_chain(game,'teams','home','id')
-  awayId = safe_chain(game,'teams','away','id')
-  homeScore = safe_chain(game,'teams','home','score',default=0)
-  awayScore = safe_chain(game,'teams','away','score',default=0)
-  awayBatters = safe_chain(game,'liveData','boxscore','teams','away','batters')
-  homeBatters = safe_chain(game,'liveData','boxscore','teams','home','batters')
-  awayPitchers = safe_chain(game,'liveData','boxscore','teams','away','pitchers')
-  homePitchers = safe_chain(game,'liveData','boxscore','teams','home','pitchers')
-  awayBench = safe_chain(game,'liveData','boxscore','teams','away','bench')
-  homeBench = safe_chain(game,'liveData','boxscore','teams','home','bench')
-  awayBullpen = safe_chain(game,'liveData','boxscore','teams','away','bullpen')
-  homeBullpen = safe_chain(game,'liveData','boxscore','teams','home','bullpen')
-  awayBattingOrder = safe_chain(game,'liveData','boxscore','teams','away','battingOrder')
-  homeBattingOrder = safe_chain(game,'liveData','boxscore','teams','home','battingOrder')
+  homeId = safe_chain(game,'gameData','teams','home','id')
+  awayId = safe_chain(game,'gameData','teams','away','id')
+  homeScore = safe_chain(game,'liveData','linescore','teams','home','runs',default=0)
+  awayScore = safe_chain(game,'liveData','linescore','teams','home','runs',default=0)
+  awayBatters = safe_chain(game,'liveData','boxscore','teams','away','batters',default=[])
+  homeBatters = safe_chain(game,'liveData','boxscore','teams','home','batters',default=[])
+  awayPitchers = safe_chain(game,'liveData','boxscore','teams','away','pitchers',default=[])
+  homePitchers = safe_chain(game,'liveData','boxscore','teams','home','pitchers',default=[])
+  awayBench = safe_chain(game,'liveData','boxscore','teams','away','bench',default=[])
+  homeBench = safe_chain(game,'liveData','boxscore','teams','home','bench',default=[])
+  awayBullpen = safe_chain(game,'liveData','boxscore','teams','away','bullpen',default=[])
+  homeBullpen = safe_chain(game,'liveData','boxscore','teams','home','bullpen',default=[])
+  awayBattingOrder = safe_chain(game,'liveData','boxscore','teams','away','battingOrder',default=[])
+  homeBattingOrder = safe_chain(game,'liveData','boxscore','teams','home','battingOrder',default=[])
   awayDefense = {}
   homeDefense = {}
   for i in safe_chain(game,'liveData','boxscore','teams','away','players',default=[]):
@@ -62,18 +63,18 @@ def base_inputs(game):
       homeDefense[position_code].append(player_id)
   return {
     'id': safe_chain(game,'gamePk'),
-    'season': safe_chain(game,'season'),
-    'gameType': safe_chain(game,'game','type'),
-    'doubleHeader': safe_chain(game,'game','doubleHeader'),
-    'venue': safe_chain(game,'venue','id'),
+    'season': int(safe_chain(game,'gameData','game','season')),
+    'gameType': safe_chain(game,'gameData','game','type'),
+    'doubleHeader': safe_chain(game,'gameData','game','doubleHeader'),
+    'venue': safe_chain(game,'gameData','venue','id'),
     'homeTeam': homeId,
     'awayTeam': awayId,
     'homeScore': homeScore,
     'awayScore': awayScore,
     'totalRuns': homeScore + awayScore,
     'spread': abs(homeScore - awayScore),
-    'winner': homeId if homeScore > awayScore else awayId,
-    'datetime': safe_chain(game,'datetime','dateTime'),
+    'winner': 0 if homeScore > awayScore else 1,
+    'datetime': safe_chain(game,'gameData','datetime','dateTime'),
     'awayBatters': sum(awayBatters) / len(awayBatters) if len(awayBatters) > 0 else 0,
     'awayPitchers': sum(awayPitchers) / len(awayPitchers) if len(awayPitchers) > 0 else 0,
     'awayBench': sum(awayBench) / len(awayBench) if len(awayBench) > 0 else 0,
@@ -121,3 +122,70 @@ def base_inputs(game):
     'homeRightField': sum(homeDefense.get(9,[])) / len(homeDefense.get(9,[])) if len(homeDefense.get(9,[])) > 0 else 0,
     'homeDH': sum(homeDefense.get(10,[])) / len(homeDefense.get(10,[])) if len(homeDefense.get(10,[])) > 0 else 0,
   }
+
+
+ENCODE_COLUMNS = [
+  'gameType',
+  'doubleHeader',
+]
+
+X_INPUTS_MLB = [
+  'season',
+  'gameType',
+  'doubleHeader',
+  'venue',
+  'homeTeam',
+  'awayTeam',
+  # 'datetime',
+  'awayBatters',
+  'awayPitchers',
+  'awayBench',
+  'awayBullpen',
+  'awayBatter1',
+  'awayBatter2',
+  'awayBatter3',
+  'awayBatter4',
+  'awayBatter5',
+  'awayBatter6',
+  'awayBatter7',
+  'awayBatter8',
+  'awayBatter9',
+  'awayPitcher',
+  'awayCatcher',
+  'awayFirstBase',
+  'awaySecondBase',
+  'awayThirdBase',
+  'awayShortstop',
+  'awayLeftField',
+  'awayCenterField',
+  'awayRightField',
+  'awayDH',
+  'homeBatters',
+  'homePitchers',
+  'homeBench',
+  'homeBullpen',
+  'homeBatter1',
+  'homeBatter2',
+  'homeBatter3',
+  'homeBatter4',
+  'homeBatter5',
+  'homeBatter6',
+  'homeBatter7',
+  'homeBatter8',
+  'homeBatter9',
+  'homePitcher',
+  'homeCatcher',
+  'homeFirstBase',
+  'homeSecondBase',
+  'homeThirdBase',
+  'homeShortstop',
+  'homeLeftField',
+  'homeCenterField',
+  'homeRightField',
+  'homeDH',
+]
+
+def mlb_training_input(seasons):
+  training_data = np.concatenate([load(f'pages/mlb/data/training_data_{season}.joblib') for season in seasons]).tolist()
+  print('Seasons Loaded')
+  return training_data
