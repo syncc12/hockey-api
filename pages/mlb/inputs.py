@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from joblib import load
 
 def safe_chain(obj, *keys, default=-1):
@@ -21,8 +22,8 @@ def safe_chain(obj, *keys, default=-1):
 def base_inputs(game):
   homeId = safe_chain(game,'gameData','teams','home','id')
   awayId = safe_chain(game,'gameData','teams','away','id')
+  awayScore = safe_chain(game,'liveData','linescore','teams','away','runs',default=0)
   homeScore = safe_chain(game,'liveData','linescore','teams','home','runs',default=0)
-  awayScore = safe_chain(game,'liveData','linescore','teams','home','runs',default=0)
   awayBatters = safe_chain(game,'liveData','boxscore','teams','away','batters',default=[])
   homeBatters = safe_chain(game,'liveData','boxscore','teams','home','batters',default=[])
   awayPitchers = safe_chain(game,'liveData','boxscore','teams','away','pitchers',default=[])
@@ -185,7 +186,75 @@ X_INPUTS_MLB = [
   'homeDH',
 ]
 
+X_INPUTS_MLB_T = [
+  'season',
+  'gameType',
+  'doubleHeader',
+  'venue',
+  'team',
+  'opponent',
+  # 'datetime',
+  'score',
+  'opponentScore',
+  'batters',
+  'pitchers',
+  'bench',
+  'bullpen',
+  'batter1',
+  'batter2',
+  'batter3',
+  'batter4',
+  'batter5',
+  'batter6',
+  'batter7',
+  'batter8',
+  'batter9',
+  'pitcher',
+  'catcher',
+  'firstBase',
+  'secondBase',
+  'thirdBase',
+  'shortstop',
+  'leftField',
+  'centerField',
+  'rightField',
+  'dh',
+  'opponentBatters',
+  'opponentPitchers',
+  'opponentBench',
+  'opponentBullpen',
+  'opponentBatter1',
+  'opponentBatter2',
+  'opponentBatter3',
+  'opponentBatter4',
+  'opponentBatter5',
+  'opponentBatter6',
+  'opponentBatter7',
+  'opponentBatter8',
+  'opponentBatter9',
+  'opponentPitcher',
+  'opponentCatcher',
+  'opponentFirstBase',
+  'opponentSecondBase',
+  'opponentThirdBase',
+  'opponentShortstop',
+  'opponentLeftField',
+  'opponentCenterField',
+  'opponentRightField',
+  'opponentDH',
+]
+
 def mlb_training_input(seasons):
   training_data = np.concatenate([load(f'pages/mlb/data/training_data_{season}.joblib') for season in seasons]).tolist()
   print('Seasons Loaded')
   return training_data
+
+def mlb_test_input(seasons=False):
+  if seasons:
+    if isinstance(seasons, list):
+      test_data = np.concatenate([load(f'pages/mlb/data/training_data_{season}.joblib') for season in seasons]).tolist()
+    else:
+      test_data = load(f'pages/mlb/data/training_data_{seasons}.joblib')
+  else:
+    test_data = load(f'pages/mlb/data/training_data_2023.joblib')
+  return test_data

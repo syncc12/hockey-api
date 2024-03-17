@@ -28,23 +28,23 @@ SEASONS = [
   2019,
   2018,
   2017,
-  2016,
-  2015,
-  2014,
-  2013,
-  2012,
-  2011,
-  2010,
-  2009,
-  2008,
-  2007,
-  2006,
-  2005,
-  2004,
-  2003,
-  2002,
-  2001,
-  2000,
+  # 2016,
+  # 2015,
+  # 2014,
+  # 2013,
+  # 2012,
+  # 2011,
+  # 2010,
+  # 2009,
+  # 2008,
+  # 2007,
+  # 2006,
+  # 2005,
+  # 2004,
+  # 2003,
+  # 2002,
+  # 2001,
+  # 2000,
 ]
 
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
   data = data.sort_values(by='id')
   x_train = data [X_INPUTS_MLB]
   y_train = data [[OUTPUT]].values.ravel()
-  x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.5, random_state=RANDOM_STATE)
+  x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
   dtrain = xgb.DMatrix(x_train, label=y_train)
   dtest = xgb.DMatrix(x_test, label=y_test)
 
