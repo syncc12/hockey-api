@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from joblib import load
+import requests
+from datetime import datetime
 
 def safe_chain(obj, *keys, default=-1):
   for key in keys:
@@ -19,11 +21,51 @@ def safe_chain(obj, *keys, default=-1):
           return default
   return obj
 
-def base_inputs(game):
+def previousGames(game):
+  awayId = game['gameData']['teams']['away']['id']
+  homeId = game['gameData']['teams']['home']['id']
+  season = game['gameData']['game']['season']
+  gameDateTime = datetime.strptime(game['gameData']['datetime']['dateTime'], '%Y-%m-%dT%H:%M:%SZ')
+  away_res = requests.get(f"https://statsapi.mlb.com/api/v1/schedule?lang=en&sportIds=1&season={season}&teamId={awayId}").json()
+  home_res = requests.get(f"https://statsapi.mlb.com/api/v1/schedule?lang=en&sportIds=1&season={season}&teamId={homeId}").json()
+  awayPKs = []
+  homePKs = []
+  for date in away_res['dates']:
+    for game in date['games']:
+      print({'gamePk':game['gamePk'],'dateTime':datetime.strptime(game['gameDate'], '%Y-%m-%dT%H:%M:%SZ')})
+      awayPKs.append({'gamePk':game['gamePk'],'dateTime':datetime.strptime(game['gameDate'], '%Y-%m-%dT%H:%M:%SZ')})
+  for date in home_res['dates']:
+    for game in date['games']:
+      homePKs.append({'gamePk':game['gamePk'],'dateTime':datetime.strptime(game['gameDate'], '%Y-%m-%dT%H:%M:%SZ')})
+  if len(awayPKs) > 0:
+    awayPk = sorted((item for item in awayPKs if item['dateTime'] < gameDateTime),
+                      key=lambda x: x['dateTime'],
+                      reverse=True)[0]['gamePk']
+    awayData = requests.get(f"https://statsapi.mlb.com/api/v1.1/game/{awayPk}/feed/live").json()
+  else:
+    awayData = {}
+  if len(homePKs) > 0:
+    homePk = sorted((item for item in homePKs if item['dateTime'] < gameDateTime),
+                    key=lambda x: x['dateTime'],
+                    reverse=True)[0]['gamePk']
+    homeData = requests.get(f"https://statsapi.mlb.com/api/v1.1/game/{homePk}/feed/live").json()
+  else:
+    homeData = {}
+  return awayData, homeData
+
+
+
+
+def base_inputs(game,prediction=False):
+  isProjectedLineup = False
   homeId = safe_chain(game,'gameData','teams','home','id')
   awayId = safe_chain(game,'gameData','teams','away','id')
-  awayScore = safe_chain(game,'liveData','linescore','teams','away','runs',default=0)
-  homeScore = safe_chain(game,'liveData','linescore','teams','home','runs',default=0)
+  if prediction:
+    awayScore = 0
+    homeScore = 0
+  else:
+    awayScore = safe_chain(game,'liveData','linescore','teams','away','runs',default=0)
+    homeScore = safe_chain(game,'liveData','linescore','teams','home','runs',default=0)
   awayBatters = safe_chain(game,'liveData','boxscore','teams','away','batters',default=[])
   homeBatters = safe_chain(game,'liveData','boxscore','teams','home','batters',default=[])
   awayPitchers = safe_chain(game,'liveData','boxscore','teams','away','pitchers',default=[])
@@ -62,7 +104,30 @@ def base_inputs(game):
       homeDefense[position_code] = [player_id]
     else:
       homeDefense[position_code].append(player_id)
-  return {
+  if prediction and (len(awayBatters) == 0 or len(homeBatters) == 0 or len(awayPitchers) == 0 or len(homePitchers) == 0 or len(awayBullpen) == 0 or len(homeBullpen) == 0 or len(awayBench) == 0 or len(homeBench) == 0 or len(awayBattingOrder) == 0 or len(homeBattingOrder) == 0):
+    awayData, homeData = previousGames(game)
+    isProjectedLineup = True
+    if len(awayBatters) == 0 and len(awayData) > 0:
+      awayBatters = safe_chain(awayData,'liveData','boxscore','teams','away','batters',default=[])
+    if len(homeBatters) == 0 and len(homeData) > 0:
+      homeBatters = safe_chain(homeData,'liveData','boxscore','teams','home','batters',default=[])
+    if len(awayPitchers) == 0 and len(awayData) > 0:
+      awayPitchers = safe_chain(awayData,'liveData','boxscore','teams','away','pitchers',default=[])
+    if len(homePitchers) == 0 and len(homeData) > 0:
+      homePitchers = safe_chain(homeData,'liveData','boxscore','teams','home','pitchers',default=[])
+    if len(awayBullpen) == 0 and len(awayData) > 0:
+      awayBullpen = safe_chain(awayData,'liveData','boxscore','teams','away','bullpen',default=[])
+    if len(homeBullpen) == 0 and len(homeData) > 0:
+      homeBullpen = safe_chain(homeData,'liveData','boxscore','teams','home','bullpen',default=[])
+    if len(awayBench) == 0 and len(awayData) > 0:
+      awayBench = safe_chain(awayData,'liveData','boxscore','teams','away','bench',default=[])
+    if len(homeBench) == 0 and len(homeData) > 0:
+      homeBench = safe_chain(homeData,'liveData','boxscore','teams','home','bench',default=[])
+    if len(awayBattingOrder) == 0 and len(awayData) > 0:
+      awayBattingOrder = safe_chain(awayData,'liveData','boxscore','teams','away','battingOrder',default=[])
+    if len(homeBattingOrder) == 0 and len(homeData) > 0:
+      homeBattingOrder = safe_chain(homeData,'liveData','boxscore','teams','home','battingOrder',default=[])
+  features = {
     'id': safe_chain(game,'gamePk'),
     'season': int(safe_chain(game,'gameData','game','season')),
     'gameType': safe_chain(game,'gameData','game','type'),
@@ -123,6 +188,10 @@ def base_inputs(game):
     'homeRightField': sum(homeDefense.get(9,[])) / len(homeDefense.get(9,[])) if len(homeDefense.get(9,[])) > 0 else 0,
     'homeDH': sum(homeDefense.get(10,[])) / len(homeDefense.get(10,[])) if len(homeDefense.get(10,[])) > 0 else 0,
   }
+  if prediction:
+    return features, isProjectedLineup
+  else:
+    return features
 
 
 ENCODE_COLUMNS = [
@@ -194,8 +263,6 @@ X_INPUTS_MLB_T = [
   'team',
   'opponent',
   # 'datetime',
-  'score',
-  'opponentScore',
   'batters',
   'pitchers',
   'bench',
