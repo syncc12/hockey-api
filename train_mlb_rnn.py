@@ -91,6 +91,7 @@ class BaseballRNN(nn.Module):
     self.fc = nn.Linear(hidden_size, 1)
   
   def forward(self, x):
+    print(type(x))
     h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
     x = x.unsqueeze(1)
     # print(f"x shape: {x.shape}, h0 shape: {h0.shape}")

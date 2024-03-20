@@ -1,6 +1,7 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\pages')
 
 from pymongo import MongoClient
 import torch
@@ -9,27 +10,65 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, random_split
 from sklearn.model_selection import train_test_split
 from joblib import load
-from constants.inputConstants import X_INPUTS, Y_OUTPUTS
-from constants.constants import TORCH_VERSION, TORCH_FILE_VERSION, TEST_DATA_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
+from pages.mlb.inputs import X_INPUTS_MLB, X_INPUTS_MLB_S, ENCODE_COLUMNS, mlb_training_input, mlb_test_input
+from pages.mlb.mlb_helpers import team_lookup, away_rename, home_rename
+from constants.constants import MLB_VERSION, FILE_MLB_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
 import pandas as pd
 import numpy as np
 from util.torch_helpers import HingeLoss, FocalLoss, binary_accuracy, errorAnalysis
 from util.torch_layers import MemoryModule, NoiseInjection
 import time
-from training_input import training_input, test_input
 
+
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+db = client["hockey"]
+mlb_db = client["mlb"]
+
+TEST_SEASONS = [
+  2023,
+  2022,
+  2021,
+]
+SEASONS = [
+  2023,
+  2022,
+  2021,
+  2020,
+  2019,
+  2018,
+  2017,
+  2016,
+  # 2015,
+  # 2014,
+  # 2013,
+  # 2012,
+  # 2011,
+  # 2010,
+  # 2009,
+  # 2008,
+  # 2007,
+  # 2006,
+  # 2005,
+  # 2004,
+  # 2003,
+  # 2002,
+  # 2001,
+  # 2000,
+]
+
+USE_X_INPUTS_MLB = X_INPUTS_MLB
 
 NUM_EPOCHS = 50
 BATCH_SIZE = 16
 NUM_WORKERS = 4
 LR=0.001
 L2=1e-4
-INPUT_DIM = len(X_INPUTS)
+INPUT_DIM = len(USE_X_INPUTS_MLB)
 OUTPUT_DIM = 1
 
-USE_PARTIAL_SEASONS = False
+USE_TEST_SPLIT = True
 
-OUTPUT = 'winnerB'
+OUTPUT = 'winner'
 
 class PredictionDataset(Dataset):
   def __init__(self, x):
@@ -60,170 +99,100 @@ class CustomDataset(Dataset):
     return self.x[index], self.y[index]
 
 
-HIDDEN_LAYERS = (
-  len(X_INPUTS)*2,
-  len(X_INPUTS)*4,
-  len(X_INPUTS)*6,
-  len(X_INPUTS)*8,
-  len(X_INPUTS)*10,
-  len(X_INPUTS)*8,
-  len(X_INPUTS)*6,
-  len(X_INPUTS)*4,
-)
+# HIDDEN_LAYERS = [
+#   len(USE_X_INPUTS_MLB)*2,
+#   len(USE_X_INPUTS_MLB)*4,
+#   len(USE_X_INPUTS_MLB)*6,
+#   len(USE_X_INPUTS_MLB)*8,
+#   len(USE_X_INPUTS_MLB)*10,
+#   len(USE_X_INPUTS_MLB)*8,
+#   len(USE_X_INPUTS_MLB)*6,
+#   len(USE_X_INPUTS_MLB)*8,
+#   len(USE_X_INPUTS_MLB)*10,
+#   len(USE_X_INPUTS_MLB)*8,
+#   len(USE_X_INPUTS_MLB)*6,
+#   len(USE_X_INPUTS_MLB)*4,
+# ]
+HIDDEN_LAYERS = [
+  len(USE_X_INPUTS_MLB)*2,
+  len(USE_X_INPUTS_MLB)*1,
+  len(USE_X_INPUTS_MLB)*2,
+  len(USE_X_INPUTS_MLB)*1,
+  # len(USE_X_INPUTS_MLB)*2,
+  # len(USE_X_INPUTS_MLB)*1,
+  # len(USE_X_INPUTS_MLB)*2,
+  # len(USE_X_INPUTS_MLB)*1,
+  # len(USE_X_INPUTS_MLB)*2,
+  # len(USE_X_INPUTS_MLB)*1,
+  # len(USE_X_INPUTS_MLB)*2,
+  # len(USE_X_INPUTS_MLB)*1,
+]
+LAYERS = [
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0.5,'noise':0,'memory':0,'norm':1},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+  {'dropout':0,'noise':0,'memory':0,'norm':0},
+]
+LAYERS = [layer for layer in LAYERS for i in range(0,len(HIDDEN_LAYERS))]
 class Net(nn.Module):
   def __init__(self):
     super(Net, self).__init__()
-    self.linearStart = nn.Linear(INPUT_DIM, HIDDEN_LAYERS[0])
-    self.actStart = nn.ReLU()
-    self.mm1 = MemoryModule(input_features=HIDDEN_LAYERS[0], memory_size=1000)
-    self.ni1 = NoiseInjection(noise_level=0.1)
-
-    self.norm1 = nn.BatchNorm1d(HIDDEN_LAYERS[0])
-    self.dropout1 = nn.Dropout(0.3)
-
-    self.linear2 = nn.Linear(HIDDEN_LAYERS[0], HIDDEN_LAYERS[1])
-    self.act2 = nn.ReLU()
-    
-    self.norm2 = nn.BatchNorm1d(HIDDEN_LAYERS[1])
-    self.dropout2 = nn.Dropout(0.3)
-
-    self.linear3 = nn.Linear(HIDDEN_LAYERS[1], HIDDEN_LAYERS[2])
-    self.act3 = nn.ReLU()
-
-    self.norm3 = nn.BatchNorm1d(HIDDEN_LAYERS[2])
-    self.dropout3 = nn.Dropout(0.3)
-
-    self.linear4 = nn.Linear(HIDDEN_LAYERS[2], HIDDEN_LAYERS[3])
-    self.act4 = nn.ReLU()
-    
-    self.norm4 = nn.BatchNorm1d(HIDDEN_LAYERS[3])
-    self.dropout4 = nn.Dropout(0.5)
-
-    self.linear5 = nn.Linear(HIDDEN_LAYERS[3], HIDDEN_LAYERS[4])
-    self.act5 = nn.ReLU()
-    
-    self.norm5 = nn.BatchNorm1d(HIDDEN_LAYERS[4])
-    self.dropout5 = nn.Dropout(0.3)
-
-    self.linear6 = nn.Linear(HIDDEN_LAYERS[4], HIDDEN_LAYERS[5])
-    self.act6 = nn.ReLU()
-    
-    self.norm6 = nn.BatchNorm1d(HIDDEN_LAYERS[5])
-    self.dropout6 = nn.Dropout(0.3)
-
-    self.linear7 = nn.Linear(HIDDEN_LAYERS[5], HIDDEN_LAYERS[6])
-    self.act7 = nn.ReLU()
-    
-    self.norm7 = nn.BatchNorm1d(HIDDEN_LAYERS[6])
-    self.dropout7 = nn.Dropout(0.3)
-
-    self.linear8 = nn.Linear(HIDDEN_LAYERS[6], HIDDEN_LAYERS[7])
-    self.act8 = nn.ReLU()
-
-    self.norm8 = nn.BatchNorm1d(HIDDEN_LAYERS[7])
-    self.dropout8 = nn.Dropout(0.5)
-
-    self.linearEnd = nn.Linear(HIDDEN_LAYERS[7], OUTPUT_DIM)
+    self.layers = nn.ModuleDict()
+    for i in range(0,len(HIDDEN_LAYERS)):
+      if i == 0:
+        hiddenLayer1 = INPUT_DIM
+        hiddenLayer2 = HIDDEN_LAYERS[i]
+      else:
+        hiddenLayer1 = HIDDEN_LAYERS[i-1]
+        hiddenLayer2 = HIDDEN_LAYERS[i]
+      self.layers[f'linear{i}'] = nn.Linear(hiddenLayer1, hiddenLayer2)
+      self.layers[f'act{i}'] = nn.ReLU()
+      if LAYERS[i]['memory'] > 0:
+        self.layers[f'mm{i}'] = MemoryModule(input_features=hiddenLayer2, memory_size=LAYERS[i]['memory'])
+      if LAYERS[i]['noise'] > 0:
+        self.layers[f'ni{i}'] = NoiseInjection(noise_level=LAYERS[i]['noise'])
+      if LAYERS[i]['norm'] > 0:
+        self.layers[f'norm{i}'] = nn.BatchNorm1d(hiddenLayer2)
+      if LAYERS[i]['dropout'] > 0:
+        self.layers[f'dropout{i}'] = nn.Dropout(LAYERS[i]['dropout'])
+    self.layers['end'] = nn.Linear(HIDDEN_LAYERS[-1], OUTPUT_DIM)
 
   def forward(self, x):
-    x = self.actStart(self.linearStart(x))
-    x = self.mm1(x)
-    # x = self.ni1(x)
-    # x = self.norm1(x)
-    # x = self.dropout1(x)
-    x = self.act2(self.linear2(x))
-    # x = self.norm2(x)
-    # x = self.dropout2(x)
-    x = self.act3(self.linear3(x))
-    # x = self.norm3(x)
-    # x = self.dropout3(x)
-    x = self.act4(self.linear4(x))
-    x = self.norm4(x)
-    x = self.dropout4(x)
-    x = self.act5(self.linear5(x))
-    # x = self.norm5(x)
-    # x = self.dropout5(x)
-    x = self.act6(self.linear6(x))
-    # x = self.norm6(x)
-    # x = self.dropout6(x)
-    x = self.act7(self.linear7(x))
-    # x = self.norm7(x)
-    # x = self.dropout7(x)
-    x = self.act8(self.linear8(x))
-    x = self.norm8(x)
-    x = self.dropout8(x)
-    x = self.linearEnd(x)
+    for i in range(len(HIDDEN_LAYERS)):
+      x = self.layers[f'act{i}'](self.layers[f'linear{i}'](x))
+      if LAYERS[i]['memory'] > 0:
+        x = self.layers[f'mm{i}'](x)
+      if LAYERS[i]['noise'] > 0:
+        x = self.layers[f'ni{i}'](x)
+      if LAYERS[i]['norm'] > 0:
+        x = self.layers[f'norm{i}'](x)
+      if LAYERS[i]['dropout'] > 0:
+        x = self.layers[f'dropout{i}'](x)
+    x = self.layers['end'](x)
     return x
 
-def train():
-  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
-  db = client["hockey"]
-
-  # if USE_PARTIAL_SEASONS:
-  #   seasons = [
-  #     20172018,
-  #     20182019,
-  #     20192020,
-  #     20202021,
-  #     20212022,
-  #     20222023,
-  #   ]
-  #   result = []
-  #   for i in seasons:
-  #     result.append(load(f'training_data/v{TORCH_VERSION}/training_data_v{TORCH_FILE_VERSION}_{i}.joblib'))
-  #   training_data = np.concatenate(result).tolist()
-  # else:
-  #   training_data = load(f'training_data/training_data_v{TORCH_FILE_VERSION}.joblib')
-
-  seasons = [
-    # 20052006,
-    # 20062007,
-    # 20072008,
-    # 20082009,
-    20092010,
-    20102011,
-    20112012,
-    20122013,
-    20132014,
-    20142015,
-    20152016,
-    20162017,
-    20172018,
-    20182019,
-    20192020,
-    20202021,
-    20212022,
-    # 20222023,
-  ]
-  training_data = training_input(seasons)
-
-  data = pd.DataFrame(training_data)
-  x_train = data [X_INPUTS].to_numpy()
-  y_train = data [[OUTPUT]].to_numpy()
-
-  x_test, y_test = test_input(X_INPUTS,[OUTPUT], season=20222023)
-  # x_test, y_test = test_input(X_INPUTS,[OUTPUT])
-
-  x_train, x_validation, y_train, y_validation = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
-  
+def train(x_train,y_train,x_test,y_test):
   train_dataset = CustomDataset(x_train, y_train)
-  validation_dataset = CustomDataset(x_validation, y_validation)
   test_dataset = CustomDataset(x_test, y_test)
 
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   model = Net().to(device)
 
-  print(model.parameters())
-
 
   train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-  validation_loader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
   test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
   # Loss function and optimizer
   # criterion = nn.BCEWithLogitsLoss ()
   # criterion = nn.MSELoss ()
-  # nn.
   # criterion = HingeLoss ()
   criterion = FocalLoss ()
   optimizer = torch.optim.SGD(model.parameters(),lr=LR,weight_decay=L2)
@@ -280,15 +249,16 @@ def train():
   # print(f'Accuracy of the model on the test set: {100 * correct / total}%')
 
   # Error Analysis
-  errorAnalysis(model,validation_loader,device)
+  # errorAnalysis(model,device)
 
   TrainingRecords = db['dev_training_records']
 
   timestamp = time.time()
   TrainingRecords.insert_one({
+    'sport': 'mlb',
     'savedAt': timestamp,
-    'version': TORCH_VERSION,
-    'inputs': X_INPUTS,
+    'version': MLB_VERSION,
+    'inputs': USE_X_INPUTS_MLB,
     'outputs': OUTPUT,
     'randomState': RANDOM_STATE,
     'startingSeason': START_SEASON,
@@ -297,6 +267,7 @@ def train():
     'model': 'PyTorch Artificial Neural Network Classifier',
     'hyperparameters': {
       'hidden_layers': HIDDEN_LAYERS,
+      'layers': LAYERS,
       'num_epochs': NUM_EPOCHS,
       'batch_size': BATCH_SIZE,
       'num_workers': NUM_WORKERS,
@@ -311,7 +282,7 @@ def train():
   })
 
   # Save/Load the model
-  torch.save(model.state_dict(), f'./models/nhl_ai_v{TORCH_FILE_VERSION}_torch_{OUTPUT}.pt')
+  torch.save(model.state_dict(), f'./models/mlb_ai_v{FILE_MLB_VERSION}_torch_{OUTPUT}.pt')
 
 
 
@@ -320,7 +291,7 @@ def predict_model(input_data=[],threshold=0.489,include_confidence=False):
   model = Net()
 
   # Load the trained model weights
-  model.load_state_dict(torch.load(f'./models/nhl_ai_v{TORCH_FILE_VERSION}_torch_{OUTPUT}.pt'))
+  model.load_state_dict(torch.load(f'./models/mlb_ai_v{FILE_MLB_VERSION}_torch_{OUTPUT}.pt'))
 
   # Set the model to evaluation mode
   model.eval()
@@ -351,7 +322,7 @@ def predict_model(input_data=[],threshold=0.489,include_confidence=False):
   # predictions = predictions.cpu().numpy()
 
   confidence = torch.sigmoid(predictions)
-  print('confidence',confidence[0][0])
+  # print('confidence',confidence[0][0])
   prediction = (confidence >= threshold).int()
 
   if not include_confidence:
@@ -363,4 +334,30 @@ def predict_model(input_data=[],threshold=0.489,include_confidence=False):
 
 
 if __name__ == '__main__':
-  train()
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  print(f"Using device: {device}")
+  teamLookup = team_lookup(mlb_db,only_active_mlb=True)
+  TRAINING_DATA = mlb_training_input(SEASONS)
+  data = pd.DataFrame(TRAINING_DATA)
+  for column in ENCODE_COLUMNS:
+    encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
+    data = data[data[column] != -1]
+    data[column] = encoder.transform(data[column])
+
+  x_train = data [USE_X_INPUTS_MLB].to_numpy()
+  y_train = data [[OUTPUT]].to_numpy()
+  if USE_TEST_SPLIT:
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
+  
+  if not USE_TEST_SPLIT:
+    TEST_DATA = mlb_test_input(TEST_SEASONS)
+    test_data = pd.DataFrame(TEST_DATA)
+    for column in ENCODE_COLUMNS:
+      encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
+      test_data = test_data[test_data[column] != -1]
+      test_data[column] = encoder.transform(test_data[column])
+
+    x_test = test_data [USE_X_INPUTS_MLB].to_numpy()
+    y_test = test_data [[OUTPUT]].to_numpy()
+
+  train(x_train,y_train,x_test,y_test)

@@ -29,10 +29,10 @@ SEASONS = [
   2022,
   2021,
   2020,
-  # 2019,
-  # 2018,
-  # 2017,
-  # 2016,
+  2019,
+  2018,
+  2017,
+  2016,
   # 2015,
   # 2014,
   # 2013,
@@ -124,19 +124,26 @@ def train(db,params,dtrain,dtest,team_name='all',inverse=False,trial=False,outpu
       dump(bst, save_path)
   return accuracy
 
+def rename_home(col):
+  return col.replace('homeTeam','team').replace('awayTeam','opponent').replace('home','').replace('away','opponent')
+
+def rename_away(col):
+  return col.replace('awayTeam','team').replace('homeTeam','opponent').replace('away','').replace('home','opponent')
+
 if __name__ == '__main__':
   teamLookup = team_lookup(mlb_db,only_active_mlb=True)
   TRAINING_DATA = mlb_training_input(SEASONS)
   data1 = pd.DataFrame(TRAINING_DATA)
   data2 = pd.DataFrame(TRAINING_DATA)
 
-  data1.rename(columns=home_rename, inplace=True)
-  data2.rename(columns=away_rename, inplace=True)
+  data1.rename(columns=rename_home, inplace=True)
+  data1['winner'] = 1 - data1['winner']
+  data2.rename(columns=rename_away, inplace=True)
   data = pd.concat([data1, data2], axis=0)
   data.reset_index(drop=True, inplace=True)
   for column in ENCODE_COLUMNS:
-    data = data[data[column] != -1]
     encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
+    data = data[data[column] != -1]
     data[column] = encoder.transform(data[column])
   keep_teams = list(teamLookup.keys())
   data = data[data['team'].isin(keep_teams)]
@@ -161,13 +168,14 @@ if __name__ == '__main__':
     TEST_DATA = mlb_test_input(TEST_SEASONS)
     test_data1 = pd.DataFrame(TEST_DATA)
     test_data2 = pd.DataFrame(TEST_DATA)
-    test_data1.rename(columns=home_rename, inplace=True)
-    test_data2.rename(columns=away_rename, inplace=True)
+    test_data1.rename(columns=rename_home, inplace=True)
+    test_data1['winB'] = 1 - test_data1['winB']
+    test_data2.rename(columns=rename_away, inplace=True)
     test_data = pd.concat([test_data1, test_data2], axis=0)
     test_data.reset_index(drop=True, inplace=True)
     for column in ENCODE_COLUMNS:
-      test_data = test_data[test_data[column] != -1]
       encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
+      test_data = test_data[test_data[column] != -1]
       test_data[column] = encoder.transform(test_data[column])
     test_data = test_data[test_data['team'].isin(keep_teams)]
     test_data = test_data[test_data['opponent'].isin(keep_teams)]
@@ -197,7 +205,7 @@ if __name__ == '__main__':
       dtest = dtests[team]
       team_name = teamLookup[team]['abbrev']
       for max_depth in range(5,51):
-        for eta in np.arange(0.01, 0.3, 0.01):
+        for eta in np.arange(0.01, 0.51, 0.01):
           params = {
             'max_depth': max_depth,
             'eta': eta,

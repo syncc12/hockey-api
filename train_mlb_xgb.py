@@ -12,14 +12,15 @@ import time
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 import xgboost as xgb
-from util.helpers import all_combinations
-from training_input import training_input, test_input
-from util.xgb_helpers import mcc_eval
-from pages.mlb.inputs import X_INPUTS_MLB, ENCODE_COLUMNS, mlb_training_input
+from pages.mlb.inputs import X_INPUTS_MLB_S, ENCODE_COLUMNS, mlb_training_input, mlb_test_input
 
 
 client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
 db = client["hockey"]
+
+TEST_SEASONS = [
+  2023,
+]
 SEASONS = [
   2023,
   2022,
@@ -28,7 +29,8 @@ SEASONS = [
   2019,
   2018,
   2017,
-  # 2016,
+  2016,
+
   # 2015,
   # 2014,
   # 2013,
@@ -50,7 +52,9 @@ SEASONS = [
 
 OUTPUT = 'winner'
 
-TRIAL = True
+USE_TEST_SPLIT = False
+
+TRIAL = False
 DRY_RUN = False
 
 NUM_BOOST_ROUND = 500
@@ -58,19 +62,22 @@ N_TRIALS = 100
 EARLY_STOPPING_ROUNDS = 10
 
 PARAMS = {
-  'max_depth': 8,
-  'eta': 0.08,
+  'max_depth': 9,
+  'eta': 0.31,
   'objective': 'binary:logistic',
   'eval_metric': 'logloss',
   'device': 'cuda',
-  'tree_method': 'hist',
+  'tree_method': 'hist'
 }
 EPOCHS = 10
 THRESHOLD = 0.5
 
-def train(db,params,dtrain,dtest,y_test,trial=False):
+relevance = []
+
+
+def train(db,params,dtrain,dtest,y_test,trial=False,collect=False):
   if not trial:
-    print('Inputs:', X_INPUTS_MLB)
+    print('Inputs:', X_INPUTS_MLB_S)
     print('Output:', OUTPUT)
     print('Params:', params)
 
@@ -81,6 +88,14 @@ def train(db,params,dtrain,dtest,y_test,trial=False):
   predictions = [1 if i > THRESHOLD else 0 for i in preds]
 
   accuracy = accuracy_score(y_test, predictions)
+
+  if collect:
+    relevance.append({
+      'accuracy':accuracy,
+      'max_depth': params['max_depth'],
+      'eta': params['eta'],
+    })
+
   if not trial:
     model_data = f"Accuracy: {'%.2f%%' % (accuracy * 100.0)}"
     print(model_data)
@@ -96,7 +111,7 @@ def train(db,params,dtrain,dtest,y_test,trial=False):
       'sport': 'mlb',
       'savedAt': timestamp,
       'version': MLB_VERSION,
-      'inputs': X_INPUTS_MLB,
+      'inputs': X_INPUTS_MLB_S,
       'randomState': RANDOM_STATE,
       'startingSeason': START_SEASON,
       'finalSeason': END_SEASON,
@@ -112,17 +127,38 @@ def train(db,params,dtrain,dtest,y_test,trial=False):
   return accuracy
 
 if __name__ == '__main__':
+  if not USE_TEST_SPLIT:
+    SEASONS = [season for season in SEASONS if season not in TEST_SEASONS]
+    print('Test Seasons:', TEST_SEASONS)
+  print('Training Seasons:', SEASONS)
   TRAINING_DATA = mlb_training_input(SEASONS)
   data = pd.DataFrame(TRAINING_DATA)
   for column in ENCODE_COLUMNS:
-    data = data[data[column] != -1]
     encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
+    data = data[data[column] != -1]
     data[column] = encoder.transform(data[column])
+
+  x_train = data [X_INPUTS_MLB_S]
+  y_train = data [[OUTPUT]]
+  if USE_TEST_SPLIT:
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
+    test_df = pd.concat([pd.DataFrame(x_test), y_test.reset_index(drop=True)], axis=1)
+    dump(test_df,f'pages/mlb/data/test_data.joblib')
   
-  data = data.sort_values(by='id')
-  x_train = data [X_INPUTS_MLB]
-  y_train = data [[OUTPUT]].values.ravel()
-  x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
+  y_train = y_train.values.ravel()
+  
+  if not USE_TEST_SPLIT:
+    TEST_DATA = mlb_test_input(TEST_SEASONS)
+    test_data = pd.DataFrame(TEST_DATA)
+    dump(test_data,f'pages/mlb/data/test_data.joblib')
+    for column in ENCODE_COLUMNS:
+      encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
+      test_data = test_data[test_data[column] != -1]
+      test_data[column] = encoder.transform(test_data[column])
+
+    x_test = test_data [X_INPUTS_MLB_S]
+    y_test = test_data [[OUTPUT]].values.ravel()
+
   dtrain = xgb.DMatrix(x_train, label=y_train)
   dtest = xgb.DMatrix(x_test, label=y_test)
 
@@ -134,8 +170,8 @@ if __name__ == '__main__':
       'accuracy': 0,
       'training_data': '',
     }
-    for max_depth in range(5,101):
-      for eta in np.arange(0.01, 1.0, 0.01):
+    for max_depth in range(5,31):
+      for eta in np.arange(0.01, 0.4, 0.01):
         params = {
           'max_depth': max_depth,
           'eta': eta,

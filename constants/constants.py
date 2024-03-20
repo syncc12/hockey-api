@@ -28,8 +28,9 @@ XGB_TEAM_FILE_VERSION = str(XGB_TEAM_VERSION).replace('.','_')
 TEAM_VERSION = 9.3
 TEAM_FILE_VERSION = str(TEAM_VERSION).replace('.','_')
 
-MLB_VERSION = 1
+MLB_VERSION = 1.1
 FILE_MLB_VERSION = str(MLB_VERSION).replace('.','_')
+MLB_FILE_VERSION = str(MLB_VERSION).replace('.','_')
 
 MLB_TEAM_VERSION = 1
 MLB_TEAM_FILE_VERSION = str(MLB_TEAM_VERSION).replace('.','_')
