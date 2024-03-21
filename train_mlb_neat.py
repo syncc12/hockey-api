@@ -65,9 +65,31 @@ USE_TEST_SPLIT = True
 
 OUTPUT = 'winner'
 
+GENERATIONS = 400
+
+generation = -1
+overall_best = {
+  "accuracy": 0,
+  "distance": 0,
+  "distance_accuracy": 0,
+  "generation": 0,
+  "genome_id": 0,
+  "inverse": False,
+}
 
 def eval_genomes(genomes, config):
-  for genome_id, genome in genomes:
+  global generation
+  generation += 1
+  genomes_len = len(genomes)
+  generation_best = {
+    "accuracy": 0,
+    "distance": 0,
+    "distance_accuracy": 0,
+    "genome_id": 0,
+    "inverse": False,
+    "i": 0,
+  }
+  for i, (genome_id, genome) in enumerate(genomes):
     net = neat.nn.FeedForwardNetwork.create(genome, config)
     correct_predictions = 0
     total_predictions = 0
@@ -78,15 +100,34 @@ def eval_genomes(genomes, config):
       total_predictions += 1
     accuracy = correct_predictions / total_predictions if total_predictions > 0 else 0
     distance = abs(accuracy - 0.5)
+    distance_accuracy = 0.5 + distance
     inverse = True if accuracy < 0.5 else False
     genome.fitness = distance
-    print(f'Genome ID: {genome_id} Accuracy: {(accuracy*100):.2f}% Distance: {distance:.2f} {"Inverse" if inverse else ""}')
+    if distance > overall_best["distance"]:
+      overall_best["distance"] = distance
+      overall_best["accuracy"] = accuracy
+      overall_best["distance_accuracy"] = distance_accuracy
+      overall_best["generation"] = generation
+      overall_best["genome_id"] = genome_id
+      overall_best["inverse"] = inverse
+    if distance > generation_best["distance"]:
+      generation_best["distance"] = distance
+      generation_best["accuracy"] = accuracy
+      generation_best["distance_accuracy"] = distance_accuracy
+      generation_best["genome_id"] = genome_id
+      generation_best["inverse"] = inverse
+      generation_best["i"] = i
+    
+    p_current = f'[{str(generation).rjust(len(str(GENERATIONS-1)))}/{GENERATIONS-1}][{str(i).rjust(len(str(genomes_len)))}/{genomes_len}]GID:{str(genome_id).ljust(4)}|A:{(accuracy*100):.2f}%({(distance_accuracy*100):.2f}%)|D:{distance:.4f}|{"I" if inverse else " "}'
+    p_generation_best = f'[{str(generation).rjust(len(str(GENERATIONS-1)))}][{str(generation_best["i"]).rjust(len(str(genomes_len)))}]GID:{str(generation_best["genome_id"]).ljust(4)}|A:{(generation_best["accuracy"]*100):.2f}%({(generation_best["distance_accuracy"]*100):.2f}%)|D:{generation_best["distance"]:.4f}|{"I" if generation_best["inverse"] else " "}'
+    p_overall_best = f'[{str(overall_best["generation"]).rjust(len(str(GENERATIONS-1)))}]GID:{str(overall_best["genome_id"]).ljust(4)}|A:{(overall_best["accuracy"]*100):.2f}%({(overall_best["distance_accuracy"]*100):.2f}%)|D:{overall_best["distance"]:.4f}|{"I" if overall_best["inverse"] else " "}'
+    print(f'{p_current}||{p_generation_best}||{p_overall_best}')
 
 def train():
   # Load configuration.
   config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                       neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                      'neat/config-feedforward.txt')
+                      'neat/mlb-config-feedforward.txt')
 
   # Create the population, which is the top-level object for a NEAT run.
   p = neat.Population(config)
@@ -96,8 +137,7 @@ def train():
   stats = neat.StatisticsReporter()
   p.add_reporter(stats)
 
-  # Run for up to 50 generations.
-  winner = p.run(eval_genomes, 100)
+  winner = p.run(eval_genomes, GENERATIONS)
 
   # Display the winning genome.
   print('\nBest genome:\n{!s}'.format(winner))
