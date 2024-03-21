@@ -1,7 +1,7 @@
 [NEAT]
 fitness_criterion     = max
-fitness_threshold     = 1.0
-pop_size              = 150
+fitness_threshold     = 5.0
+pop_size              = 200
 reset_on_extinction   = False
 
 [DefaultGenome]
@@ -20,12 +20,12 @@ activation_mutate_rate  = 0.8
 activation_options      = relu
 
 # Node addition options
-node_add_prob         = 0.5
-node_delete_prob      = 0.5
+node_add_prob         = 0.8
+node_delete_prob      = 0.8
 
 # Connection addition options
-conn_add_prob         = 0.5
-conn_delete_prob      = 0.5
+conn_add_prob         = 0.8
+conn_delete_prob      = 0.8
 
 # Connection mutation options
 weight_mutate_rate    = 0.8

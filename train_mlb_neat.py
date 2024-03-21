@@ -97,7 +97,7 @@ def train():
   p.add_reporter(stats)
 
   # Run for up to 50 generations.
-  winner = p.run(eval_genomes, 50)
+  winner = p.run(eval_genomes, 100)
 
   # Display the winning genome.
   print('\nBest genome:\n{!s}'.format(winner))
