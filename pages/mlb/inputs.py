@@ -1,5 +1,6 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\pages')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
 
 import numpy as np
 import pandas as pd
@@ -7,6 +8,8 @@ from joblib import load, Parallel, delayed
 import requests
 from datetime import datetime
 from pages.mlb.input_helpers import player_stats
+from sklearn.model_selection import train_test_split
+from constants.constants import RANDOM_STATE
 
 def safe_chain(obj, *keys, default=-1):
   for key in keys:
@@ -1135,13 +1138,40 @@ for prefix in PREFIXES_T:
 def load_training_data(file_path):
   return load(file_path)
 
-def mlb_training_input(seasons):
+def mlb_training_input(seasons,**kwargs):
   training_data_paths = [f'pages/mlb/data/training_data_{season}.joblib' for season in seasons]
   training_data = Parallel(n_jobs=-1)(delayed(load_training_data)(file) for file in training_data_paths)
   # training_data = np.concatenate([load(f'pages/mlb/data/training_data_{season}.joblib') for season in seasons]).tolist()
   training_data = np.concatenate(training_data).tolist()
   print(f'Seasons Loaded {len(training_data)}')
-  return training_data
+  if any(key in kwargs for key in ['dataframe','df','encode','inputs','outputs']):
+    training_data = pd.DataFrame(training_data)
+  if kwargs.get('encode'):
+    for column in ENCODE_COLUMNS:
+      encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
+      training_data = training_data[training_data[column] != -1]
+      training_data[column] = encoder.transform(training_data[column])
+  if all(key in kwargs for key in ['inputs','outputs']):
+    x_train = training_data [kwargs['inputs']]
+    y_train = training_data [kwargs['outputs']]
+    if any(key in kwargs for key in ['test_split','split','train_test_split']):
+      x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
+    #   if any(key in kwargs for key in ['to_numpy','torch']):
+    #     x_test = x_test [kwargs['inputs']].to_numpy()
+    #     y_test = y_test [kwargs['outputs']].to_numpy()
+    #   if any(key in kwargs for key in ['tf','tensorflow']):
+    #     x_test = x_test [kwargs['inputs']]
+    #     y_test = y_test [kwargs['outputs']].to_numpy()
+      return x_train, y_train, x_test, y_test
+    # if any(key in kwargs for key in ['to_numpy','torch']):
+    #   x_train = x_train [kwargs['inputs']].to_numpy()
+    #   y_train = y_train [kwargs['outputs']].to_numpy()
+    # if any(key in kwargs for key in ['tf','tensorflow']):
+    #   x_train = x_train [kwargs['inputs']]
+    #   y_train = y_train [kwargs['outputs']].to_numpy()
+    return x_train, y_train
+  else:
+    return training_data
 
 def mlb_test_input(seasons=False):
   if seasons:
