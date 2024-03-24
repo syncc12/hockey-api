@@ -21,8 +21,8 @@ def master_inputs(db, boxscore, isProjectedRoster=False, isProjectedLineup=False
     date = formatDate(boxscore['gameDate'])
   homeTeam = safe_chain(boxscore,'homeTeam')
   awayTeam = safe_chain(boxscore,'awayTeam')
-  gi = safe_chain(boxscore,'boxscore','gameInfo')
-  pbgs = safe_chain(boxscore,'boxscore','playerByGameStats')
+  gi = safe_chain(boxscore,'summary','gameInfo')
+  pbgs = safe_chain(boxscore,'playerByGameStats')
   allPlayerIds = []
   awayForwardIds = []
   awayDefenseIds = []
