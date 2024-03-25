@@ -7,13 +7,11 @@ from pymongo import MongoClient
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from joblib import load
-from pages.mlb.inputs import X_INPUTS_MLB, X_INPUTS_MLB_S, ENCODE_COLUMNS, mlb_training_input, mlb_test_input
-from pages.mlb.mlb_helpers import team_lookup, away_rename, home_rename
-from constants.constants import MLB_VERSION, FILE_MLB_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
+from constants.inputConstants import X_INPUTS, X_INPUTS_S, Y_OUTPUTS
+from constants.constants import VERSION, FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
+from training_input import training_input, test_input
 import pandas as pd
 import numpy as np
-from util.torch_helpers import HingeLoss, FocalLoss, binary_accuracy, errorAnalysis
-from util.torch_layers import MemoryModule, NoiseInjection
 import time
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
@@ -22,42 +20,30 @@ from tensorflow.keras.layers import LSTM, Dense
 
 client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
 db = client["hockey"]
-mlb_db = client["mlb"]
 
-TEST_SEASONS = [
-  2023,
-  2022,
-  2021,
-]
+
 SEASONS = [
-  2023,
-  2022,
-  2021,
-  2020,
-  2019,
-  2018,
-  2017,
-  2016,
-
-  # 2015,
-  # 2014,
-  # 2013,
-  # 2012,
-  # 2011,
-  # 2010,
-  # 2009,
-  # 2008,
-  # 2007,
-  # 2006,
-  # 2005,
-  # 2004,
-  # 2003,
-  # 2002,
-  # 2001,
-  # 2000,
+  20052006,
+  20062007,
+  20072008,
+  20082009,
+  20092010,
+  20102011,
+  20112012,
+  20122013,
+  20132014,
+  20142015,
+  20152016,
+  20162017,
+  20172018,
+  20182019,
+  20192020,
+  20202021,
+  20212022,
+  20222023,
 ]
 
-USE_X_INPUTS_MLB = X_INPUTS_MLB
+USE_X_INPUTS = X_INPUTS
 
 NUM_EPOCHS = 100
 BATCH_SIZE = 1
@@ -65,15 +51,12 @@ MAX_SEQUENCE_LENGTH = 100
 NUM_WORKERS = 4
 LR=0.001
 L2=1e-4
-INPUT_DIM = len(USE_X_INPUTS_MLB)
+INPUT_DIM = len(USE_X_INPUTS)
 OUTPUT_DIM = 1
 
-N = 10
+N = 20
 
-USE_TEST_SPLIT = True
-
-OUTPUT = 'winner'
-
+OUTPUT = 'winnerB'
 
 
 def train(x_train,y_train,x_test,y_test):
@@ -101,29 +84,17 @@ def train(x_train,y_train,x_test,y_test):
 
 
 if __name__ == '__main__':
-  teamLookup = team_lookup(mlb_db,only_active_mlb=True)
-  TRAINING_DATA = mlb_training_input(SEASONS)
+  TRAINING_DATA = training_input(SEASONS)
   data = pd.DataFrame(TRAINING_DATA)
-  for column in ENCODE_COLUMNS:
-    encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
-    data = data[data[column] != -1]
-    data[column] = encoder.transform(data[column])
 
-  x_train = data [USE_X_INPUTS_MLB]
+  x_train = data [USE_X_INPUTS]
   y_train = data [[OUTPUT]].to_numpy()
-  if USE_TEST_SPLIT:
-    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=RANDOM_STATE)
-  
-  if not USE_TEST_SPLIT:
-    TEST_DATA = mlb_test_input(TEST_SEASONS)
-    test_data = pd.DataFrame(TEST_DATA)
-    for column in ENCODE_COLUMNS:
-      encoder = load(f'pages/mlb/encoders/{column}_encoder.joblib')
-      test_data = test_data[test_data[column] != -1]
-      test_data[column] = encoder.transform(test_data[column])
 
-    x_test = test_data [USE_X_INPUTS_MLB]
-    y_test = test_data [[OUTPUT]].to_numpy()
+  TEST_DATA = test_input(no_format=True)
+  test_data = pd.DataFrame(TEST_DATA)
+
+  x_test = test_data [USE_X_INPUTS]
+  y_test = test_data [[OUTPUT]].to_numpy()
 
   x_train_s = []
   y_train_s = []
