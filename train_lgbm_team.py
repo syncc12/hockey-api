@@ -52,7 +52,7 @@ OPTIMIZE = True
 DRY_RUN = False
 
 TEAM = False
-START_TEAM = 10
+START_TEAM = 16
 END_TEAM = False
 
 NUM_BOOST_ROUND = 100
@@ -235,6 +235,7 @@ if __name__ == '__main__':
         'bagging_freq': int(best['bagging_freq']),
         'num_leaves': int(best['num_leaves']),
         'learning_rate': best['learning_rate'],
+        'verbosity': -1,
       }
       train(db,params,dtrain,x_test,y_test,num_boost_round=int(best['num_boost_round']),trial=False)
 
