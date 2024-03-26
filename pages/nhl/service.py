@@ -22,7 +22,7 @@ from pages.nhl.nhl_helpers import ai, ai_return_dict, ai2, ai_receipt, ai_teams
 from constants.constants import VERSION, FILE_VERSION
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS
 from util.models import MODELS, TEST_ALL_INIT, TEST_LINE_INIT, TEST_ALL_UPDATE, TEST_LINE_UPDATE, TEST_PREDICTION, TEST_CONFIDENCE, TEST_COMPARE, TEST_DATA, TEST_RESULTS, TEST_CONFIDENCE_RESULTS, TEST_PREDICTION_PROJECTED_LINEUP, TEST_DATA_PROJECTED_LINEUP, winnersAgree
-from util.team_models import PREDICT_SCORE_H2H, PREDICT_H2H, PREDICT_COVERS, PREDICT_SCORE_COVERS
+from util.team_models import PREDICT_SCORE_H2H, PREDICT_H2H, PREDICT_COVERS, PREDICT_SCORE_COVERS, PREDICT_LGBM_H2H, PREDICT_LGBM_SCORE_H2H
 from inputs.projectedLineup import testProjectedLineup
 import warnings
 import xgboost as xgb
@@ -649,9 +649,16 @@ def test_model_simple(db,startID,endID,models):
       },
     })
 
-def test_model_team(db,startID,endID,wModels,lModels,cModels, projectedLineup=False, projectedRoster=False):
-  Boxscores = db['dev_boxscores']
+def test_model_team(db,startID,endID,models,useModel, projectedLineup=False, projectedRoster=False):
+  if useModel == 'xgb':
+    wModels = models['wModels']
+    lModels = models['lModels']
+  elif useModel == 'lgbm':
+    wModels = models['wModelsLGBM']
+    lModels = None
+  cModels = models['cModels']
 
+  Boxscores = db['dev_boxscores']
 
   if startID == -1 or endID == -1:
     md = metadata(db)
@@ -698,7 +705,11 @@ def test_model_team(db,startID,endID,wModels,lModels,cModels, projectedLineup=Fa
     inputs = master_inputs(db,boxscore,isProjectedRoster=projectedRoster,isProjectedLineup=projectedLineup)
     inputs = inputs['data']
 
-    winnerB_prediction, winnerB_probability = PREDICT_SCORE_H2H([inputs],wModels,lModels,simple_return=True)
+    if useModel == 'xgb':
+      winnerB_prediction, winnerB_probability = PREDICT_SCORE_H2H([inputs],wModels,lModels,simple_return=True)
+    elif useModel == 'lgbm':
+      winnerB_prediction, winnerB_probability = PREDICT_LGBM_SCORE_H2H([inputs],wModels,simple_return=True)
+    
     covers_prediction, covers_probability = PREDICT_SCORE_COVERS([inputs],cModels,simple_return=True)
 
     winnerB_true = inputs['winnerB']
@@ -834,29 +845,29 @@ def predict_day_receipt(db,date,day,gamePick,projectedLineup,models):
 def analytics(db,date,day,gamePick,projectedLineup,models):
   pass
 
-def predict_team_day(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote):
+def predict_team_day(db, date, day, gamePick, projectedLineup, models, useModel, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
   projectedRosters = [projectedRoster]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, cModels, projectedRosters, vote)
+  return ai_teams(db, game_data['games'], projectedLineups, models, useModel, projectedRosters, vote)
 
-def predict_team_day_simple(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote):
+def predict_team_day_simple(db, date, day, gamePick, projectedLineup, models, useModel, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
   projectedRosters = [projectedRoster]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, cModels, projectedRosters, simple=True)
+  return ai_teams(db, game_data['games'], projectedLineups, models, useModel, projectedRosters, simple=True)
 
-def predict_team_day_receipt(db, date, day, gamePick, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote):
+def predict_team_day_receipt(db, date, day, gamePick, projectedLineup, models, useModel, projectedRoster, vote):
   res = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
   game_data = res['gameWeek'][day-1]
   if gamePick > 0:
     game_data['games'] = [game_data['games'][gamePick-1]]
   projectedLineups = [projectedLineup]*len(game_data['games'])
   projectedRosters = [projectedRoster]*len(game_data['games'])
-  return ai_teams(db, game_data['games'], projectedLineups, wModels, lModels, sModels, cModels, projectedRosters, receipt=True)
+  return ai_teams(db, game_data['games'], projectedLineups, models, useModel, projectedRosters, receipt=True)

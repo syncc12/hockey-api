@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score, roc_curve, auc
 from training_input import training_input, test_input
 from constants.inputConstants import X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, TEST_DATA_FILE_VERSION, START_SEASON, END_SEASON
-from util.team_models import get_team_score, PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, PREDICT_COVERS, PREDICT_SCORE_COVERS, W_MODELS, L_MODELS, S_MODELS, C_MODELS
+from util.team_models import get_team_score, PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, PREDICT_COVERS, PREDICT_SCORE_COVERS, PREDICT_LGBM_H2H, PREDICT_LGBM_SCORE_H2H, W_MODELS, L_MODELS, S_MODELS, C_MODELS, W_MODELS_LGBM
 from util.helpers import team_lookup
 from util.team_helpers import away_rename, home_rename
 from pymongo import MongoClient
@@ -71,8 +71,8 @@ teams_group = training_data.groupby('team')
 if TEAM:
   teams = [(TEAM, teams.get_group(TEAM))]
 
-OUTPUT = 'covers'
-TEST_DATA = test_input(X_INPUTS_T,[OUTPUT],no_format=True)
+OUTPUT = 'winnerB'
+TEST_DATA = test_input(no_format=True)
 test_df = pd.DataFrame(TEST_DATA)
 test_data1 = pd.DataFrame(TEST_DATA)
 test_data2 = pd.DataFrame(TEST_DATA)
@@ -87,10 +87,16 @@ test_teams = test_data.groupby('team')
 test_teams_group = test_data.groupby('team')
 
 x_test = test_data [X_INPUTS_T]
-y_test = test_df [['covers']].values.ravel()
+y_test = test_df [[OUTPUT]].values.ravel()
 
 def accuracy(test_data, y_test, wModels, lModels):
   predictions, *other = PREDICT_SCORE_H2H(test_data, wModels, lModels)
+  accuracy = accuracy_score(y_test, predictions)
+  print(f'Accuracy: {accuracy}')
+  return accuracy
+
+def accuracy_lgbm(test_data, y_test, wModels):
+  predictions, *other = PREDICT_LGBM_SCORE_H2H(test_data, wModels)
   accuracy = accuracy_score(y_test, predictions)
   print(f'Accuracy: {accuracy}')
   return accuracy
@@ -126,7 +132,8 @@ def covers_accuracies(test_data, y_test, cModels):
 def plot_confidences():
   # predictions,confidences = PREDICT_SCORE_H2H(TEST_DATA,W_MODELS,L_MODELS,test=True,simple_return=True)
   # predictions,confidences = PREDICT_SCORE_SPREAD(TEST_DATA,S_MODELS,simple_return=True)
-  predictions,confidences = PREDICT_SCORE_COVERS(TEST_DATA,C_MODELS,simple_return=True)
+  predictions,confidences = PREDICT_LGBM_SCORE_H2H(TEST_DATA,W_MODELS_LGBM,simple_return=True)
+  # predictions,confidences = PREDICT_SCORE_COVERS(TEST_DATA,C_MODELS,simple_return=True)
   correct_confidences = []
   incorrect_confidences = []
   for i in range(0,len(predictions)):
@@ -284,9 +291,12 @@ if __name__ == '__main__':
   # # print(team_covers_score)
   # for k,v in team_covers_score.items():
   #   print(str(k) + ': ' + str(v) + ',')
-  # team_score = get_team_score(test_teams=test_df, teamLookup=teamLookup, models=(W_MODELS, L_MODELS), score_type='moneyline')
-  # print(team_score)
+  # team_score = get_team_score(test_teams=test_teams, teamLookup=teamLookup, models=(W_MODELS_LGBM), model_type='lgbm', score_type='moneyline')
+  # # print(team_score)
+  # for k,v in team_score.items():
+  #   print(str(k) + ': ' + str(v) + ',')
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
+  # accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
   plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)
   # team_by_team_class_count('covers')

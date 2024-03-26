@@ -1,5 +1,65 @@
-NJD Best parameters: {'C': 63.29059133228344, 'class_weight_1': 31.47028890677465, 'class_weight_2': 15.684153620863677, 'class_weight_3': 55.96233242210314, 'class_weight_4': 29.07515414560101, 'class_weight_5': 39.510938006829114, 'class_weight_6': 33.70706433707562, 'class_weight_7': 94.16653859354611, 'max_iter': 662.0, 'solver': 'saga'}
-NYI Best parameters: {'C': 97.02489940636227, 'class_weight_1': 32.71292417848722, 'class_weight_2': 9.428094394192362, 'class_weight_3': 64.18745739214431, 'class_weight_4': 50.532801405478736, 'class_weight_5': 46.777950360175694, 'class_weight_6': 72.04230844932886, 'class_weight_8': 95.95020815091065, 'max_iter': 814.0, 'solver': 'lbfgs'}
+
+8: {'team': 'MTL', 'params': {'bagging_fraction': 0.6000000000000001, 'bagging_freq': 47.18323956637185, 'feature_fraction': 0.30000000000000004, 'learning_rate': 0.296, 'num_boost_round': 876.0941644447001, 'num_leaves': 257.08972339844337}},
+{'team': 'OTT', 'params': {'bagging_fraction': 0.4, 'bagging_freq': 50.15976238026979, 'feature_fraction': 0.2, 'learning_rate': 0.227, 'num_boost_round': 969.6539600236381, 'num_leaves': 229.56250454062638}},
+{'team': 'TOR', 'params': {'bagging_fraction': 0.7000000000000001, 'bagging_freq': 57.79851119086696, 'feature_fraction': 0.6000000000000001, 'learning_rate': 0.27, 'num_boost_round': 662.8158187783557, 'num_leaves': 65.25499458942497}},
+{'team': 'WPG', 'params': {'bagging_fraction': 0.30000000000000004, 'bagging_freq': 7.408908863410752, 'feature_fraction': 1.0, 'learning_rate': 0.131, 'num_boost_round': 737.9432961508355, 'num_leaves': 276.1806636486399}},
+{'team': 'CAR', 'params': {'bagging_fraction': 0.2, 'bagging_freq': 62.9664026316109, 'feature_fraction': 0.4, 'learning_rate': 0.069, 'num_boost_round': 376.04564212028674, 'num_leaves': 167.1712860637535}},
+{'team': 'FLA', 'params': {'bagging_fraction': 0.5, 'bagging_freq': 44.6410066951552, 'feature_fraction': 0.9, 'learning_rate': 0.139, 'num_boost_round': 769.7544880303727, 'num_leaves': 204.61769362605628}},
+{'team': 'TBL', 'params': {'bagging_fraction': 0.2, 'bagging_freq': 34.742105627385975, 'feature_fraction': 0.4, 'learning_rate': 0.20500000000000002, 'num_boost_round': 470.73007352071363, 'num_leaves': 109.39724046637758}},
+{'team': 'WSH', 'params': {'bagging_fraction': 0.4, 'bagging_freq': 11.04947415306127, 'feature_fraction': 0.4, 'learning_rate': 0.256, 'num_boost_round': 943.7973136507015, 'num_leaves': 208.39248512596544}},
+{'team': 'CHI', 'params': {'bagging_fraction': 0.4, 'bagging_freq': 82.27043354742091, 'feature_fraction': 0.2, 'learning_rate': 0.25, 'num_boost_round': 489.9246828317696, 'num_leaves': 180.52002037000386}},
+{'team': 'DET', 'params': {'bagging_fraction': 0.5, 'bagging_freq': 69.17816350813358, 'feature_fraction': 0.1, 'learning_rate': 0.201, 'num_boost_round': 999.0494861474639, 'num_leaves': 230.0939608813735}},
+{'team': 'NSH', 'params': {'bagging_fraction': 0.7000000000000001, 'bagging_freq': 55.212077871723054, 'feature_fraction': 0.5, 'learning_rate': 0.276, 'num_boost_round': 791.6514808628766, 'num_leaves': 112.9251113754538}},
+{'team': 'STL', 'params': {'bagging_fraction': 0.6000000000000001, 'bagging_freq': 67.7651797089645, 'feature_fraction': 0.5, 'learning_rate': 0.27, 'num_boost_round': 851.0605337126563, 'num_leaves': 228.74503831147115}},
+{'team': 'CGY', 'params': {'bagging_fraction': 0.1, 'bagging_freq': 60.270910205140325, 'feature_fraction': 0.1, 'learning_rate': 0.121, 'num_boost_round': 117.79382785169736, 'num_leaves': 80.81025956081211}},
+{'team': 'COL', 'params': {'bagging_fraction': 0.9, 'bagging_freq': 68.1226672628897, 'feature_fraction': 0.4, 'learning_rate': 0.227, 'num_boost_round': 229.83251860530083, 'num_leaves': 211.3743066090253}},
+{'team': 'EDM', 'params': {'bagging_fraction': 0.6000000000000001, 'bagging_freq': 56.75733459600198, 'feature_fraction': 0.5, 'learning_rate': 0.258, 'num_boost_round': 574.1288146171496, 'num_leaves': 154.87066158146297}},
+{'team': 'VAN', 'params': {'bagging_fraction': 0.7000000000000001, 'bagging_freq': 60.02428970701073, 'feature_fraction': 0.7000000000000001, 'learning_rate': 0.17300000000000001, 'num_boost_round': 885.4989601763796, 'num_leaves': 221.75155684079974}},
+{'team': 'ANA', 'params': {'bagging_fraction': 0.7000000000000001, 'bagging_freq': 19.695310206744526, 'feature_fraction': 0.9, 'learning_rate': 0.08, 'num_boost_round': 492.0091033325725, 'num_leaves': 108.68851252244946}},
+{'team': 'DAL', 'params': {'bagging_fraction': 0.8, 'bagging_freq': 8.308850851277803, 'feature_fraction': 0.2, 'learning_rate': 0.019, 'num_boost_round': 193.78228642488452, 'num_leaves': 216.69914231332112}},
+{'team': 'LAK', 'params': {'bagging_fraction': 0.1, 'bagging_freq': 97.68790111062431, 'feature_fraction': 1.0, 'learning_rate': 0.053, 'num_boost_round': 225.95420650693447, 'num_leaves': 259.48098668690784}},
+{'team': 'SJS', 'params': {'bagging_fraction': 0.7000000000000001, 'bagging_freq': 23.894258732305737, 'feature_fraction': 0.5, 'learning_rate': 0.178, 'num_boost_round': 274.55201866989887, 'num_leaves': 294.12523749749454}},
+{'team': 'CBJ', 'params': {'bagging_fraction': 0.8, 'bagging_freq': 60.92872594038869, 'feature_fraction': 0.8, 'learning_rate': 0.045, 'num_boost_round': 749.5458582090449, 'num_leaves': 241.46522251580555}},
+{'team': 'MIN', 'params': {'bagging_fraction': 0.1, 'bagging_freq': 47.58326574662237, 'feature_fraction': 0.6000000000000001, 'learning_rate': 0.014, 'num_boost_round': 571.4244600755833, 'num_leaves': 40.43870697765144}},
+{'team': 'WPG', 'params': {'bagging_fraction': 0.2, 'bagging_freq': 17.128586940886564, 'feature_fraction': 0.8, 'learning_rate': 0.23900000000000002, 'num_boost_round': 261.97743972799526, 'num_leaves': 169.85520081153658}},
+{'team': 'ARI', 'params': {'bagging_fraction': 0.6000000000000001, 'bagging_freq': 66.92239967664045, 'feature_fraction': 1.0, 'learning_rate': 0.044, 'num_boost_round': 367.2857358337344, 'num_leaves': 51.68433371555372}},
+{'team': 'VGK', 'params': {'bagging_fraction': 0.6000000000000001, 'bagging_freq': 23.28098895953307, 'feature_fraction': 0.8, 'learning_rate': 0.135, 'num_boost_round': 344.8604324396, 'num_leaves': 159.7481129197668}},
+{'team': 'SEA', 'params': {'bagging_fraction': 0.9, 'bagging_freq': 93.02029192165766, 'feature_fraction': 0.2, 'learning_rate': 0.10400000000000001, 'num_boost_round': 617.1709256936906, 'num_leaves': 280.4020272224963}},
+
+MTL: 71.88%
+OTT: 79.03%
+TOR: 73.44%
+WPG: 76.19%
+CAR: 71.88%
+FLA: 78.12%
+TBL: 73.85%
+WSH: 69.35%
+CHI: 81.54%
+DET: 71.88%
+NSH: 66.67%
+STL: 62.50%
+CGY: 68.75%
+COL: 66.15%
+EDM: 73.02%
+VAN: 69.70%
+ANA: 76.19%
+DAL: 75.76%
+LAK: 79.37%
+SJS: 77.78%
+CBJ: 70.31%
+MIN: 75.38%
+WPG: 74.60%
+ARI: 75.38%
+VGK: 68.25%
+SEA: 68.25%
+
+
+
+
+
+
+
+
 
 
 

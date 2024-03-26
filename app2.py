@@ -11,7 +11,7 @@ from pymongo import MongoClient
 from pages.nhl.service import predict_team_day, predict_team_day_simple, predict_team_day_receipt, test_model_team, save_boxscores, clean_boxscores
 from constants.constants import FILE_VERSION
 from util.helpers import recommended_wagers
-from util.team_models import W_MODELS, L_MODELS, S_MODELS, C_MODELS
+from util.team_models import W_MODELS, L_MODELS, S_MODELS, C_MODELS, W_MODELS_LGBM
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -24,6 +24,15 @@ wModels = W_MODELS
 lModels = L_MODELS
 sModels = S_MODELS
 cModels = C_MODELS
+wModelsLGBM = W_MODELS_LGBM
+
+models = {
+  'wModels': wModels,
+  'lModels': lModels,
+  'sModels': sModels,
+  'cModels': cModels,
+  'wModelsLGBM': wModelsLGBM
+}
 
 app = Flask(__name__)
 
@@ -41,8 +50,9 @@ def nhl_predict_team_day():
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
-  vote = request.args.get('date', default='hard', type=str)
-  return predict_team_day(db, date, day, game, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote)
+  vote = request.args.get('vote', default='hard', type=str)
+  model = request.args.get('model', default='lgbm', type=str)
+  return predict_team_day(db=db, date=date, day=day, gamePick=game, projectedLineup=projectedLineup, models=models, useModel=model, projectedRoster=projectedRoster, vote=vote)
 
 @app.route('/nhl/team/day/simple', methods=['GET'])
 def nhl_predict_team_day_simple():
@@ -51,8 +61,9 @@ def nhl_predict_team_day_simple():
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
-  vote = request.args.get('date', default='hard', type=str)
-  return predict_team_day_simple(db, date, day, game, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote)
+  vote = request.args.get('vote', default='hard', type=str)
+  model = request.args.get('model', default='lgbm', type=str)
+  return predict_team_day_simple(db=db, date=date, day=day, gamePick=game, projectedLineup=projectedLineup, models=models, useModel=model, projectedRoster=projectedRoster, vote=vote)
 
 @app.route('/nhl/team/day/receipt', methods=['GET'])
 def nhl_predict_team_day_receipt():
@@ -61,8 +72,9 @@ def nhl_predict_team_day_receipt():
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
-  vote = request.args.get('date', default='hard', type=str)
-  return predict_team_day_receipt(db, date, day, game, projectedLineup, wModels, lModels, sModels, cModels, projectedRoster, vote)
+  vote = request.args.get('vote', default='hard', type=str)
+  model = request.args.get('model', default='lgbm', type=str)
+  return predict_team_day_receipt(db=db, date=date, day=day, gamePick=game, projectedLineup=projectedLineup, models=models, useModel=model, projectedRoster=projectedRoster, vote=vote)
 
 @app.route('/team/test', methods=['GET'])
 def nhl_test_model_team():
@@ -70,7 +82,8 @@ def nhl_test_model_team():
   endID = request.args.get('end', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
-  return test_model_team(db, startID,endID, wModels, lModels, cModels, projectedLineup, projectedRoster)
+  model = request.args.get('model', default='lgbm', type=str)
+  return test_model_team(db=db, startID=startID, endID=endID, models=models, useModel=model, projectedLineup=projectedLineup, projectedRoster=projectedRoster)
 
 @app.route('/db/update', methods=['GET'])
 def nhl_save_boxscores():
