@@ -492,8 +492,8 @@ def PREDICT_LGBM_H2H(datas, wModels, test=False, simple_return=False):
   away_probability = []
   home_probability = []
   for data in datas:
-    wmAway = wModels[data['awayTeam']]['model']
-    wmHome = wModels[data['homeTeam']]['model']
+    wmAway = wModels[data['awayTeam']]
+    wmHome = wModels[data['homeTeam']]
 
     awayData = pd.DataFrame(data, index=[0])
     homeData = pd.DataFrame(data, index=[0])

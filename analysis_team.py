@@ -96,7 +96,7 @@ def accuracy(test_data, y_test, wModels, lModels):
   return accuracy
 
 def accuracy_lgbm(test_data, y_test, wModels):
-  predictions, *other = PREDICT_LGBM_SCORE_H2H(test_data, wModels)
+  predictions, *other = PREDICT_LGBM_H2H(test_data, wModels)
   accuracy = accuracy_score(y_test, predictions)
   print(f'Accuracy: {accuracy}')
   return accuracy
@@ -296,8 +296,8 @@ if __name__ == '__main__':
   # for k,v in team_score.items():
   #   print(str(k) + ': ' + str(v) + ',')
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
-  # accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
-  plot_confidences()
+  accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
+  # plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)
   # team_by_team_class_count('covers')
   pass
