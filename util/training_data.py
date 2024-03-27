@@ -222,7 +222,7 @@ def season_test_data(season):
   test_data = []
   boxscores = list(Boxscores.find(
     {'season': int(season)},
-    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1, 'period': 1}
+    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'playerByGameStats': 1, 'summary': 1, 'periodDescriptor': 1}
   ))
   games = list(Games.find(
     {'season': int(season)},
@@ -250,10 +250,11 @@ def season_test_data(season):
       'gameType': safe_chain(boxscores,i,'gameType'),
       'gameDate': safe_chain(boxscores,i,'gameDate'),
       'venue': safe_chain(boxscores,i,'venue'),
-      'period': safe_chain(boxscores,i,'period'),
+      'periodDescriptor': safe_chain(boxscores,i,'periodDescriptor'),
       'homeTeam': homeTeam,
       'awayTeam': awayTeam,
-      'boxscore': safe_chain(boxscores,i,'boxscore'),
+      'playerByGameStats': safe_chain(boxscores,i,'playerByGameStats'),
+      'summary': safe_chain(boxscores,i,'summary'),
       'neutralSite': safe_chain(games,i,'neutralSite'),
     }
 

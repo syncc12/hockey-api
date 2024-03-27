@@ -5,6 +5,9 @@ sys.path.append(r'C:\Users\patricklyden\Projects\Hockey\hockey-api')
 sys.path.append(r'C:\Users\patricklyden\Projects\Hockey\hockey-api\constants')
 
 import requests
+from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
+from util.helpers import false_chain, latestIDs, adjusted_winner, test_recommended_wagers, safe_chain
 from inputs.inputs import master_inputs
 from pages.nhl.nhl_helpers_team import ai_teams
 from util.team_models import PREDICT_SCORE_H2H, PREDICT_H2H, PREDICT_COVERS, PREDICT_SCORE_COVERS, PREDICT_LGBM_H2H, PREDICT_LGBM_SCORE_H2H
@@ -226,3 +229,67 @@ def predict_team_day_receipt(db, date, day, gamePick, projectedLineup, models, u
   projectedLineups = [projectedLineup]*len(game_data['games'])
   projectedRosters = [projectedRoster]*len(game_data['games'])
   return ai_teams(db, game_data['games'], projectedLineups, models, useModel, projectedRosters, receipt=True)
+
+
+def save_boxscores(db,date,models=False):
+  Games = db['dev_games']
+  latest_ids = latestIDs()
+  Odds = db['dev_odds']
+  Boxscores = db['dev_boxscores']
+  boxscores = []
+  for id in range(latest_ids['saved']['boxscore']+1,latest_ids['live']['boxscore']+1):
+    boxscore_data = requests.get(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore").json()
+    Boxscores.insert_one(boxscore_data)
+  
+  schedule = requests.get(f"https://api-web.nhle.com/v1/schedule/{date}").json()
+  for week in schedule['gameWeek']:
+    for game in week['games']:
+      if game['id'] <= latest_ids['live']['game']:
+        try:
+          game['date'] = week['date']
+          Games.insert_one(game)
+        except DuplicateKeyError:
+          print('DUPLICATE - Games', game['id'])
+          pass
+      else:
+        try:
+          if false_chain(game,'homeTeam','odds') and false_chain(game,'awayTeam','odds'):
+            for i in range(0, len(schedule['oddsPartners'])):
+              if schedule['oddsPartners'][i]['country'].lower() == 'us':
+                usPartnerId = schedule['oddsPartners'][i]['partnerId']
+                usPartnerIndex = i
+                for provider in game['homeTeam']['odds']:
+                  if provider['providerId'] == usPartnerId:
+                    usHomeOdds = provider['value']
+                    break
+                for provider in game['awayTeam']['odds']:
+                  if provider['providerId'] == usPartnerId:
+                    usAwayOdds = provider['value']
+                    break
+                break
+            Odds.insert_one({
+              'id': game['id'],
+              'date': week['date'],
+              'odds': {
+                'homeTeam': usHomeOdds,
+                'awayTeam': usAwayOdds,
+                },
+              'oddsPartner': schedule['oddsPartners'][usPartnerIndex]['name']
+            })
+        except DuplicateKeyError:
+          print('DUPLICATE - Odds', game['id'])
+          pass
+  updated_ids = latestIDs()
+  print(latest_ids)
+  print(updated_ids)
+
+  return {'res':{
+    'previous': latest_ids,
+    'updated': updated_ids
+  }}
+
+def clean_boxscores(db):
+  Boxscores = db['dev_boxscores']
+  query = {"gameState": "FUT"}
+  result = Boxscores.delete_many(query)
+  return {"Documents deleted": result.deleted_count}

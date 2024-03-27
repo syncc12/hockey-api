@@ -8,7 +8,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 from flask import Flask, request, jsonify, Response
 from joblib import load
 from pymongo import MongoClient
-from pages.nhl.service_team import predict_team_day, predict_team_day_simple, predict_team_day_receipt, test_model_team
+from pages.nhl.service_team import predict_team_day, predict_team_day_simple, predict_team_day_receipt, test_model_team, save_boxscores, clean_boxscores
 # from constants.constants import FILE_VERSION
 # from util.helpers import recommended_wagers
 # from util.team_models import W_MODELS, L_MODELS, S_MODELS, C_MODELS, W_MODELS_LGBM
@@ -85,6 +85,15 @@ def nhl_test_model_team():
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
   model = request.args.get('model', default='lgbm', type=str)
   return test_model_team(db=db, startID=startID, endID=endID, models=models, useModel=model, projectedLineup=projectedLineup, projectedRoster=projectedRoster)
+
+@app.route('/db/update', methods=['GET'])
+def nhl_save_boxscores():
+  date = request.args.get('date', default='now', type=str)
+  return save_boxscores(db, date, models)
+
+@app.route('/db/clean', methods=['GET'])
+def nhl_clean_boxscores():
+  return clean_boxscores(db)
 
 if __name__ == '__main__':
   app.run()
