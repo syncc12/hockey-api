@@ -86,8 +86,8 @@ def ai_teams(db, games, projectedLineups, models, useModel, projectedRosters, si
   elif useModel == 'lgbm':
     wModels = models['wModelsLGBM']
     lModels = None
-  cModels = models['cModels']
-  sModels = models['sModels']
+  # cModels = models['cModels']
+  # sModels = models['sModels']
   all_games = []
   data, game_data, extra_data = nhl_data2(db=db, games=games, useProjectedLineups=projectedLineups, useProjectedRosters=projectedRosters, no_df=True)
   if vote == 'soft':
@@ -95,15 +95,15 @@ def ai_teams(db, games, projectedLineups, models, useModel, projectedRosters, si
       predictions,confidences = PREDICT_H2H(data, wModels, lModels, simple_return=True)
     elif useModel == 'lgbm':
       predictions,confidences = PREDICT_LGBM_H2H(data, wModels, simple_return=True)
-    spread_predictions,spread_confidences = PREDICT_SPREAD(data, sModels,simple_return=True)
-    covers_predictions,covers_confidences = PREDICT_COVERS(data, cModels,simple_return=True)
+    # spread_predictions,spread_confidences = PREDICT_SPREAD(data, sModels,simple_return=True)
+    # covers_predictions,covers_confidences = PREDICT_COVERS(data, cModels,simple_return=True)
   else:
     if useModel == 'xgb':
       predictions,confidences = PREDICT_SCORE_H2H(data, wModels, lModels, simple_return=True)
     elif useModel == 'lgbm':
       predictions,confidences = PREDICT_LGBM_SCORE_H2H(data, wModels, simple_return=True)
-    spread_predictions,spread_confidences = PREDICT_SCORE_SPREAD(data, sModels,simple_return=True)
-    covers_predictions,covers_confidences = PREDICT_SCORE_COVERS(data, cModels,simple_return=True)
+    # spread_predictions,spread_confidences = PREDICT_SCORE_SPREAD(data, sModels,simple_return=True)
+    # covers_predictions,covers_confidences = PREDICT_SCORE_COVERS(data, cModels,simple_return=True)
   if simple:
     for i, prediction in enumerate(predictions):
       awayTeam = game_data[i]["away_team"]["name"]
@@ -113,8 +113,8 @@ def ai_teams(db, games, projectedLineups, models, useModel, projectedRosters, si
         'awayTeam': awayTeam,
         'homeTeam': homeTeam,
         'winningTeamB': f"{winner} - {(confidences[i]*100):.2f}%",
-        'spread': f'{spread_predictions[i]} - {(spread_confidences[i]*100):.2f}%',
-        'covers': f'{covers_predictions[i]} - {(covers_confidences[i]*100):.2f}%',
+        # 'spread': f'{spread_predictions[i]} - {(spread_confidences[i]*100):.2f}%',
+        # 'covers': f'{covers_predictions[i]} - {(covers_confidences[i]*100):.2f}%',
         # 'crosscheck': {
         #   'awayWin': f"{w_predictions_away[i]} - {(w_probabilities_away[i]*100):.2f}%",
         #   'awayLoss': f"{l_predictions_away[i]} - {(l_probabilities_away[i]*100):.2f}%",
@@ -128,8 +128,9 @@ def ai_teams(db, games, projectedLineups, models, useModel, projectedRosters, si
     return all_games
   elif receipt:
     for i in range(len(predictions)):
-      p_covers = f' | C - {round(covers_confidences[i]*100)}%' if covers_predictions[i] == 1 else ''
-      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["abbreviation"] if predictions[i] == 0 else game_data[i]["away_team"]["abbreviation"]} {round(confidences[i]*100)}%{p_covers} | {spread_predictions[i]} - {round(spread_confidences[i]*100)}%')
+      # p_covers = f' | C - {round(covers_confidences[i]*100)}%' if covers_predictions[i] == 1 else ''
+      # all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["abbreviation"] if predictions[i] == 0 else game_data[i]["away_team"]["abbreviation"]} {round(confidences[i]*100)}%{p_covers} | {spread_predictions[i]} - {round(spread_confidences[i]*100)}%')
+      all_games.append(f'{"p-" if extra_data[i]["isProjectedLineup"] else ""}{game_data[i]["home_team"]["abbreviation"] if predictions[i] == 0 else game_data[i]["away_team"]["abbreviation"]} {round(confidences[i]*100)}%')
     return all_games
   else:
     return {

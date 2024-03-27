@@ -12,9 +12,10 @@ import os
 from joblib import dump
 from util.helpers import safe_chain, false_chain, n2n, isNaN, getAge, getPlayer, getPlayerData, projectedLineup, projectedRoster
 from inputs.inputs import master_inputs
-from util.query import get_last_game_team_stats
-from util.models import MODEL_NAMES
+# from util.query import get_last_game_team_stats
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS, X_INPUTS_T
+
+MODEL_NAMES = Y_OUTPUTS
 
 REPLACE_VALUE = -1
 

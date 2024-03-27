@@ -1,6 +1,7 @@
 import sys
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\inputs')
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\constants')
+sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 from joblib import dump, load
 import pandas as pd
@@ -9,7 +10,7 @@ import os
 from sklearn.calibration import CalibratedClassifierCV
 from constants.inputConstants import X_INPUTS, Y_OUTPUTS, X_INPUTS_T
 from constants.constants import XGB_TEAM_FILE_VERSION, TEAM_FILE_VERSION, LGBM_TEAM_FILE_VERSION
-from team_helpers import away_rename, home_rename, team_score, team_score_lgbm, team_spread_score, team_covers_score, TEAM_IDS
+from util.team_helpers import away_rename, home_rename, team_score, team_score_lgbm, team_spread_score, team_covers_score, TEAM_IDS
 from sklearn.metrics import accuracy_score
 import xgboost as xgb
 import lightgbm as lgb
@@ -28,29 +29,29 @@ W_MODELS_LGBM = {}
 # W_MODELS_C = {}
 # L_MODELS_C = {}
 for team in TEAM_IDS:
-  if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB.joblib'):
-    W_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB.joblib'), 'inverse': False}
-  elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_F.joblib'):
-    W_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_F.joblib'), 'inverse': True}
-  elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_I.joblib'):
-    W_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_I.joblib'), 'inverse': True}
+  # if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB.joblib'):
+  #   W_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB.joblib'), 'inverse': False}
+  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_F.joblib'):
+  #   W_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_F.joblib'), 'inverse': True}
+  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_I.joblib'):
+  #   W_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_winB_I.joblib'), 'inverse': True}
 
-  if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB.joblib'):
-    L_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB.joblib'), 'inverse': False}
-  elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_F.joblib'):
-    L_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_F.joblib'), 'inverse': True}
-  elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_I.joblib'):
-    L_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_I.joblib'), 'inverse': True}
+  # if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB.joblib'):
+  #   L_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB.joblib'), 'inverse': False}
+  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_F.joblib'):
+  #   L_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_F.joblib'), 'inverse': True}
+  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_I.joblib'):
+  #   L_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_team{team}_lossB_I.joblib'), 'inverse': True}
 
-  S_MODELS[team] = load(f'models/nhl_ai_v{TEAM_FILE_VERSION}_team{team}_spread.joblib')
+  # S_MODELS[team] = load(f'models/nhl_ai_v{TEAM_FILE_VERSION}_team{team}_spread.joblib')
   W_MODELS_LGBM[team] = load(f'models/nhl_ai_v{LGBM_TEAM_FILE_VERSION}_lightgbm_team{team}_winB.joblib')
 
-  if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers.joblib'):
-    C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers.joblib'), 'inverse': False}
-  elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_F.joblib'):
-    C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_F.joblib'), 'inverse': True}
-  elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_I.joblib'):
-    C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_I.joblib'), 'inverse': True}
+  # if os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers.joblib'):
+  #   C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers.joblib'), 'inverse': False}
+  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_F.joblib'):
+  #   C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_F.joblib'), 'inverse': True}
+  # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_I.joblib'):
+  #   C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_I.joblib'), 'inverse': True}
 
 
 def get_team_score(test_teams, teamLookup, models=(), model_type='xgb', score_type='moneyline'):
