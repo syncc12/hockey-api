@@ -6,6 +6,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from sklearn.metrics import confusion_matrix
 from inputs.inputs import master_inputs
 from sklearn.metrics import accuracy_score, roc_curve, auc
 from training_input import training_input, test_input
@@ -54,22 +55,22 @@ SEASONS = [
   20212022,
   20222023,
 ]
-TRAINING_DATA = training_input(SEASONS)
-training_data1 = pd.DataFrame(TRAINING_DATA)
-training_data2 = pd.DataFrame(TRAINING_DATA)
+# TRAINING_DATA = training_input(SEASONS)
+# training_data1 = pd.DataFrame(TRAINING_DATA)
+# training_data2 = pd.DataFrame(TRAINING_DATA)
 
-training_data1.rename(columns=home_rename, inplace=True)
-training_data1['winB'] = 1 - training_data1['winB']
-training_data1['lossB'] = 1 - training_data1['winB']
-training_data2.rename(columns=away_rename, inplace=True)
-training_data2['lossB'] = 1 - training_data2['winB']
-training_data = pd.concat([training_data1, training_data2], axis=0)
-training_data.reset_index(drop=True, inplace=True)
-teams = training_data.groupby('team')
-teams_group = training_data.groupby('team')
+# training_data1.rename(columns=home_rename, inplace=True)
+# training_data1['winB'] = 1 - training_data1['winB']
+# training_data1['lossB'] = 1 - training_data1['winB']
+# training_data2.rename(columns=away_rename, inplace=True)
+# training_data2['lossB'] = 1 - training_data2['winB']
+# training_data = pd.concat([training_data1, training_data2], axis=0)
+# training_data.reset_index(drop=True, inplace=True)
+# teams = training_data.groupby('team')
+# teams_group = training_data.groupby('team')
 
-if TEAM:
-  teams = [(TEAM, teams.get_group(TEAM))]
+# if TEAM:
+#   teams = [(TEAM, teams.get_group(TEAM))]
 
 OUTPUT = 'winnerB'
 TEST_DATA = test_input(no_format=True)
@@ -96,10 +97,13 @@ def accuracy(test_data, y_test, wModels, lModels):
   return accuracy
 
 def accuracy_lgbm(test_data, y_test, wModels):
-  predictions, *other = PREDICT_LGBM_H2H(test_data, wModels)
-  accuracy = accuracy_score(y_test, predictions)
-  print(f'Accuracy: {accuracy}')
-  return accuracy
+  soft_predictions, soft_confidences = PREDICT_LGBM_H2H(test_data, wModels, simple_return=True)
+  hard_predictions, hard_confidences = PREDICT_LGBM_SCORE_H2H(test_data, wModels, simple_return=True)
+  soft_accuracy = accuracy_score(y_test, soft_predictions)
+  hard_accuracy = accuracy_score(y_test, hard_predictions)
+  print(f'Soft Accuracy: {soft_accuracy}')
+  print(f'Hard Accuracy: {hard_accuracy}')
+  return soft_accuracy, hard_accuracy
 
 def spread_scores(x_test, y_test, sModels):
   scores = {}
@@ -132,7 +136,8 @@ def covers_accuracies(test_data, y_test, cModels):
 def plot_confidences():
   # predictions,confidences = PREDICT_SCORE_H2H(TEST_DATA,W_MODELS,L_MODELS,test=True,simple_return=True)
   # predictions,confidences = PREDICT_SCORE_SPREAD(TEST_DATA,S_MODELS,simple_return=True)
-  predictions,confidences = PREDICT_LGBM_SCORE_H2H(TEST_DATA,W_MODELS_LGBM,simple_return=True)
+  # predictions,confidences = PREDICT_LGBM_SCORE_H2H(TEST_DATA,W_MODELS_LGBM,simple_return=True)
+  predictions,confidences = PREDICT_LGBM_H2H(TEST_DATA,W_MODELS_LGBM,simple_return=True)
   # predictions,confidences = PREDICT_SCORE_COVERS(TEST_DATA,C_MODELS,simple_return=True)
   correct_confidences = []
   incorrect_confidences = []
@@ -276,6 +281,34 @@ def team_by_team_spread_plot_confidences(team=1):
   plt.legend(loc="upper left")
   plt.show()
 
+def false_positives_negatives_lgbm(test_data, y_test, wModels):
+  soft_predictions, *other = PREDICT_LGBM_H2H(test_data, wModels)
+  hard_predictions, *other = PREDICT_LGBM_SCORE_H2H(test_data, wModels)
+  # Generate the confusion matrix
+  soft_conf_matrix = confusion_matrix(y_test, soft_predictions)
+  hard_conf_matrix = confusion_matrix(y_test, hard_predictions)
+
+  # The confusion matrix is structured as follows:
+  # [[true negatives, false positives],
+  #  [false negatives, true positives]]
+
+  # Extracting false positives and false negatives
+  soft_false_positives = soft_conf_matrix[0][1]
+  soft_false_negatives = soft_conf_matrix[1][0]
+  hard_false_positives = hard_conf_matrix[0][1]
+  hard_false_negatives = hard_conf_matrix[1][0]
+  soft_true_positives = soft_conf_matrix[1][1]
+  soft_true_negatives = soft_conf_matrix[0][0]
+  hard_true_positives = hard_conf_matrix[1][1]
+  hard_true_negatives = hard_conf_matrix[0][0]
+
+  print("Soft Voting:")
+  print(f"Positives: T:{soft_true_positives} F:{soft_false_positives}")
+  print(f"Negatives: T:{soft_true_negatives} F:{soft_false_negatives}")
+  print("Hard Voting:")
+  print(f"Positives: T:{hard_true_positives} F:{hard_false_positives}")
+  print(f"Negatives: T:{hard_true_negatives} F:{hard_false_negatives}")
+
 if __name__ == '__main__':
   # spread_scores(x_test, y_test, S_MODELS)
   # spread_accuracies(TEST_DATA, y_test, S_MODELS)
@@ -297,7 +330,8 @@ if __name__ == '__main__':
   #   print(str(k) + ': ' + str(v) + ',')
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
   accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
-  # plot_confidences()
+  # false_positives_negatives_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
+  plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)
   # team_by_team_class_count('covers')
   pass

@@ -492,7 +492,17 @@ def PREDICT_SCORE_COVERS(datas, cModels, simple_return=False):
 def PREDICT_LGBM_H2H(datas, wModels, test=False, simple_return=False):
   away_probability = []
   home_probability = []
+  scores = []
   for data in datas:
+    away_score = team_score_lgbm[data['awayTeam']]['score']
+    home_score = team_score_lgbm[data['homeTeam']]['score']
+    if away_score > home_score:
+      use_score = away_score
+    elif home_score > away_score:
+      use_score = home_score
+    elif away_score == home_score:
+      use_score = away_score
+    scores.append({'away':away_score,'home':home_score,'use':use_score})
     wmAway = wModels[data['awayTeam']]
     wmHome = wModels[data['homeTeam']]
 
@@ -513,8 +523,13 @@ def PREDICT_LGBM_H2H(datas, wModels, test=False, simple_return=False):
 
   away_predictions = [1 if i > 0.5 else 0 for i in away_probability]
   home_predictions = [1 if i > 0.5 else 0 for i in home_probability]
+
+
   predictions = [1 if away_predictions[i] > home_predictions[i] else 0 for i in range(0,len(away_predictions))]
   confidences = [away_probability[i] if prediction == 1 else home_probability[i] for i, prediction in enumerate(predictions)]
+
+  # confidences = [confidences[i] * scores[i]['home' if prediction == 0 else 'away'] for i, prediction in enumerate(predictions)]
+  # confidences = [confidence * scores[i]['use'] for i, confidence in enumerate(confidences)]
 
   if simple_return:
     return predictions,confidences

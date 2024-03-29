@@ -51,7 +51,7 @@ def nhl_predict_team_day():
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
-  vote = request.args.get('vote', default='hard', type=str)
+  vote = request.args.get('vote', default='soft', type=str)
   model = request.args.get('model', default='lgbm', type=str)
   return predict_team_day(db=db, date=date, day=day, gamePick=game, projectedLineup=projectedLineup, models=models, useModel=model, projectedRoster=projectedRoster, vote=vote)
 
@@ -62,10 +62,11 @@ def nhl_predict_team_day_simple():
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
-  vote = request.args.get('vote', default='hard', type=str)
+  vote = request.args.get('vote', default='soft', type=str)
   model = request.args.get('model', default='lgbm', type=str)
   return predict_team_day_simple(db=db, date=date, day=day, gamePick=game, projectedLineup=projectedLineup, models=models, useModel=model, projectedRoster=projectedRoster, vote=vote)
 
+@app.route('/nhl/receipt', methods=['GET'])
 @app.route('/nhl/team/day/receipt', methods=['GET'])
 def nhl_predict_team_day_receipt():
   date = request.args.get('date', default='now', type=str)
@@ -73,7 +74,7 @@ def nhl_predict_team_day_receipt():
   game = request.args.get('game', default=-1, type=int)
   projectedLineup = request.args.get('projectedLineup', default=False, type=bool)
   projectedRoster = request.args.get('projectedRoster', default=False, type=bool)
-  vote = request.args.get('vote', default='hard', type=str)
+  vote = request.args.get('vote', default='soft', type=str)
   model = request.args.get('model', default='lgbm', type=str)
   return predict_team_day_receipt(db=db, date=date, day=day, gamePick=game, projectedLineup=projectedLineup, models=models, useModel=model, projectedRoster=projectedRoster, vote=vote)
 
