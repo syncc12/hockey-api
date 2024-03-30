@@ -77,16 +77,18 @@ def master_inputs(db, boxscore, isProjectedRoster=False, isProjectedLineup=False
         awayStartingGoalieID = safe_chain(pbgs,'awayTeam','goalies',0,'playerId')
         awayBackupGoalieID = safe_chain(pbgs,'awayTeam','goalies',1,'playerId')
       else:
-        startingTOI = safe_none(formatTime(pbgs['awayTeam']['goalies'][0]['toi']))
-        startingID = pbgs['awayTeam']['goalies'][0]['playerId']
-        backupID = pbgs['awayTeam']['goalies'][1]['playerId']
-        for g in pbgs['awayTeam']['goalies']:
-          if safe_none(formatTime(g['toi'])) > safe_none(startingTOI):
-            startingTOI = safe_none(formatTime(g['toi']))
-            backupID = startingID
-            startingID = g['playerId']
-        awayStartingGoalieID = startingID
-        awayBackupGoalieID = backupID
+        awayStartingGoalieID = safe_chain(pbgs,'awayTeam','goalies',0,'playerId')
+        awayBackupGoalieID = safe_chain(pbgs,'awayTeam','goalies',1,'playerId')
+        # startingTOI = safe_none(formatTime(pbgs['awayTeam']['goalies'][0]['toi']))
+        # startingID = pbgs['awayTeam']['goalies'][0]['playerId']
+        # backupID = pbgs['awayTeam']['goalies'][1]['playerId']
+        # for g in pbgs['awayTeam']['goalies']:
+        #   if safe_none(formatTime(g['toi'])) > safe_none(startingTOI):
+        #     startingTOI = safe_none(formatTime(g['toi']))
+        #     backupID = startingID
+        #     startingID = g['playerId']
+        # awayStartingGoalieID = startingID
+        # awayBackupGoalieID = backupID
 
   if false_chain(pbgs,'homeTeam','goalies'):
     if len(pbgs['homeTeam']['goalies']) == 1:
@@ -100,16 +102,18 @@ def master_inputs(db, boxscore, isProjectedRoster=False, isProjectedLineup=False
         homeStartingGoalieID = safe_chain(pbgs,'homeTeam','goalies',0,'playerId')
         homeBackupGoalieID = safe_chain(pbgs,'homeTeam','goalies',1,'playerId')
       else:
-        startingTOI = safe_none(formatTime(pbgs['homeTeam']['goalies'][0]['toi']))
-        startingID =  pbgs['homeTeam']['goalies'][0]['playerId']
-        backupID = pbgs['homeTeam']['goalies'][1]['playerId']
-        for g in pbgs['homeTeam']['goalies']:
-          if safe_none(formatTime(g['toi'])) > safe_none(startingTOI):
-            startingTOI = safe_none(formatTime(g['toi']))
-            backupID = startingID
-            startingID = g['playerId']
-        homeStartingGoalieID = startingID
-        homeBackupGoalieID = backupID
+        homeStartingGoalieID = safe_chain(pbgs,'homeTeam','goalies',0,'playerId')
+        homeBackupGoalieID = safe_chain(pbgs,'homeTeam','goalies',1,'playerId')
+        # startingTOI = safe_none(formatTime(pbgs['homeTeam']['goalies'][0]['toi']))
+        # startingID =  pbgs['homeTeam']['goalies'][0]['playerId']
+        # backupID = pbgs['homeTeam']['goalies'][1]['playerId']
+        # for g in pbgs['homeTeam']['goalies']:
+        #   if safe_none(formatTime(g['toi'])) > safe_none(startingTOI):
+        #     startingTOI = safe_none(formatTime(g['toi']))
+        #     backupID = startingID
+        #     startingID = g['playerId']
+        # homeStartingGoalieID = startingID
+        # homeBackupGoalieID = backupID
 
   all_inputs = {}
   if isProjectedLineup:

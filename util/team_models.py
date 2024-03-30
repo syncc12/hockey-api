@@ -15,6 +15,7 @@ from sklearn.metrics import accuracy_score
 import xgboost as xgb
 import lightgbm as lgb
 import warnings
+import statsmodels.api as sm
 
 # Suppress specific UserWarning from sklearn
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
@@ -53,6 +54,9 @@ for team in TEAM_IDS:
   # elif os.path.exists(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_I.joblib'):
   #   C_MODELS[team] = {'model': load(f'models/nhl_ai_v{XGB_TEAM_FILE_VERSION}_xgboost_spread_team{team}_covers_I.joblib'), 'inverse': True}
 
+
+def sigmoid(x):
+  return 1 / (1 + np.exp(-x))
 
 def get_team_score(test_teams, teamLookup, models=(), model_type='xgb', score_type='moneyline'):
   accuracies = {}
@@ -98,6 +102,11 @@ def get_team_score(test_teams, teamLookup, models=(), model_type='xgb', score_ty
       accuracy = accuracy_score(y_test, predictions)
       accuracies[team] = {'team':team_name,'covers':accuracy,'score':accuracy,'id':team}
   return accuracies
+
+def calibrate(predictions, y_test):
+  predictions = sm.add_constant(predictions)
+  model = sm.Logit(y_test, predictions).fit()
+  return model
 
 def PREDICT(data, team, wModels, lModels):
   wm = wModels[team]['model']
@@ -492,6 +501,8 @@ def PREDICT_SCORE_COVERS(datas, cModels, simple_return=False):
 def PREDICT_LGBM_H2H(datas, wModels, test=False, simple_return=False):
   away_probability = []
   home_probability = []
+  away_confidence = []
+  home_confidence = []
   scores = []
   for data in datas:
     away_score = team_score_lgbm[data['awayTeam']]['score']
@@ -516,16 +527,22 @@ def PREDICT_LGBM_H2H(datas, wModels, test=False, simple_return=False):
     daway = awayData[X_INPUTS_T]
     dhome = homeData[X_INPUTS_T]
 
-    wmAP = wmAway.predict(daway, num_iteration=wmAway.best_iteration)
-    wmHP = wmHome.predict(dhome, num_iteration=wmHome.best_iteration)
-    away_probability.append(wmAP[0])
-    home_probability.append(wmHP[0])
+    wmAP = wmAway.predict(daway, num_iteration=wmAway.best_iteration, raw_score=False)
+    wmHP = wmHome.predict(dhome, num_iteration=wmHome.best_iteration, raw_score=False)
+    # away_probability.append(wmAP[0])
+    # home_probability.append(wmHP[0])
+    away_probability.append(sigmoid(wmAP[0]))
+    home_probability.append(sigmoid(wmHP[0]))
+    # away_confidence.append(sigmoid(wmAP[0]))
+    # home_confidence.append(sigmoid(wmHP[0]))
 
   away_predictions = [1 if i > 0.5 else 0 for i in away_probability]
   home_predictions = [1 if i > 0.5 else 0 for i in home_probability]
 
 
-  predictions = [1 if away_predictions[i] > home_predictions[i] else 0 for i in range(0,len(away_predictions))]
+  # predictions = [1 if away_predictions[i] > home_predictions[i] else 0 for i in range(0,len(away_predictions))]
+  # predictions = [away_predictions[i] if away_probability[i] > home_probability[i] else home_predictions[i] for i in range(0,len(away_probability))]
+  predictions = [1 if away_probability[i] > home_probability[i] else 0 for i in range(0,len(away_probability))]
   confidences = [away_probability[i] if prediction == 1 else home_probability[i] for i, prediction in enumerate(predictions)]
 
   # confidences = [confidences[i] * scores[i]['home' if prediction == 0 else 'away'] for i, prediction in enumerate(predictions)]
@@ -536,9 +553,10 @@ def PREDICT_LGBM_H2H(datas, wModels, test=False, simple_return=False):
 
   return predictions,confidences,away_predictions,home_predictions,away_probability,home_probability
 
-def PREDICT_LGBM_SCORE_H2H(datas, wModels, test=False, simple_return=False):
+def PREDICT_LGBM_SCORE_H2H(datas, wModels, test=False, simple_return=False, detailed_return=False):
   away_probability = []
   home_probability = []
+  detail = []
   scores = []
   for data in datas:
     away_score = team_score_lgbm[data['awayTeam']]['score']
@@ -546,12 +564,15 @@ def PREDICT_LGBM_SCORE_H2H(datas, wModels, test=False, simple_return=False):
     if away_score > home_score:
       score_type = 'away'
       use_score = away_score
+      detail.append('away')
     elif home_score > away_score:
       score_type = 'home'
       use_score = home_score
+      detail.append('home')
     elif away_score == home_score:
       score_type = 'both'
       use_score = away_score
+      detail.append('away')
     scores.append({'away':away_score,'home':home_score,'use':use_score})
     wmAway = wModels[data['awayTeam']]
     wmHome = wModels[data['homeTeam']]
@@ -567,10 +588,12 @@ def PREDICT_LGBM_SCORE_H2H(datas, wModels, test=False, simple_return=False):
     daway = awayData[X_INPUTS_T]
     dhome = homeData[X_INPUTS_T]
 
-    wmAP = wmAway.predict(daway, num_iteration=wmAway.best_iteration)
-    wmHP = wmHome.predict(dhome, num_iteration=wmHome.best_iteration)
-    away_probability.append({'probability':wmAP[0],'score_type':score_type})
-    home_probability.append({'probability':wmHP[0],'score_type':score_type})
+    wmAP = wmAway.predict(daway, num_iteration=wmAway.best_iteration, raw_score=False)
+    wmHP = wmHome.predict(dhome, num_iteration=wmHome.best_iteration, raw_score=False)
+    wmAP_s = sigmoid(wmAP[0]) * away_score
+    wmHP_s = sigmoid(wmHP[0]) * home_score
+    away_probability.append({'probability':wmAP[0],'confidence':wmAP_s,'score_type':score_type})
+    home_probability.append({'probability':wmHP[0],'confidence':wmHP_s,'score_type':score_type})
 
   away_predictions = [{'prediction':1 if i['probability'] > 0.5 else 0,'score_type':i['score_type']} for i in away_probability]
   home_predictions = [{'prediction':1 if i['probability'] > 0.5 else 0,'score_type':i['score_type']} for i in home_probability]
@@ -581,18 +604,20 @@ def PREDICT_LGBM_SCORE_H2H(datas, wModels, test=False, simple_return=False):
     elif away_predictions[i]['score_type'] == 'home':
       predictions.append(0 if home_predictions[i]['prediction'] == 1 else 1)
     elif away_predictions[i]['score_type'] == 'both':
-      predictions.append(1 if away_predictions[i]['prediction'] > home_predictions[i]['prediction'] else 0)
+      predictions.append(away_predictions[i]['prediction'])
+      # predictions.append(1 if away_predictions[i]['prediction'] > home_predictions[i]['prediction'] else 0)
   confidences = []
   for i in range(0,len(predictions)):
     if away_predictions[i]['score_type'] == 'away':
-      confidences.append(away_probability[i]['probability'])
+      confidences.append(away_probability[i]['confidence'])
     elif away_predictions[i]['score_type'] == 'home':
-      confidences.append(home_probability[i]['probability'])
+      confidences.append(home_probability[i]['confidence'])
     elif away_predictions[i]['score_type'] == 'both':
-      confidences.append(away_probability[i]['probability'] if predictions[i] == 1 else home_probability[i]['probability'])
+      confidences.append(away_probability[i]['confidence'])
+      # confidences.append(away_probability[i]['confidence'] if predictions[i] == 1 else home_probability[i]['probability'])
 
   # confidences = [confidence * scores[i]['use'] for i, confidence in enumerate(confidences)]
-  # confidences = [1 - abs(0.5 - i) for i in confidences]
+  # confidences = [1-abs(0.5 - i) for i in confidences]
   # confidences = [1 - abs(0.8 - i) for i in confidences]
   
   away_probability = [i['probability'] for i in away_probability]
@@ -602,4 +627,6 @@ def PREDICT_LGBM_SCORE_H2H(datas, wModels, test=False, simple_return=False):
 
   if simple_return:
     return predictions,confidences
+  if detailed_return:
+    return predictions,confidences, detail
   return predictions,confidences,away_predictions,home_predictions,away_probability,home_probability

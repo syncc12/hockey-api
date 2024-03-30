@@ -68,7 +68,7 @@ if __name__ == '__main__':
     for skip_season in SKIP_SEASONS:
       season_data = load(f'training_data/v{VERSION}/training_data_v{FILE_VERSION}_{skip_season}.joblib')
       result.append(season_data)
-  result = np.concatenate(result).tolist()
+  # result = np.concatenate(result).tolist()
   pool.close()
 
   # data = pd.DataFrame(result)
@@ -79,7 +79,7 @@ if __name__ == '__main__':
   #   print(class_percentages)
     
 
-  dump(result,f'training_data/training_data_v{FILE_VERSION}.joblib')
+  # dump(result,f'training_data/training_data_v{FILE_VERSION}.joblib')
   f = open('training_data/training_data_text.txt', 'w')
   f.write(json.dumps(result[len(result)-200:len(result)]))
   print(f'Games Collected: v{VERSION}')

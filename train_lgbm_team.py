@@ -4,7 +4,7 @@ sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 from pymongo import MongoClient
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, brier_score_loss
 from joblib import dump
 from constants.inputConstants import X_INPUTS, X_INPUTS_T, Y_OUTPUTS
 from constants.constants import LGBM_TEAM_VERSION, LGBM_TEAM_FILE_VERSION, RANDOM_STATE, START_SEASON, END_SEASON
@@ -145,9 +145,10 @@ def train(db,params,dtrain,x_test,y_test,num_boost_round=NUM_BOOST_ROUND,team='a
   preds = gbm.predict(x_test, num_iteration=gbm.best_iteration)
   predictions = np.where(preds > 0.5, 1, 0)
   accuracy = accuracy_score(y_test, predictions)
+  brier_score = brier_score_loss(y_test, preds)
 
   if not trial:
-    model_data = f"{team}:{teamLookup[team]['abbrev']} Accuracy: {'%.2f%%' % (accuracy * 100.0)}"
+    model_data = f"{team}:{teamLookup[team]['abbrev']} Accuracy: {'%.2f%%' % (accuracy * 100.0)} | Brier Score: {brier_score}"
     print(model_data)
 
     if not DRY_RUN:
@@ -286,9 +287,11 @@ if __name__ == '__main__':
           num_boost_round=int(params['num_boost_round'])
         )
         preds = model.predict(x_test, num_iteration=model.best_iteration)
-        predictions = np.where(preds > 0.5, 1, 0)
-        accuracy = accuracy_score(y_test, predictions)
-        return {'loss': -accuracy, 'status': STATUS_OK}
+        # predictions = np.where(preds > 0.5, 1, 0)
+        # accuracy = accuracy_score(y_test, predictions)
+        brier_score = brier_score_loss(y_test, preds)
+        return {'loss': brier_score, 'status': STATUS_OK}
+        # return {'loss': -accuracy, 'status': STATUS_OK}
       
       trials = Trials()
       best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=MAX_EVALS, trials=trials)

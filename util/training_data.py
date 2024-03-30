@@ -25,17 +25,16 @@ def season_training_data(season,test_data=False):
   training_data = []
   boxscores = list(Boxscores.find(
     {'season': int(season)},
-    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'boxscore': 1, 'period': 1}
+    {'id': 1, 'season': 1, 'gameType': 1, 'gameDate': 1, 'venue': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1, 'playerByGameStats': 1, 'summary': 1, 'periodDescriptor': 1}
   ))
   games = list(Games.find(
     {'season': int(season)},
     {'id': 1, 'neutralSite': 1, 'homeTeam': 1, 'awayTeam': 1}
   ))
-  for i in range(0,len(games)):
+  for i in range(0,len(boxscores)):
     if safe_chain(boxscores,i,'gameType') != 2 and safe_chain(boxscores,i,'gameType') != 3:
-      print(season,f'{i+1}/{len(games)} - SKIPPED')
+      print(season,f'{i+1}/{len(boxscores)} - SKIPPED')
       continue
-
     if false_chain(boxscores,i,'id'):
       id = safe_chain(boxscores,i,'id')
     else:
@@ -54,13 +53,12 @@ def season_training_data(season,test_data=False):
       'gameType': safe_chain(boxscores,i,'gameType'),
       'gameDate': safe_chain(boxscores,i,'gameDate'),
       'venue': safe_chain(boxscores,i,'venue'),
-      'period': safe_chain(boxscores,i,'period'),
+      'periodDescriptor': safe_chain(boxscores,i,'periodDescriptor'),
       'homeTeam': homeTeam,
       'awayTeam': awayTeam,
-      'boxscore': safe_chain(boxscores,i,'boxscore'),
+      'playerByGameStats': safe_chain(boxscores,i,'playerByGameStats'),
+      'summary': safe_chain(boxscores,i,'summary'),
       'neutralSite': safe_chain(games,i,'neutralSite'),
-      # 'homeSplitSquad': safe_chain(games,i,'homeTeam','homeSplitSquad'),
-      # 'awaySplitSquad': safe_chain(games,i,'awayTeam','awaySplitSquad'),
     }
 
     boxscore_data = master_inputs(db=db, boxscore=game_data)['data']
@@ -106,33 +104,6 @@ def game_training_data(gameId):
   print('DONE ', gameId['id'])
   return training_data
 
-
-# def compile_data(id,boxscores,games):
-#   game_data = []
-#   for boxscore in boxscores:
-#     game_data.append(boxscore_data)
-#   now = datetime.now()
-#   print(id, len(boxscores), f'{now.hour-last_time.hour}:{now.minute-last_time.minute}:{float(f"{now.second}.{now.microsecond}")-float(f"{last_time.second}.{last_time.microsecond}")}')
-#   last_time = now
-#   return game_data
-
-# def save_training_data(boxscores,neutralSite):
-
-#   game_data = {
-#     'id': safe_chain(boxscores,0,'id'),
-#     'season': safe_chain(boxscores,0,'season'),
-#     'gameType': safe_chain(boxscores,0,'gameType'),
-#     'gameDate': safe_chain(boxscores,0,'gameDate'),
-#     'venue': safe_chain(boxscores,0,'venue'),
-#     'homeTeam': safe_chain(boxscores,0,'homeTeam'),
-#     'awayTeam': safe_chain(boxscores,0,'awayTeam'),
-#     'boxscore': safe_chain(boxscores,0,'boxscore'),
-#     'neutralSite': neutralSite,
-#     'homeSplitSquad': False,
-#     'awaySplitSquad': False,
-#   }
-#   boxscore_data = compile_training_data(db=db, game=game_data)
-#   return boxscore_data
 
 def update_training_data(gameId):
   print('fired',gameId['id'])

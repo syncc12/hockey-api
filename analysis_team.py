@@ -4,23 +4,27 @@ sys.path.append(r'C:\Users\patricklyden\Projects\Hockey\hockey-api\constants')
 sys.path.append(r'C:\Users\syncc\code\Hockey API\hockey_api\util')
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import numpy as np
 from sklearn.metrics import confusion_matrix
 from inputs.inputs import master_inputs
-from sklearn.metrics import accuracy_score, roc_curve, auc
+from sklearn.metrics import accuracy_score, roc_curve, auc, brier_score_loss
 from training_input import training_input, test_input
 from constants.inputConstants import X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, TEST_DATA_FILE_VERSION, START_SEASON, END_SEASON
-from util.team_models import get_team_score, PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, PREDICT_COVERS, PREDICT_SCORE_COVERS, PREDICT_LGBM_H2H, PREDICT_LGBM_SCORE_H2H, W_MODELS, L_MODELS, S_MODELS, C_MODELS, W_MODELS_LGBM
+from util.team_models import get_team_score, calibrate, PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, PREDICT_COVERS, PREDICT_SCORE_COVERS, PREDICT_LGBM_H2H, PREDICT_LGBM_SCORE_H2H, W_MODELS, L_MODELS, S_MODELS, C_MODELS, W_MODELS_LGBM
 from util.helpers import team_lookup
 from util.team_helpers import away_rename, home_rename
+from util.util import CalibrationClassifier
 from pymongo import MongoClient
 import warnings
 import xgboost as xgb
 from collections import Counter
 from joblib import dump, load
 import shap
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.model_selection import train_test_split
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -74,6 +78,7 @@ SEASONS = [
 
 OUTPUT = 'winnerB'
 TEST_DATA = test_input(no_format=True)
+# TEST_DATA, CAL_DATA = TEST_DATA[:len(TEST_DATA)//2], TEST_DATA[len(TEST_DATA)//2:]
 test_df = pd.DataFrame(TEST_DATA)
 test_data1 = pd.DataFrame(TEST_DATA)
 test_data2 = pd.DataFrame(TEST_DATA)
@@ -104,6 +109,14 @@ def accuracy_lgbm(test_data, y_test, wModels):
   print(f'Soft Accuracy: {soft_accuracy}')
   print(f'Hard Accuracy: {hard_accuracy}')
   return soft_accuracy, hard_accuracy
+
+def single_accuracy_lgbm(test_data, y_test, wModels):
+  # soft_predictions, soft_confidences = PREDICT_LGBM_H2H(test_data, wModels, simple_return=True)
+  hard_predictions, hard_confidences, detail = PREDICT_LGBM_SCORE_H2H(test_data, wModels, detailed_return=True)
+  # soft_accuracy = accuracy_score(y_test, soft_predictions)
+  hard_accuracy = accuracy_score(y_test, hard_predictions)
+  # print(f'Soft Accuracy: {soft_accuracy}')
+  print(f'Hard Accuracy: {hard_accuracy}')
 
 def spread_scores(x_test, y_test, sModels):
   scores = {}
@@ -136,18 +149,32 @@ def covers_accuracies(test_data, y_test, cModels):
 def plot_confidences():
   # predictions,confidences = PREDICT_SCORE_H2H(TEST_DATA,W_MODELS,L_MODELS,test=True,simple_return=True)
   # predictions,confidences = PREDICT_SCORE_SPREAD(TEST_DATA,S_MODELS,simple_return=True)
-  # predictions,confidences = PREDICT_LGBM_SCORE_H2H(TEST_DATA,W_MODELS_LGBM,simple_return=True)
-  predictions,confidences = PREDICT_LGBM_H2H(TEST_DATA,W_MODELS_LGBM,simple_return=True)
+  predictions,confidences,detail = PREDICT_LGBM_SCORE_H2H(TEST_DATA,W_MODELS_LGBM,detailed_return=True)
+  # predictions,confidences = PREDICT_LGBM_H2H(TEST_DATA,W_MODELS_LGBM,simple_return=True)
   # predictions,confidences = PREDICT_SCORE_COVERS(TEST_DATA,C_MODELS,simple_return=True)
   correct_confidences = []
+  away_correct_confidences = []
+  home_correct_confidences = []
   incorrect_confidences = []
+  away_incorrect_confidences = []
+  home_incorrect_confidences = []
+
   for i in range(0,len(predictions)):
     if predictions[i] == y_test[i]:
       # correct_confidences.append(1 - abs(0.5 - confidences[i]))
       correct_confidences.append(confidences[i])
+      if detail[i] == 'away':
+        away_correct_confidences.append(confidences[i])
+      elif detail[i] == 'home':
+        home_correct_confidences.append(confidences[i])
     else:
       # incorrect_confidences.append(1 - abs(0.5 - confidences[i]))
-      incorrect_confidences.append( confidences[i])
+      incorrect_confidences.append(confidences[i])
+      if detail[i] == 'away':
+        away_incorrect_confidences.append(confidences[i])
+      elif detail[i] == 'home':
+        home_incorrect_confidences.append(confidences[i])
+
   total_correct = len(correct_confidences)
   total_incorrect = len(incorrect_confidences)
   normal = total_incorrect / total_correct
@@ -162,13 +189,34 @@ def plot_confidences():
   print(f'Total Incorrect: {total_incorrect}')
   print(f'Normal: {normal}')
   print(f'Total: {len(confidences)}')
-  plt.hist(correct_confidences, bins='auto', alpha=0.5, label='Correct', color='blue')
-  plt.hist(incorrect_confidences, bins='auto', alpha=0.5, label='Incorrect', color='red')
+  fig, axs = plt.subplots(1, 3, figsize=(15, 10))
+  sns.kdeplot(data=correct_confidences, fill=True, ax=axs[0], color="blue", alpha=0.5, label='Correct')
+  sns.kdeplot(data=incorrect_confidences, fill=True, ax=axs[0], color="red", alpha=0.5, label='Incorrect')
+
+  sns.kdeplot(data=away_correct_confidences, fill=True, ax=axs[1], color="blue", alpha=0.5, label='Away Correct')
+  sns.kdeplot(data=away_incorrect_confidences, fill=True, ax=axs[1], color="red", alpha=0.5, label='Away Incorrect')
+
+  sns.kdeplot(data=home_correct_confidences, fill=True, ax=axs[2], color="blue", alpha=0.5, label='Home Correct')
+  sns.kdeplot(data=home_incorrect_confidences, fill=True, ax=axs[2], color="red", alpha=0.5, label='Home Incorrect')
+  # bins = 1000
+  # axs[0].hist(correct_confidences, bins=bins, alpha=0.5, label='Correct', color='blue')
+  # axs[0].hist(incorrect_confidences, bins=bins, alpha=0.5, label='Incorrect', color='red')
+  # axs[1].hist(away_correct_confidences, bins=bins, alpha=0.5, label='Away Correct', color='blue')
+  # axs[1].hist(away_incorrect_confidences, bins=bins, alpha=0.5, label='Away Incorrect', color='red')
+  # axs[2].hist(home_correct_confidences, bins=bins, alpha=0.5, label='Home Correct', color='blue')
+  # axs[2].hist(home_incorrect_confidences, bins=bins, alpha=0.5, label='Home Incorrect', color='red')
   # plt.hist(confidences, bins='auto', alpha=0.5, label='All', color='green')
-  plt.xlabel('Confidence')
-  plt.ylabel('Count')
-  plt.title('Confidence Count')
-  plt.legend(loc="upper left")
+  for ax in axs:
+    ax.set_xlabel('Confidence')
+    ax.set_ylabel('Count')
+    ax.legend()
+  axs[0].set_title('Confidence Count')
+  axs[1].set_title('Away Confidence Count')
+  axs[2].set_title('Home Confidence Count')
+  # axs[0].legend(loc="upper left")
+  # axs[1].legend(loc="upper left")
+  # axs[2].legend(loc="upper left")
+  plt.tight_layout()
   plt.show()
 
 # def team_by_team_feature_importance(models, max_num_features=10):
@@ -179,6 +227,15 @@ def plot_confidences():
 #     xgb.plot_importance(model, max_num_features=max_num_features, ax=ax)
 #     plt.title(teamLookup[i]['abbrev'])
 #     plt.show()
+
+def sigmoid(x):
+  return 1 / (1 + np.exp(-x))
+
+def team_by_team_brier_score(wModels):
+  for team, team_data in test_teams:
+    confidences = wModels[team].predict(team_data[X_INPUTS_T])
+    score = brier_score_loss(team_data[['winB']], confidences)
+    print(f'{teamLookup[team]["abbrev"]}: {score}')
 
 def team_by_team_class_count(class_label='winB'):
   for team, team_data in teams:
@@ -329,7 +386,9 @@ if __name__ == '__main__':
   # for k,v in team_score.items():
   #   print(str(k) + ': ' + str(v) + ',')
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
-  accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
+  # accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
+  # team_by_team_brier_score(W_MODELS_LGBM)
+  # single_accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
   # false_positives_negatives_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
   plot_confidences()
   # team_by_team_feature_importance(W_MODELS,100)

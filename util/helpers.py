@@ -55,6 +55,8 @@ def isNaN(inCheck):
     return False
   
 def formatTime(inTime):
+  if inTime == -1:
+    return inTime
   if (type(inTime) == str):
     st = inTime.split(':')
     return float(int(st[0]) * (int(st[1])/60))
