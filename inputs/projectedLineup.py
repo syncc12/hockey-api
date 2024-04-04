@@ -146,3 +146,32 @@ def testProjectedLineup(db,game):
     lineup_data.append([lineup[i] for i in X_INPUTS])
 
   return lineup_data
+
+def last_game(test_data, team_id, game_id):
+  test_data = [data for data in test_data if (data['homeTeam'] == team_id or data['awayTeam'] == team_id) and data['id'] < game_id]
+  if len(test_data) == 0:
+    return None, None
+  last_game = max(test_data, key=lambda x: x.get('id', float('-inf')))
+  home_away = 'home' if last_game['homeTeam'] == team_id else 'away'
+  return last_game, home_away
+
+def projected_shift(test_data, y_test):
+  shift_keys = ['HeadCoach','HeadCoachT','Forward1','Forward1Age','Forward2','Forward2Age','Forward3','Forward3Age','Forward4','Forward4Age','Forward5','Forward5Age','Forward6','Forward6Age','Forward7','Forward7Age','Forward8','Forward8Age','Forward9','Forward9Age','Forward10','Forward10Age','Forward11','Forward11Age','Forward12','Forward12Age','Forward13','Forward13Age','Defenseman1','Defenseman1Age','Defenseman2','Defenseman2Age','Defenseman3','Defenseman3Age','Defenseman4','Defenseman4Age','Defenseman5','Defenseman5Age','Defenseman6','Defenseman6Age','Defenseman7','Defenseman7Age','StartingGoalie','StartingGoalieCatches','StartingGoalieCatchesT','StartingGoalieAge','BackupGoalie','BackupGoalieCatches','BackupGoalieCatchesT','BackupGoalieAge','ForwardAverage','DefenseAverage','GoalieAverage','ForwardAverageAge','DefenseAverageAge','GoalieAverageAge']
+  # away_shift_keys = ['awayHeadCoach','awayHeadCoachT','awayForward1','awayForward1Age','awayForward2','awayForward2Age','awayForward3','awayForward3Age','awayForward4','awayForward4Age','awayForward5','awayForward5Age','awayForward6','awayForward6Age','awayForward7','awayForward7Age','awayForward8','awayForward8Age','awayForward9','awayForward9Age','awayForward10','awayForward10Age','awayForward11','awayForward11Age','awayForward12','awayForward12Age','awayForward13','awayForward13Age','awayDefenseman1','awayDefenseman1Age','awayDefenseman2','awayDefenseman2Age','awayDefenseman3','awayDefenseman3Age','awayDefenseman4','awayDefenseman4Age','awayDefenseman5','awayDefenseman5Age','awayDefenseman6','awayDefenseman6Age','awayDefenseman7','awayDefenseman7Age','awayStartingGoalie','awayStartingGoalieCatches','awayStartingGoalieCatchesT','awayStartingGoalieAge','awayBackupGoalie','awayBackupGoalieCatches','awayBackupGoalieCatchesT','awayBackupGoalieAge','awayForwardAverage','awayDefenseAverage','awayGoalieAverage','awayForwardAverageAge','awayDefenseAverageAge','awayGoalieAverageAge']
+  # home_shift_keys = ['homeHeadCoach','homeHeadCoachT','homeForward1','homeForward1Age','homeForward2','homeForward2Age','homeForward3','homeForward3Age','homeForward4','homeForward4Age','homeForward5','homeForward5Age','homeForward6','homeForward6Age','homeForward7','homeForward7Age','homeForward8','homeForward8Age','homeForward9','homeForward9Age','homeForward10','homeForward10Age','homeForward11','homeForward11Age','homeForward12','homeForward12Age','homeForward13','homeForward13Age','homeDefenseman1','homeDefenseman1Age','homeDefenseman2','homeDefenseman2Age','homeDefenseman3','homeDefenseman3Age','homeDefenseman4','homeDefenseman4Age','homeDefenseman5','homeDefenseman5Age','homeDefenseman6','homeDefenseman6Age','homeDefenseman7','homeDefenseman7Age','homeStartingGoalie','homeStartingGoalieCatches','homeStartingGoalieCatchesT','homeStartingGoalieAge','homeBackupGoalie','homeBackupGoalieCatches','homeBackupGoalieCatchesT','homeBackupGoalieAge','homeForwardAverage','homeDefenseAverage','homeGoalieAverage','homeForwardAverageAge','homeDefenseAverageAge','homeGoalieAverageAge']
+  projected_test_data = []
+  projected_y_test = []
+  for i, data in enumerate(test_data):
+    last_awayTeam_game, away_home_away = last_game(test_data, data['awayTeam'], data['id'])
+    last_homeTeam_game, home_home_away = last_game(test_data, data['homeTeam'], data['id'])
+    if last_homeTeam_game is None or last_awayTeam_game is None:
+      continue
+    else:
+      for ii in shift_keys:
+        data[f'away{ii}'] = last_awayTeam_game[f'{away_home_away}{ii}']
+        data[f'home{ii}'] = last_homeTeam_game[f'{home_home_away}{ii}']
+      projected_test_data.append(data)
+      projected_y_test.append(y_test[i])
+  return projected_test_data, projected_y_test
+
+

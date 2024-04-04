@@ -25,6 +25,7 @@ from joblib import dump, load
 import shap
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import train_test_split
+from inputs.projectedLineup import projected_shift
 
 db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
@@ -101,13 +102,13 @@ def accuracy(test_data, y_test, wModels, lModels):
   print(f'Accuracy: {accuracy}')
   return accuracy
 
-def accuracy_lgbm(test_data, y_test, wModels):
+def accuracy_lgbm(test_data, y_test, wModels, prefix=''):
   soft_predictions, soft_confidences = PREDICT_LGBM_H2H(test_data, wModels, simple_return=True)
   hard_predictions, hard_confidences = PREDICT_LGBM_SCORE_H2H(test_data, wModels, simple_return=True)
   soft_accuracy = accuracy_score(y_test, soft_predictions)
   hard_accuracy = accuracy_score(y_test, hard_predictions)
-  print(f'Soft Accuracy: {soft_accuracy}')
-  print(f'Hard Accuracy: {hard_accuracy}')
+  print(f'{prefix}Soft Accuracy: {soft_accuracy}')
+  print(f'{prefix}Hard Accuracy: {hard_accuracy}')
   return soft_accuracy, hard_accuracy
 
 def single_accuracy_lgbm(test_data, y_test, wModels):
@@ -366,6 +367,16 @@ def false_positives_negatives_lgbm(test_data, y_test, wModels):
   print(f"Positives: T:{hard_true_positives} F:{hard_false_positives}")
   print(f"Negatives: T:{hard_true_negatives} F:{hard_false_negatives}")
 
+
+def projected_flips(test_data, y_test, wModels):
+  accuracy_lgbm(test_data, y_test, wModels)
+  print('Team Score:')
+  get_team_score(test_teams=test_data, teamLookup=teamLookup, models=W_MODELS_LGBM, model_type='lgbm', score_type='moneyline')
+  projected_test_data, projected_y_test = projected_shift(test_data, y_test)
+  accuracy_lgbm(projected_test_data, projected_y_test, wModels, prefix='Projected ')
+  print('Projected Team Score:')
+  get_team_score(test_teams=projected_test_data, teamLookup=teamLookup, models=W_MODELS_LGBM, model_type='lgbm', score_type='moneyline')
+
 if __name__ == '__main__':
   # spread_scores(x_test, y_test, S_MODELS)
   # spread_accuracies(TEST_DATA, y_test, S_MODELS)
@@ -390,7 +401,8 @@ if __name__ == '__main__':
   # team_by_team_brier_score(W_MODELS_LGBM)
   # single_accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
   # false_positives_negatives_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
-  plot_confidences()
+  # plot_confidences()
+  projected_flips(TEST_DATA, y_test, W_MODELS_LGBM)
   # team_by_team_feature_importance(W_MODELS,100)
   # team_by_team_class_count('covers')
   pass
