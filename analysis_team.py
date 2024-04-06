@@ -20,6 +20,7 @@ from util.util import CalibrationClassifier
 from pymongo import MongoClient
 import warnings
 import xgboost as xgb
+import lightgbm as lgb
 from collections import Counter
 from joblib import dump, load
 import shap
@@ -110,6 +111,67 @@ def accuracy_lgbm(test_data, y_test, wModels, prefix=''):
   print(f'{prefix}Soft Accuracy: {soft_accuracy}')
   print(f'{prefix}Hard Accuracy: {hard_accuracy}')
   return soft_accuracy, hard_accuracy
+
+def accuracy_over_time_lgbm(test_data, y_test, wModels):
+  soft_predictions, soft_confidences = PREDICT_LGBM_H2H(test_data, wModels, simple_return=True)
+  hard_predictions, hard_confidences = PREDICT_LGBM_SCORE_H2H(test_data, wModels, simple_return=True)
+  # step = 10
+  fig, axs = plt.subplots(3,3)
+  steps = [25,50,75,100,250,500,750,1000]
+  grids = [(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1)]
+  for step,grid in zip(steps,grids):
+    soft_accuracies = []
+    hard_accuracies = []
+    x_axis = []
+    for i in range(1,len(test_data),step):
+      soft_accuracy = accuracy_score(y_test[i:i+step], soft_predictions[i:i+step])
+      hard_accuracy = accuracy_score(y_test[i:i+step], hard_predictions[i:i+step])
+      soft_accuracies.append(soft_accuracy)
+      hard_accuracies.append(hard_accuracy)
+      x_axis.append(i)
+    axs[grid[0],grid[1]].plot(x_axis, soft_accuracies, label=f'Soft Accuracies step {step}')
+    axs[grid[0],grid[1]].plot(x_axis, hard_accuracies, label=f'Hard Accuracies step {step}')
+    axs[grid[0],grid[1]].set_title(f'{step} Accuracies')
+    axs[grid[0],grid[1]].set_xlabel('Games')
+    axs[grid[0],grid[1]].set_ylabel('Accuracy')
+  fig.legend(loc='upper right')
+  fig.tight_layout()
+  plt.show()
+  
+def team_by_team_accuracy_over_time_lgbm(test_data, wModels):
+  RANGE_START = 1
+  STEP = 5
+  # accuracies = {}
+  x_axis = range(RANGE_START,85,STEP)
+  fig, axs = plt.subplots(4,8)
+  grids = [
+    (0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(0,7),
+    (1,0),(1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),
+    (2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6),(2,7),
+    (3,0),(3,1),(3,2),(3,3),(3,4),(3,5),(3,6),(3,7),
+  ]
+  for grid, (team, team_data) in zip(grids,test_data):
+    team_name = teamLookup[team]['abbrev']
+    accuracies = []
+    x_test = team_data [X_INPUTS_T]
+    y_test = team_data [['winB']].values.ravel()
+    model = wModels[team]
+    preds = model.predict(x_test, num_iteration=model.best_iteration)
+    predictions = [1 if i > 0.5 else 0 for i in preds]
+    for i in x_axis:
+      accuracy = accuracy_score(y_test[i:i+STEP], predictions[i:i+STEP])
+      accuracies.append(accuracy)
+    axs[grid[0],grid[1]].plot(x_axis, accuracies, label=f'{team_name} Accuracies step {STEP}')
+    axs[grid[0],grid[1]].set_title(f'{team_name} Accuracies {STEP}')
+    axs[grid[0],grid[1]].set_xlabel('Games')
+    axs[grid[0],grid[1]].set_ylabel('Accuracy')
+    # plt.plot(x_axis, accuracies, label=f'{team_name} Accuracies')
+    # plt.title(f'{team_name} Accuracies')
+    # plt.xlabel('Games')
+    # plt.ylabel('Accuracy')
+    fig.legend(loc='upper right')
+    fig.tight_layout()
+    plt.show()
 
 def single_accuracy_lgbm(test_data, y_test, wModels):
   # soft_predictions, soft_confidences = PREDICT_LGBM_H2H(test_data, wModels, simple_return=True)
@@ -367,6 +429,45 @@ def false_positives_negatives_lgbm(test_data, y_test, wModels):
   print(f"Positives: T:{hard_true_positives} F:{hard_false_positives}")
   print(f"Negatives: T:{hard_true_negatives} F:{hard_false_negatives}")
 
+def chunk_list(input_list, chunk_size):
+  return [input_list[i:i + chunk_size] for i in range(0, len(input_list), chunk_size)]
+
+def dechunk_list(input_list):
+  return [item for sublist in input_list for item in sublist]
+
+def chunk_dataframe(input_df, num_chunks):
+  return np.array_split(input_df, num_chunks)
+
+def dechunk_dataframe(input_list):
+  return pd.concat(input_list, ignore_index=True)
+
+def online_accuracy_lgbm(test_data, wModels):
+  chunks = [10,5,2]
+  num_chunks = 10
+  for team, team_data in test_data:
+    team_name = teamLookup[team]['abbrev']
+    accuracies = []
+    team_chunks = chunk_dataframe(team_data, num_chunks)
+    for i in range(1,len(team_chunks)-1):
+      train_chunk = dechunk_dataframe(team_chunks[0:i])
+      test_chunk = dechunk_dataframe(team_chunks[i:len(team_chunks)])
+      x_train = train_chunk [X_INPUTS_T]
+      y_train = train_chunk [['winB']].values.ravel()
+      x_test = test_chunk [X_INPUTS_T]
+      y_test = test_chunk [['winB']].values.ravel()
+      if x_train.shape[0] == 0:
+        continue
+      dtrain = lgb.Dataset(x_train, label=y_train)
+      model = wModels[team]
+      params = model.params
+      num_boost_round = model.num_trees()
+      model = lgb.train(params, dtrain, num_boost_round=num_boost_round, init_model=model)
+      preds = model.predict(x_test, num_iteration=model.best_iteration)
+      predictions = np.where(preds > 0.5, 1, 0)
+      accuracy = accuracy_score(y_test, predictions)
+      accuracies.append(accuracy)
+    print(f'{team_name}: {accuracies}')
+      
 
 def projected_flips(test_data, y_test, wModels):
   accuracy_lgbm(test_data, y_test, wModels)
@@ -398,11 +499,14 @@ if __name__ == '__main__':
   #   print(str(k) + ': ' + str(v) + ',')
   # accuracy(TEST_DATA, y_test, W_MODELS, L_MODELS)
   # accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
+  # team_by_team_accuracy_over_time_lgbm(test_teams, W_MODELS_LGBM)
+  # accuracy_over_time_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
+  online_accuracy_lgbm(test_teams, W_MODELS_LGBM)
   # team_by_team_brier_score(W_MODELS_LGBM)
   # single_accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
   # false_positives_negatives_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
   # plot_confidences()
-  projected_flips(TEST_DATA, y_test, W_MODELS_LGBM)
+  # projected_flips(TEST_DATA, y_test, W_MODELS_LGBM)
   # team_by_team_feature_importance(W_MODELS,100)
   # team_by_team_class_count('covers')
   pass
