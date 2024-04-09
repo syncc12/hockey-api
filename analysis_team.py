@@ -15,7 +15,7 @@ from constants.inputConstants import X_INPUTS_T
 from constants.constants import VERSION, FILE_VERSION, XGB_VERSION, XGB_FILE_VERSION, TEST_DATA_FILE_VERSION, START_SEASON, END_SEASON
 from util.team_models import get_team_score, calibrate, PREDICT, PREDICT_H2H, PREDICT_SCORE_H2H, PREDICT_SPREAD, PREDICT_SCORE_SPREAD, PREDICT_COVERS, PREDICT_SCORE_COVERS, PREDICT_LGBM_H2H, PREDICT_LGBM_SCORE_H2H, W_MODELS, L_MODELS, S_MODELS, C_MODELS, W_MODELS_LGBM
 from util.helpers import team_lookup
-from util.team_helpers import away_rename, home_rename
+from util.team_helpers import away_rename, home_rename, franchise_map
 from util.util import CalibrationClassifier
 from pymongo import MongoClient
 import warnings
@@ -42,18 +42,18 @@ warnings.filterwarnings("ignore", message="X has feature names")
 TEAM = False
 
 SEASONS = [
-  # 20052006,
-  # 20062007,
-  # 20072008,
-  # 20082009,
-  # 20092010,
-  # 20102011,
-  # 20112012,
-  # 20122013,
-  # 20132014,
-  # 20142015,
-  # 20152016,
-  # 20162017,
+  20052006,
+  20062007,
+  20072008,
+  20082009,
+  20092010,
+  20102011,
+  20112012,
+  20122013,
+  20132014,
+  20142015,
+  20152016,
+  20162017,
   20172018,
   20182019,
   20192020,
@@ -61,25 +61,30 @@ SEASONS = [
   20212022,
   20222023,
 ]
-# TRAINING_DATA = training_input(SEASONS)
-# training_data1 = pd.DataFrame(TRAINING_DATA)
-# training_data2 = pd.DataFrame(TRAINING_DATA)
+TRAINING_DATA = training_input(SEASONS)
+training_data1 = pd.DataFrame(TRAINING_DATA)
+training_data2 = pd.DataFrame(TRAINING_DATA)
 
-# training_data1.rename(columns=home_rename, inplace=True)
-# training_data1['winB'] = 1 - training_data1['winB']
-# training_data1['lossB'] = 1 - training_data1['winB']
-# training_data2.rename(columns=away_rename, inplace=True)
-# training_data2['lossB'] = 1 - training_data2['winB']
-# training_data = pd.concat([training_data1, training_data2], axis=0)
-# training_data.reset_index(drop=True, inplace=True)
-# teams = training_data.groupby('team')
-# teams_group = training_data.groupby('team')
+training_data1.rename(columns=home_rename, inplace=True)
+training_data1['winB'] = 1 - training_data1['winB']
+training_data1['lossB'] = 1 - training_data1['winB']
+training_data2.rename(columns=away_rename, inplace=True)
+training_data2['lossB'] = 1 - training_data2['winB']
+for franchise in franchise_map:
+  training_data1.loc[training_data1['team'] == franchise, 'team'] = franchise_map[franchise]
+  training_data2.loc[training_data2['team'] == franchise, 'team'] = franchise_map[franchise]
+training_data = pd.concat([training_data1, training_data2], axis=0)
+training_data.reset_index(drop=True, inplace=True)
+teams = training_data.groupby('team')
+training_teams = training_data.groupby('team')
+teams_group = training_data.groupby('team')
 
-# if TEAM:
-#   teams = [(TEAM, teams.get_group(TEAM))]
+if TEAM:
+  teams = [(TEAM, teams.get_group(TEAM))]
 
 OUTPUT = 'winnerB'
 TEST_DATA = test_input(no_format=True)
+PROJECTED_TEST_DATA, TEST_DATA = projected_shift(TEST_DATA)
 # TEST_DATA, CAL_DATA = TEST_DATA[:len(TEST_DATA)//2], TEST_DATA[len(TEST_DATA)//2:]
 test_df = pd.DataFrame(TEST_DATA)
 test_data1 = pd.DataFrame(TEST_DATA)
@@ -97,19 +102,36 @@ test_teams_group = test_data.groupby('team')
 x_test = test_data [X_INPUTS_T]
 y_test = test_df [[OUTPUT]].values.ravel()
 
+projected_test_df = pd.DataFrame(PROJECTED_TEST_DATA)
+projected_test_data1 = pd.DataFrame(PROJECTED_TEST_DATA)
+projected_test_data2 = pd.DataFrame(PROJECTED_TEST_DATA)
+projected_test_data1.rename(columns=home_rename, inplace=True)
+projected_test_data1['winB'] = 1 - projected_test_data1['winB']
+projected_test_data1['lossB'] = 1 - projected_test_data1['winB']
+projected_test_data2.rename(columns=away_rename, inplace=True)
+projected_test_data2['lossB'] = 1 - projected_test_data2['winB']
+projected_test_data = pd.concat([projected_test_data1, projected_test_data2], axis=0)
+projected_test_data.reset_index(drop=True, inplace=True)
+projected_test_teams = projected_test_data.groupby('team')
+projected_test_teams_group = projected_test_data.groupby('team')
+
+projected_x_test = projected_test_data [X_INPUTS_T]
+projected_y_test = projected_test_df [[OUTPUT]].values.ravel()
+
 def accuracy(test_data, y_test, wModels, lModels):
   predictions, *other = PREDICT_SCORE_H2H(test_data, wModels, lModels)
   accuracy = accuracy_score(y_test, predictions)
   print(f'Accuracy: {accuracy}')
   return accuracy
 
-def accuracy_lgbm(test_data, y_test, wModels, prefix=''):
+def accuracy_lgbm(test_data, y_test, wModels, prefix='', only_return=False):
   soft_predictions, soft_confidences = PREDICT_LGBM_H2H(test_data, wModels, simple_return=True)
   hard_predictions, hard_confidences = PREDICT_LGBM_SCORE_H2H(test_data, wModels, simple_return=True)
   soft_accuracy = accuracy_score(y_test, soft_predictions)
   hard_accuracy = accuracy_score(y_test, hard_predictions)
-  print(f'{prefix}Soft Accuracy: {soft_accuracy}')
-  print(f'{prefix}Hard Accuracy: {hard_accuracy}')
+  if not only_return:
+    print(f'{prefix}Soft Accuracy: {soft_accuracy}')
+    print(f'{prefix}Hard Accuracy: {hard_accuracy}')
   return soft_accuracy, hard_accuracy
 
 def accuracy_over_time_lgbm(test_data, y_test, wModels):
@@ -439,44 +461,85 @@ def chunk_dataframe(input_df, num_chunks):
   return np.array_split(input_df, num_chunks)
 
 def dechunk_dataframe(input_list):
-  return pd.concat(input_list, ignore_index=True)
+  data = pd.concat(input_list, axis=0)
+  data.reset_index(drop=True, inplace=True)
+  return data
 
 def online_accuracy_lgbm(test_data, wModels):
   chunks = [10,5,2]
   num_chunks = 10
+  team_datasets = {}
   for team, team_data in test_data:
-    team_name = teamLookup[team]['abbrev']
-    accuracies = []
     team_chunks = chunk_dataframe(team_data, num_chunks)
+    train_data = training_teams.get_group(team)
+    team_datasets[team] = []
     for i in range(1,len(team_chunks)-1):
       train_chunk = dechunk_dataframe(team_chunks[0:i])
+      train_chunk = dechunk_dataframe([train_data, train_chunk])
       test_chunk = dechunk_dataframe(team_chunks[i:len(team_chunks)])
-      x_train = train_chunk [X_INPUTS_T]
-      y_train = train_chunk [['winB']].values.ravel()
-      x_test = test_chunk [X_INPUTS_T]
-      y_test = test_chunk [['winB']].values.ravel()
-      if x_train.shape[0] == 0:
-        continue
-      dtrain = lgb.Dataset(x_train, label=y_train)
+      x_train_lgbm = train_chunk [X_INPUTS_T]
+      y_train_lgbm = train_chunk [['winB']].values.ravel()
+      x_test_lgbm = test_chunk [X_INPUTS_T]
+      y_test_lgbm = test_chunk [['winB']].values.ravel()
+      dtrain = lgb.Dataset(x_train_lgbm, label=y_train_lgbm)
+      team_datasets[team].append({'dtrain': dtrain, 'x_test_lgbm': x_test_lgbm, 'y_test_lgbm': y_test_lgbm})
+
+  for team in team_datasets:
+    team_name = teamLookup[team]['abbrev']
+    accuracies = []
+    datasets = team_datasets[team]
+    for dataset in datasets:
+      dtrain = dataset['dtrain']
+      x_test_lgbm = dataset['x_test_lgbm']
+      y_test_lgbm = dataset['y_test_lgbm']
       model = wModels[team]
       params = model.params
+      params.pop('num_iterations', None)
       num_boost_round = model.num_trees()
-      model = lgb.train(params, dtrain, num_boost_round=num_boost_round, init_model=model)
-      preds = model.predict(x_test, num_iteration=model.best_iteration)
+      model = lgb.train(params, dtrain, num_boost_round=num_boost_round)
+      preds = model.predict(x_test_lgbm, num_iteration=model.best_iteration)
       predictions = np.where(preds > 0.5, 1, 0)
-      accuracy = accuracy_score(y_test, predictions)
+      accuracy = accuracy_score(y_test_lgbm, predictions)
       accuracies.append(accuracy)
     print(f'{team_name}: {accuracies}')
-      
 
-def projected_flips(test_data, y_test, wModels):
-  accuracy_lgbm(test_data, y_test, wModels)
-  print('Team Score:')
-  get_team_score(test_teams=test_data, teamLookup=teamLookup, models=W_MODELS_LGBM, model_type='lgbm', score_type='moneyline')
-  projected_test_data, projected_y_test = projected_shift(test_data, y_test)
-  accuracy_lgbm(projected_test_data, projected_y_test, wModels, prefix='Projected ')
-  print('Projected Team Score:')
-  get_team_score(test_teams=projected_test_data, teamLookup=teamLookup, models=W_MODELS_LGBM, model_type='lgbm', score_type='moneyline')
+def projected_flips(test_data,projected_test_data,wModels):
+  soft_predictions, soft_confidences = PREDICT_LGBM_H2H(test_data, wModels, simple_return=True)
+  hard_predictions, hard_confidences = PREDICT_LGBM_SCORE_H2H(test_data, wModels, simple_return=True)
+  projected_soft_predictions, projected_soft_confidences = PREDICT_LGBM_H2H(projected_test_data, wModels, simple_return=True)
+  projected_hard_predictions, projected_hard_confidences = PREDICT_LGBM_SCORE_H2H(projected_test_data, wModels, simple_return=True)
+  soft_flips = 0
+  hard_flips = 0
+  for i in range(0,len(soft_predictions)):
+    # print(soft_predictions[i],projected_soft_predictions[i])
+    if soft_predictions[i] != projected_soft_predictions[i]:
+      soft_flips += 1
+  for i in range(0,len(hard_predictions)):
+    if hard_predictions[i] != projected_hard_predictions[i]:
+      hard_flips += 1
+  print(f'Soft Flips: {soft_flips}/{len(soft_predictions)} ({(soft_flips/len(soft_predictions))*100:.2f}%) | {len(soft_predictions)} - {len(projected_soft_predictions)}')
+  print(f'Hard Flips: {hard_flips}/{len(hard_predictions)} ({(hard_flips/len(hard_predictions))*100:.2f}%) | {len(hard_predictions)} - {len(projected_hard_predictions)}')
+
+def team_by_team_projected_flips(test_data, wModels):
+  for team, team_data in test_data:
+    team_name = teamLookup[team]['abbrev']
+    projected_team_data = projected_test_teams.get_group(team)
+    x_test = team_data [X_INPUTS_T]
+    y_test = team_data [['winB']].values.ravel()
+    projected_x_test = projected_team_data [X_INPUTS_T]
+    projected_y_test = projected_team_data [['winB']].values.ravel()
+    model = wModels[team]
+    preds = model.predict(x_test, num_iteration=model.best_iteration)
+    # predictions = np.where(preds > 0.5, 1, 0)
+    predictions = [1 if i > 0.5 else 0 for i in preds]
+    projected_preds = model.predict(projected_x_test, num_iteration=model.best_iteration)
+    # projected_predictions = np.where(projected_preds > 0.5, 1, 0)
+    projected_predictions = [1 if i > 0.5 else 0 for i in projected_preds]
+    flips = 0
+    for i in range(0,len(predictions)):
+      if predictions[i] != projected_predictions[i]:
+        flips += 1
+    print(f'{team_name}: {flips}/{len(predictions)} ({(flips/len(predictions))*100:.2f}%) | {len(predictions)} - {len(projected_predictions)}')
 
 if __name__ == '__main__':
   # spread_scores(x_test, y_test, S_MODELS)
@@ -501,7 +564,9 @@ if __name__ == '__main__':
   # accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
   # team_by_team_accuracy_over_time_lgbm(test_teams, W_MODELS_LGBM)
   # accuracy_over_time_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
-  online_accuracy_lgbm(test_teams, W_MODELS_LGBM)
+  team_by_team_projected_flips(test_teams, W_MODELS_LGBM)
+  # projected_flips(TEST_DATA,PROJECTED_TEST_DATA,W_MODELS_LGBM)
+  # online_accuracy_lgbm(test_teams, W_MODELS_LGBM)
   # team_by_team_brier_score(W_MODELS_LGBM)
   # single_accuracy_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)
   # false_positives_negatives_lgbm(TEST_DATA, y_test, W_MODELS_LGBM)

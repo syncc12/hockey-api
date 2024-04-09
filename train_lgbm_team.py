@@ -48,10 +48,10 @@ USE_X_INPUTS = X_INPUTS_T
 OUTPUT = 'winB'
 
 TRIAL = False
-OPTIMIZE = True
-DRY_RUN = False
+OPTIMIZE = False
+DRY_RUN = True
 
-TEAM = False
+TEAM = 7
 START_TEAM = False
 END_TEAM = False
 
