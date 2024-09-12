@@ -10,3 +10,4 @@ pages/mlb/data/*
 models/*
 test_data/*
 training_data/*
+backups/*

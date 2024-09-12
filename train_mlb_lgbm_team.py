@@ -16,7 +16,7 @@ from hyperopt import hp, fmin, tpe, Trials, STATUS_OK
 from pages.mlb.inputs import X_INPUTS_MLB_T, ENCODE_COLUMNS, mlb_training_input, mlb_test_input
 from pages.mlb.mlb_helpers import team_lookup, away_rename, home_rename
 
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 db = client["hockey"]
 mlb_db = client["mlb"]
 

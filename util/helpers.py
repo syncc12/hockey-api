@@ -13,7 +13,7 @@ def nhl_api():
   print(data)
 
 def nhl_db():
-  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
   db = client["hockey"]
   Trainings = db["dev_trainings"]
   training_data = Trainings.find({})
@@ -165,7 +165,7 @@ def projectedLineup(team,gameId,last_boxscore=False):
     return last_game, home_or_away
 
 def latestIDs(training_data=-1):
-  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
   db = client["hockey"]
   # Trainings = db["dev_trainings"]
   Boxscores = db["dev_boxscores"]

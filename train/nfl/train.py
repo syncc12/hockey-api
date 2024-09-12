@@ -24,7 +24,7 @@ import time
 from inputs.nfl.inputs import master_inputs
 
 
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 db = client["nfl"]
 Games = db["games"]
 
@@ -111,7 +111,7 @@ if __name__ == '__main__':
   if RE_PULL:
     # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
     # client = MongoClient(db_url)
-    client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+    client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
     db = client["nfl"]
     games = list(db["games"].find(
       {}

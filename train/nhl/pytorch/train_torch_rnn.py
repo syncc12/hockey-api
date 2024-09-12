@@ -88,7 +88,7 @@ class BinaryRNN(nn.Module):
     return out.squeeze(-1)
 
 def train():
-  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+  client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
   db = client["hockey"]
 
   training_data = load(f'training_data/training_data_v{TORCH_FILE_VERSION}.joblib')

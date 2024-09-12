@@ -13,7 +13,7 @@ import xgboost as xgb
 from sklearn.preprocessing import LabelEncoder
 
 
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 db = client["hockey"]
 TRAINING_DATA = load(f'training_data/training_data_v{PROJECTED_LINEUP_FILE_VERSION}_projectedLineup.joblib')
 TEST_DATA = load(f'test_data/test_data_v{PROJECTED_LINEUP_TEST_DATA_FILE_VERSION}_projectedLineup.joblib')

@@ -41,7 +41,7 @@ def filter_lookup_matchup(inLookup, homeId, awayId, startingGameId, include_star
   else:
     return [game for game in inLookup if game['id'] < startingGameId and (game['homeTeam']['id'] == homeId and game['awayTeam']['id'] == awayId) or (game['homeTeam']['id'] == awayId and game['awayTeam']['id'] == homeId)]
 
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 db = client["hockey"]
 Boxscores = db['dev_boxscores']
 Games = db['dev_games']

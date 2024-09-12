@@ -14,7 +14,7 @@ from util.helpers import recommended_wagers
 from util.models import MODELS
 from util.team_models import W_MODELS, L_MODELS
 
-db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net"
+db_url = "mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net"
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
 client = MongoClient(db_url)
 db = client['hockey']

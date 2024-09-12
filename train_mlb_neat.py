@@ -15,7 +15,7 @@ import numpy as np
 import neat
 
 
-# client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+# client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 # db = client["hockey"]
 # mlb_db = client["mlb"]
 

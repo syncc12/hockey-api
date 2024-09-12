@@ -464,7 +464,7 @@ def get_last_game_team_stats(db,teamId,teamTitle='',previousGames=GAMES_BACK):
     print('get_last_game_team_stats',error)
 
 
-# client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+# client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 # db = client["hockey"]
 
 # playerIDs = list_players_in_game(db,2023020215)

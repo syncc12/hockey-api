@@ -12,7 +12,7 @@ from constants.constants import VERSION, FILE_VERSION, PROJECTED_LINEUP_VERSION,
 
 # db_url = f"mongodb+srv://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_NAME')}"
 # client = MongoClient(db_url)
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 db = client["hockey"]
 Boxscores = db["dev_boxscores"]
 Games = db["dev_games"]

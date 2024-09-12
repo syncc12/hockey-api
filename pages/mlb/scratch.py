@@ -2,7 +2,7 @@
 from pymongo import MongoClient
 from mlb_helpers import team_lookup
 
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 db = client["mlb"]
 
 teamLookup = team_lookup(db,True)

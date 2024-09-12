@@ -18,7 +18,7 @@ from multiprocessing import Pool
 
 # winnerB Accuracy: 53.89% | eta: 0.75 | max_depth: 20 | initial_lr: 0.2 | final_lr: 0.1 || Best So Far: Accuracy: 59.64% | eta: 0.01 | max_depth: 13 | initial_lr: 0.19 | final_lr: 0.019
 
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 db = client["hockey"]
 TRAINING_DATA = load(f'training_data/training_data_v{FILE_VERSION}.joblib')
 # TRAINING_DATA = load(f'training_data/training_data_v{FILE_VERSION}_{START_SEASON}_{END_SEASON}.joblib')

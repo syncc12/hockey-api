@@ -60,7 +60,7 @@ def train(db, inData, inTestData):
 
 
 
-client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.zl50pnb.mongodb.net")
+client = MongoClient("mongodb+srv://syncc12:mEU7TnbyzROdnJ1H@hockey.2zn0c.mongodb.net")
 db = client["hockey"]
 training_data = load(f'training_data/training_data_v{FILE_VERSION}.joblib')
 test_data = load(f'test_data/test_data_v{FILE_VERSION}.joblib')
